@@ -197,8 +197,8 @@
             try {
                 this.aiLoading = true;
                 this.ui.setAiLoading(true);
-                const context = this.contextExtractor.extract(this.chatContainer);
-                const messages = context?.lastMessages || [];
+                const context = this.contextExtractor.extract(this.chatContainer, { fullHistory: true });
+                const messages = context?.allMessages || context?.lastMessages || [];
                 const aiSuggestions = await this.aiClient.generateSuggestions({ messages });
                 const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
                 this.ui.render(safe, { isAI: true });

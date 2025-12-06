@@ -5,7 +5,7 @@
             this.messageReader = messageReader || window.BadooChatSuggestions.createBadooMessageReader();
         }
 
-        extract(chatContainer) {
+        extract(chatContainer, { fullHistory = false } = {}) {
             if (!chatContainer) {
                 console.error('[Badoo Chat Suggestions] Container de chat não encontrado');
                 return null;
@@ -30,9 +30,9 @@
 
             const allMessagesArray = Array.from(messages);
             context.conversationLength = allMessagesArray.length;
-            const recentMessages = allMessagesArray.slice(-10);
 
-            recentMessages.forEach(message => {
+            const targetMessages = fullHistory ? allMessagesArray : allMessagesArray.slice(-10);
+            targetMessages.forEach(message => {
                 if (!message) return;
                 const { sender, text, direction, type } = message;
 
