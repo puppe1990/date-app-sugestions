@@ -43,14 +43,18 @@
     const loadEnvKey = async () => {
         try {
             const envUrl = chrome?.runtime?.getURL ? chrome.runtime.getURL('.env') : null;
-            if (!envUrl) return null;
+            if (!envUrl) return { openrouterKey: null, geminiKey: null };
             const res = await fetch(envUrl);
-            if (!res.ok) return null;
+            if (!res.ok) return { openrouterKey: null, geminiKey: null };
             const text = await res.text();
-            const match = text.match(/OPENROUTER_API_KEY\s*=\s*(.+)/i);
-            return match ? match[1].trim() : null;
+            const orMatch = text.match(/OPENROUTER_API_KEY\s*=\s*(.+)/i);
+            const gemMatch = text.match(/GEMINI_API_KEY\s*=\s*(.+)/i);
+            return {
+                openrouterKey: orMatch ? orMatch[1].trim() : null,
+                geminiKey: gemMatch ? gemMatch[1].trim() : null
+            };
         } catch (e) {
-            return null;
+            return { openrouterKey: null, geminiKey: null };
         }
     };
 
@@ -60,7 +64,7 @@
         }
 
         const stored = await loadConfig();
-        const envApiKey = await loadEnvKey();
+        const envKeys = await loadEnvKey();
         const config = {
             ...stored,
             ...(window.badooChatSuggestionsConfig || {})
@@ -70,8 +74,8 @@
             : config.messageReader;
         const provider = config.llmProvider || defaultProvider;
         const apiKey = provider === 'gemini'
-            ? (config.geminiApiKey || envApiKey)
-            : (config.openRouterApiKey || envApiKey || (typeof window !== 'undefined' && window.OPENROUTER_API_KEY));
+            ? (config.geminiApiKey || envKeys.geminiKey)
+            : (config.openRouterApiKey || envKeys.openrouterKey || (typeof window !== 'undefined' && window.OPENROUTER_API_KEY));
         const model = provider === 'gemini'
             ? (config.geminiModel || defaultGeminiModel)
             : (config.openRouterModel || defaultOpenRouterModel);
