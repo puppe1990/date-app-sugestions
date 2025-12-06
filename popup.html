@@ -37,10 +37,11 @@
   <h1>Modelo IA</h1>
   <label for="modelSelect">Escolha o modelo (1 é o padrão):</label>
   <select id="modelSelect"></select>
+  <label for="apiKeyInput">OpenRouter API Key:</label>
+  <input id="apiKeyInput" type="password" placeholder="sk-..." autocomplete="off" />
   <button id="saveBtn">Salvar</button>
   <div class="note">
-    A chave deve estar definida como <code>window.OPENROUTER_API_KEY</code> ou
-    <code>openRouterApiKey</code> em <code>window.badooChatSuggestionsConfig</code>.
+    A chave é salva localmente (chrome.storage) e usada pelo content script.
   </div>
   <script src="popup.js"></script>
 </body>

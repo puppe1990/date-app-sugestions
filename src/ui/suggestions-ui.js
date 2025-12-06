@@ -7,6 +7,8 @@
             this.onAiGenerate = onAiGenerate;
             this.aiLoading = false;
             this.aiButton = null;
+            this.aiSuggestions = [];
+            this.normalSuggestions = [];
         }
 
         getContainer() {
@@ -171,27 +173,16 @@
             });
         }
 
-        render(suggestions) {
+        render(suggestions, { isAI = false } = {}) {
             const container = this.getContainer();
             if (!container) return;
 
-            container.innerHTML = '';
-
-            if (typeof this.onAiGenerate === 'function') {
-                const aiButton = this.createAiButton();
-                container.appendChild(aiButton);
-                this.aiButton = aiButton;
+            if (isAI) {
+                this.aiSuggestions = Array.isArray(suggestions) ? suggestions : [];
+            } else {
+                this.normalSuggestions = Array.isArray(suggestions) ? suggestions : [];
             }
-
-            const finalSuggestions = suggestions && suggestions.length > 0 ? suggestions : [];
-            finalSuggestions.forEach(suggestion => {
-                const button = this.createSuggestionButton(suggestion);
-                container.appendChild(button);
-            });
-
-            if (container.style.display === 'none') {
-                container.style.display = 'flex';
-            }
+            this.renderSections();
         }
 
         createSuggestionButton(text) {
@@ -227,6 +218,44 @@
                 e.stopPropagation();
                 this.insertSuggestion(text);
                 console.info('[Badoo Chat Suggestions] Sugestão aplicada', { text });
+            });
+
+            return button;
+        }
+
+        createAISuggestionButton(text) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button chat-suggestion-button--ai-suggestion';
+            button.textContent = text;
+            button.style.cssText = `
+                padding: 8px 16px;
+                border: 1px solid #333;
+                border-radius: 18px;
+                background-color: #111;
+                color: #fff;
+                font-size: 14px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: all 0.2s;
+                flex-shrink: 0;
+            `;
+
+            button.addEventListener('mouseenter', () => {
+                button.style.backgroundColor = '#000';
+                button.style.borderColor = '#222';
+            });
+
+            button.addEventListener('mouseleave', () => {
+                button.style.backgroundColor = '#111';
+                button.style.borderColor = '#333';
+            });
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.insertSuggestion(text);
+                console.info('[Badoo Chat Suggestions] Sugestão IA aplicada', { text });
             });
 
             return button;
@@ -279,6 +308,53 @@
                 this.aiButton.disabled = this.aiLoading;
                 this.aiButton.style.opacity = this.aiLoading ? '0.7' : '1';
             }
+        }
+
+        renderSections() {
+            const container = this.getContainer();
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            if (typeof this.onAiGenerate === 'function') {
+                const aiButton = this.createAiButton();
+                container.appendChild(aiButton);
+                this.aiButton = aiButton;
+            }
+
+            if (this.aiSuggestions.length > 0) {
+                const aiLabel = this.createLabel('Sugestões IA');
+                container.appendChild(aiLabel);
+                this.aiSuggestions.forEach(s => container.appendChild(this.createAISuggestionButton(s)));
+            }
+
+            if (this.normalSuggestions.length > 0) {
+                const normalLabel = this.createLabel('Sugestões');
+                container.appendChild(normalLabel);
+                this.normalSuggestions.forEach(s => container.appendChild(this.createSuggestionButton(s)));
+            }
+
+            if (container.style.display === 'none') {
+                container.style.display = 'flex';
+            }
+
+            if (this.aiLoading) {
+                this.setAiLoading(true);
+            }
+        }
+
+        createLabel(text) {
+            const label = document.createElement('span');
+            label.textContent = text;
+            label.style.cssText = `
+                font-size: 12px;
+                color: #666;
+                font-weight: 600;
+                padding: 4px 0;
+                margin-right: 8px;
+                align-self: center;
+            `;
+            return label;
         }
 
         insertSuggestion(text) {

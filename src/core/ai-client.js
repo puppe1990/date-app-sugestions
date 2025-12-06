@@ -38,7 +38,17 @@
             });
 
             if (!response.ok) {
-                const errorText = await response.text().catch(() => response.statusText);
+                let errorText = response.statusText;
+                try {
+                    const raw = await response.text();
+                    errorText = raw || response.statusText;
+                    const json = JSON.parse(raw);
+                    if (json?.error?.message) {
+                        errorText = json.error.message;
+                    }
+                } catch (e) {
+                    // ignore parse error
+                }
                 throw new Error(`Erro OpenRouter (${response.status}): ${errorText}`);
             }
 

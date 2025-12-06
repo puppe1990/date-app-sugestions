@@ -161,6 +161,7 @@
                 total: safeSuggestions.length,
                 topics: context?.topics || []
             });
+            this.lastMessageCount = this.chatContainer.querySelectorAll('[data-qa="chat-message"]').length;
         }
 
         createAIClient() {
@@ -170,7 +171,7 @@
 
             const model = this.aiClientConfig.model ||
                 (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterModel) ||
-                'openai/gpt-4o';
+                'openai/gpt-oss-120b:free';
 
             if (!apiKey) {
                 this.info('OpenRouter não configurado; botão de IA ficará inativo');
@@ -200,11 +201,11 @@
                 const messages = context?.lastMessages || [];
                 const aiSuggestions = await this.aiClient.generateSuggestions({ messages });
                 const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
-                this.ui.render(safe);
+                this.ui.render(safe, { isAI: true });
                 this.info('Sugestões de IA geradas', { total: safe.length });
             } catch (error) {
                 console.error('[Badoo Chat Suggestions] Erro ao gerar via IA', error);
-                alert('Não foi possível gerar sugestões via IA.');
+                alert(`Não foi possível gerar sugestões via IA.\n${error.message || ''}`);
             } finally {
                 this.aiLoading = false;
                 this.ui.setAiLoading(false);

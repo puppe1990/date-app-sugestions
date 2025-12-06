@@ -33,5 +33,15 @@
       "run_at": "document_idle",
       "all_frames": false
     }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        ".env"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
   ]
 }

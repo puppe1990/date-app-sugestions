@@ -106,7 +106,7 @@ Para ativar logs de debug no console, execute no console do navegador:
 
 ```javascript
 window.badooChatSuggestionsDebug = true;
+window.OPENROUTER_API_KEY = 'sua-chave-aqui'; // se quiser testar IA rapidamente
 ```
 
 Isso mostrará logs detalhados sobre a análise de mensagens e geração de sugestões.
-

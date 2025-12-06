@@ -18,12 +18,27 @@
                 resolve({});
                 return;
             }
-            chrome.storage.local.get(['openRouterModel'], (result) => {
+            chrome.storage.local.get(['openRouterModel', 'openRouterApiKey'], (result) => {
                 resolve({
-                    openRouterModel: result.openRouterModel || defaultModel
+                    openRouterModel: result.openRouterModel || defaultModel,
+                    openRouterApiKey: result.openRouterApiKey
                 });
             });
         });
+    };
+
+    const loadEnvKey = async () => {
+        try {
+            const envUrl = chrome?.runtime?.getURL ? chrome.runtime.getURL('.env') : null;
+            if (!envUrl) return null;
+            const res = await fetch(envUrl);
+            if (!res.ok) return null;
+            const text = await res.text();
+            const match = text.match(/OPENROUTER_API_KEY\s*=\s*(.+)/i);
+            return match ? match[1].trim() : null;
+        } catch (e) {
+            return null;
+        }
     };
 
     const start = async () => {
@@ -32,6 +47,7 @@
         }
 
         const stored = await loadConfig();
+        const envApiKey = await loadEnvKey();
         const config = {
             ...stored,
             ...(window.badooChatSuggestionsConfig || {})
@@ -40,8 +56,10 @@
             ? new window.BadooChatSuggestions.MessageReader(config.messageReaderConfig)
             : config.messageReader;
         const aiClientConfig = config.aiClientConfig || {
-            apiKey: config.openRouterApiKey || (typeof window !== 'undefined' && window.OPENROUTER_API_KEY),
-            model: config.openRouterModel || 'openai/gpt-4o'
+            apiKey: config.openRouterApiKey ||
+                envApiKey ||
+                (typeof window !== 'undefined' && window.OPENROUTER_API_KEY),
+            model: config.openRouterModel || defaultModel
         };
 
         console.info('[Badoo Chat Suggestions] Iniciando content script', {

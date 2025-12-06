@@ -34,6 +34,7 @@ const DEFAULT_MODEL = MODELS[0];
 document.addEventListener('DOMContentLoaded', async () => {
   const select = document.getElementById('modelSelect');
   const saveBtn = document.getElementById('saveBtn');
+  const apiKeyInput = document.getElementById('apiKeyInput');
 
   MODELS.forEach((model, index) => {
     const option = document.createElement('option');
@@ -45,18 +46,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     select.appendChild(option);
   });
 
-  chrome.storage.local.get(['openRouterModel'], (result) => {
+  chrome.storage.local.get(['openRouterModel', 'openRouterApiKey'], (result) => {
     const storedModel = result.openRouterModel;
+    const storedKey = result.openRouterApiKey;
     if (storedModel && MODELS.includes(storedModel)) {
       select.value = storedModel;
     } else {
       select.value = DEFAULT_MODEL;
     }
+    if (storedKey) {
+      apiKeyInput.value = storedKey;
+    }
   });
 
   saveBtn.addEventListener('click', () => {
     const chosen = select.value || DEFAULT_MODEL;
-    chrome.storage.local.set({ openRouterModel: chosen }, () => {
+    const apiKey = apiKeyInput.value.trim();
+    chrome.storage.local.set({ openRouterModel: chosen, openRouterApiKey: apiKey }, () => {
       saveBtn.textContent = 'Salvo!';
       setTimeout(() => (saveBtn.textContent = 'Salvar'), 1200);
     });
