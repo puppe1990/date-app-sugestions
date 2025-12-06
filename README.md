@@ -72,3 +72,4 @@ Após incluir o script, as sugestões aparecerão automaticamente acima da caixa
 - Suporta inputs de texto, textareas e elementos contentEditable
 - Fallback para clipboard se a caixa de mensagem não for encontrada
 
+

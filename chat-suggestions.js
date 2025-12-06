@@ -126,13 +126,100 @@ class ChatSuggestions {
         
         // Tópicos comuns em conversas de relacionamento
         const topicKeywords = {
-            'trabalho': ['trabalho', 'emprego', 'profissão', 'engenheiro', 'desenvolve', 'programas', 'escritório', 'empresa', 'carreira', 'faz o que', 'trabalha', 'trabalho', 'escritório', 'cliente', 'pedágio', 'loja', 'porcelanato', 'startup', 'consultoria', 'tecnologia', 'programador', 'desenvolvedor', 'software'],
-            'localização': ['moro', 'onde', 'cidade', 'capital', 'santo andré', 'tatuapé', 'perto', 'bairro', 'zona', 'região', 'endereço', 'local', 'sp', 'são paulo', 'abc', 'paulista'],
-            'saudação': ['bom dia', 'boa tarde', 'boa noite', 'tudo bem', 'como vai', 'olá', 'oi', 'e aí'],
-            'interesse': ['gostei', 'fotos', 'legal', 'interessante', 'bonito', 'lindo', 'adoro', 'amo', 'curto'],
-            'pergunta': ['?', 'vc', 'você', 'faz o que', 'qual', 'quando', 'onde', 'como'],
-            'hobby': ['hobby', 'gosto', 'curto', 'interesse', 'fazer', 'tempo livre', 'lazer', 'diversão', 'academia', 'caminhar', 'ler', 'youtube', 'restaurante', 'cafeteria'],
-            'encontro': ['encontrar', 'ver', 'conhecer', 'sair', 'encontro', 'marcar', 'combinar', 'quando', 'semana', 'fim de semana']
+            'trabalho': [
+                'trabalho', 'trabalha', 'trabalho com', 'trabalho na', 'trabalho no', 'trabalho em',
+                'emprego', 'empregada', 'empregado',
+                'profissão', 'profissional',
+                'faz o que', 'faz da vida', 'o que faz', 'trabalha com o quê',
+                'engenheiro', 'engenheira', 'engenharia',
+                'desenvolvedor', 'desenvolvedora', 'desenvolve', 'desenvolvimento',
+                'programador', 'programadora', 'programa', 'programação',
+                'software', 'tecnologia', 'tech', 'ti', 'sistemas',
+                'pedágio', 'pedagio',
+                'loja', 'lojista', 'vendedor', 'vendedora',
+                'porcelanato', 'cerâmica',
+                'startup', 'empresa', 'escritório', 'escritorio',
+                'consultoria', 'consultor', 'consultora',
+                'carreira', 'cliente', 'chefe', 'patrão',
+                'mês', 'mes', 'meses', 'ano', 'anos', 'tempo de trabalho',
+                'área', 'area', 'setor', 'ramo'
+            ],
+            'localização': [
+                'moro', 'mora', 'moramos', 'morar',
+                'onde', 'onde mora', 'onde você mora', 'onde vc mora',
+                'cidade', 'bairro', 'bairros',
+                'capital', 'interior',
+                'são paulo', 'sao paulo', 'sp',
+                'tatuapé', 'tatuape',
+                'santo andré', 'santo andre', 'abc',
+                'paulista', 'paulistas',
+                'perto', 'próximo', 'proximo', 'próxima', 'proxima',
+                'zona', 'zona norte', 'zona sul', 'zona leste', 'zona oeste',
+                'zn', 'zs', 'zl', 'zo',
+                'região', 'regiao', 'regiões', 'regioes',
+                'endereço', 'endereco', 'local', 'lugar',
+                'mauá', 'maua', 'sbc', 'são bernardo', 'sao bernardo',
+                'guarulhos', 'osasco', 'campinas'
+            ],
+            'saudação': [
+                'bom dia', 'boa tarde', 'boa noite',
+                'tudo bem', 'td bem', 'tudo bom', 'td bom',
+                'como vai', 'como está', 'como esta', 'como ta',
+                'olá', 'ola', 'oi', 'e aí', 'e ai', 'eai',
+                'opa', 'eae', 'fala'
+            ],
+            'interesse': [
+                'gostei', 'gostou', 'gosta',
+                'fotos', 'foto', 'fotografia',
+                'legal', 'bacana', 'daora', 'massa',
+                'interessante', 'interessou',
+                'bonito', 'bonita', 'lindo', 'linda',
+                'adoro', 'adorei', 'amo', 'amei',
+                'curto', 'curti', 'curtir'
+            ],
+            'pergunta': [
+                '?', 'vc', 'você', 'voce',
+                'faz o que', 'faz da vida', 'o que faz',
+                'qual', 'quais', 'quando', 'onde', 'como',
+                'quem', 'por que', 'porque', 'por quê',
+                'e vc', 'e você', 'e voce', 'e tu'
+            ],
+            'hobby': [
+                'hobby', 'hobbies',
+                'gosto', 'gosta de', 'gostar',
+                'curto', 'curte', 'curtir',
+                'interesse', 'interesses',
+                'fazer', 'fazer no tempo livre',
+                'tempo livre', 'horas vagas',
+                'lazer', 'diversão', 'diversao',
+                'academia', 'treino', 'treinar',
+                'caminhar', 'caminhada', 'correr', 'corrida',
+                'ler', 'leitura', 'livro', 'livros',
+                'youtube', 'netflix', 'filme', 'filmes', 'série', 'series',
+                'restaurante', 'cafeteria', 'café', 'cafe',
+                'música', 'musica', 'cinema', 'teatro',
+                'esporte', 'esportes', 'futebol', 'natação', 'natacao',
+                'viagem', 'viajar', 'fotografia', 'cozinhar', 'dança', 'danca'
+            ],
+            'encontro': [
+                'encontrar', 'encontro', 'encontros',
+                'ver', 'ver você', 'ver vc',
+                'conhecer', 'conhecer pessoalmente',
+                'sair', 'sair junto', 'sairmos',
+                'marcar', 'marcar algo', 'marcarmos',
+                'combinar', 'combinado',
+                'quando', 'quando você pode', 'quando vc pode',
+                'semana', 'fim de semana', 'fds',
+                'hoje', 'amanhã', 'amanha', 'depois'
+            ],
+            'reação': [
+                'oloko', 'oloco', 'nossa', 'caramba',
+                'rs', 'rsrs', 'kkk', 'kkkk', 'haha', 'hahaha',
+                'que legal', 'que massa', 'que daora',
+                'entendi', 'entendeu', 'compreendi',
+                'ah sim', 'ah não', 'ah nao',
+                'tá', 'ta', 'ok', 'okay'
+            ]
         };
 
         for (const [topic, keywords] of Object.entries(topicKeywords)) {
@@ -150,20 +237,31 @@ class ChatSuggestions {
     extractMentionedPlaces(text, places) {
         const lowerText = text.toLowerCase();
         const placePatterns = [
-            /\b(são paulo|sp|capital|tatuapé|santo andré|abc|paulista|zona sul|zona norte|zona leste|zona oeste|berrini|vila|bairro|região|metropolitana)\b/gi,
+            /\b(são paulo|sao paulo|sp|capital|tatuapé|tatuape|santo andré|santo andre|abc|paulista|zona sul|zona norte|zona leste|zona oeste|zn|zs|zl|zo|berrini|vila|bairro|região|regiao|regiões|regioes|metropolitana|mauá|maua|sbc|são bernardo|sao bernardo|guarulhos|osasco|campinas)\b/gi,
             /\bmoro (em|no|na) ([^,.!?]+)/gi,
-            /\b(em|no|na) ([A-Z][a-z]+(?: [A-Z][a-z]+)*)\b/g
+            /\b(em|no|na) ([A-Z][a-z]+(?: [A-Z][a-z]+)*)\b/g,
+            /\b(moro|mora) (no|na|em) ([^,.!?]+)/gi
         ];
         
         placePatterns.forEach(pattern => {
             const matches = text.match(pattern);
             if (matches) {
                 matches.forEach(match => {
-                    const place = match.replace(/\b(moro|em|no|na)\b/gi, '').trim();
+                    let place = match.replace(/\b(moro|mora|em|no|na|e vc|e você)\b/gi, '').trim();
+                    // Remove pontuação e espaços extras
+                    place = place.replace(/[.,!?;:]/g, '').trim();
                     if (place && place.length > 2 && !places.includes(place)) {
                         places.push(place);
                     }
                 });
+            }
+        });
+        
+        // Detecta lugares específicos mencionados diretamente
+        const specificPlaces = ['tatuapé', 'tatuape', 'são paulo', 'sao paulo', 'sp', 'capital', 'santo andré', 'santo andre', 'abc', 'mauá', 'maua', 'zn', 'zona norte', 'zona sul', 'zona leste', 'zona oeste'];
+        specificPlaces.forEach(place => {
+            if (lowerText.includes(place) && !places.includes(place)) {
+                places.push(place);
             }
         });
     }
@@ -174,20 +272,31 @@ class ChatSuggestions {
     extractMentionedJobs(text, jobs) {
         const lowerText = text.toLowerCase();
         const jobPatterns = [
-            /\b(engenheiro|desenvolvedor|programador|médico|professor|advogado|designer|arquiteto|psicólogo|enfermeiro|dentista|veterinário|fotógrafo|jornalista|publicitário|contador|administrador)\b/gi,
+            /\b(engenheiro|engenheira|desenvolvedor|desenvolvedora|programador|programadora|médico|medica|professor|professora|advogado|advogada|designer|arquiteto|arquiteta|psicólogo|psicologa|enfermeiro|enfermeira|dentista|veterinário|veterinaria|fotógrafo|fotografa|jornalista|publicitário|publicitaria|contador|contadora|administrador|administradora)\b/gi,
             /\bsou ([^,.!?]+)\b/gi,
-            /\btrabalho (com|como) ([^,.!?]+)\b/gi
+            /\btrabalho (com|como|no|na|em) ([^,.!?]+)\b/gi,
+            /\b(no|na|em) (pedágio|pedagio|loja|porcelanato|cerâmica|ceramica|startup|empresa|escritório|escritorio|consultoria)\b/gi
         ];
         
         jobPatterns.forEach(pattern => {
             const matches = text.match(pattern);
             if (matches) {
                 matches.forEach(match => {
-                    const job = match.replace(/\b(sou|trabalho|com|como)\b/gi, '').trim();
+                    let job = match.replace(/\b(sou|trabalho|com|como|no|na|em|e vc|e você)\b/gi, '').trim();
+                    // Remove pontuação e espaços extras
+                    job = job.replace(/[.,!?;:]/g, '').trim();
                     if (job && job.length > 2 && !jobs.includes(job)) {
                         jobs.push(job);
                     }
                 });
+            }
+        });
+        
+        // Detecta profissões específicas mencionadas diretamente
+        const specificJobs = ['pedágio', 'pedagio', 'loja', 'porcelanato', 'cerâmica', 'ceramica', 'desenvolvedor', 'desenvolvedora', 'engenheiro', 'engenheira', 'software'];
+        specificJobs.forEach(job => {
+            if (lowerText.includes(job) && !jobs.includes(job)) {
+                jobs.push(job);
             }
         });
     }
@@ -197,7 +306,22 @@ class ChatSuggestions {
      */
     extractMentionedHobbies(text, hobbies) {
         const lowerText = text.toLowerCase();
-        const hobbyKeywords = ['academia', 'caminhar', 'ler', 'youtube', 'restaurante', 'cafeteria', 'cinema', 'música', 'esporte', 'futebol', 'natação', 'corrida', 'viagem', 'fotografia', 'cozinhar', 'dança'];
+        const hobbyKeywords = [
+            'academia', 'treino', 'treinar', 'malhar', 'malhação',
+            'caminhar', 'caminhada', 'correr', 'corrida',
+            'ler', 'leitura', 'livro', 'livros',
+            'youtube', 'netflix', 'filme', 'filmes', 'série', 'series', 'seriado',
+            'restaurante', 'cafeteria', 'café', 'cafe',
+            'cinema', 'teatro', 'show', 'shows',
+            'música', 'musica', 'ouvir música', 'ouvir musica',
+            'esporte', 'esportes', 'futebol', 'natação', 'natacao', 'basquete', 'vôlei', 'volei',
+            'viagem', 'viajar', 'turismo',
+            'fotografia', 'foto', 'fotos',
+            'cozinhar', 'culinária', 'culinaria',
+            'dança', 'danca', 'dançar', 'dancar',
+            'hobby', 'hobbies', 'passatempo', 'passatempos',
+            'tempo livre', 'horas vagas', 'lazer', 'diversão', 'diversao'
+        ];
         
         hobbyKeywords.forEach(keyword => {
             if (lowerText.includes(keyword) && !hobbies.includes(keyword)) {
@@ -211,8 +335,41 @@ class ChatSuggestions {
      */
     hasTopicBeenDiscussed(context, topic) {
         const topicKeywords = {
-            'trabalho': ['trabalho', 'trabalha', 'faz o que', 'profissão', 'emprego', 'pedágio', 'loja', 'porcelanato', 'engenheiro', 'desenvolvedor', 'software', 'trabalho com', 'trabalho na', 'trabalho no'],
-            'localização': ['onde', 'mora', 'moro', 'bairro', 'zona', 'cidade', 'capital', 'são paulo', 'tatuapé', 'santo andré', 'abc', 'paulista', 'mauá', 'zn', 'zona norte', 'zona sul']
+            'trabalho': [
+                'trabalho', 'trabalha', 'trabalho com', 'trabalho na', 'trabalho no', 'trabalho em',
+                'emprego', 'empregada', 'empregado',
+                'profissão', 'profissional',
+                'faz o que', 'faz da vida', 'o que faz', 'trabalha com o quê',
+                'engenheiro', 'engenheira', 'engenharia',
+                'desenvolvedor', 'desenvolvedora', 'desenvolve', 'desenvolvimento',
+                'programador', 'programadora', 'programa', 'programação',
+                'software', 'tecnologia', 'tech', 'ti', 'sistemas',
+                'pedágio', 'pedagio',
+                'loja', 'lojista', 'vendedor', 'vendedora',
+                'porcelanato', 'cerâmica',
+                'startup', 'empresa', 'escritório', 'escritorio',
+                'consultoria', 'consultor', 'consultora',
+                'carreira', 'cliente', 'chefe', 'patrão',
+                'mês', 'mes', 'meses', 'ano', 'anos', 'tempo de trabalho',
+                'área', 'area', 'setor', 'ramo'
+            ],
+            'localização': [
+                'moro', 'mora', 'moramos', 'morar',
+                'onde', 'onde mora', 'onde você mora', 'onde vc mora',
+                'cidade', 'bairro', 'bairros',
+                'capital', 'interior',
+                'são paulo', 'sao paulo', 'sp',
+                'tatuapé', 'tatuape',
+                'santo andré', 'santo andre', 'abc',
+                'paulista', 'paulistas',
+                'perto', 'próximo', 'proximo', 'próxima', 'proxima',
+                'zona', 'zona norte', 'zona sul', 'zona leste', 'zona oeste',
+                'zn', 'zs', 'zl', 'zo',
+                'região', 'regiao', 'regiões', 'regioes',
+                'endereço', 'endereco', 'local', 'lugar',
+                'mauá', 'maua', 'sbc', 'são bernardo', 'sao bernardo',
+                'guarulhos', 'osasco', 'campinas'
+            ]
         };
         
         const keywords = topicKeywords[topic] || [];
