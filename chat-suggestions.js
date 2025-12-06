@@ -9,6 +9,10 @@ class ChatSuggestions {
         this.inputSelector = inputSelector || '#chat-composer-input-message';
         this.suggestionsContainer = null;
         this.suggestions = [];
+        this.lastMessageCount = 0;
+        this.updateTimeout = null;
+        this.messageCheckInterval = null;
+        this.periodicUpdateInterval = null;
     }
 
     /**
@@ -264,9 +268,13 @@ class ChatSuggestions {
             const lastQuestion = context.questions[context.questions.length - 1];
             if (lastQuestion.includes('onde') || lastQuestion.includes('mora')) {
                 suggestions.push('Moro em São Paulo');
+                suggestions.push('Moro no bairro de Tatuapé, São Paulo capital');
+                suggestions.push('Moro no bairro de Tatuapé');
                 suggestions.push('Sou da capital');
             } else if (lastQuestion.includes('faz') || lastQuestion.includes('trabalho')) {
                 suggestions.push('Sou desenvolvedor de software');
+                suggestions.push('Sou desenvolvedor de software numa startup');
+                suggestions.push('Tenho um consultoria de tecnologia');
                 suggestions.push('Trabalho com tecnologia');
             }
         }
@@ -331,35 +339,65 @@ class ChatSuggestions {
     getContinuationSuggestions(context) {
         const suggestions = [];
         
-        // Verifica se mencionou trabalho
-        const workMentioned = context.topics.includes('trabalho');
-        if (workMentioned) {
-            suggestions.push('E você, trabalha com o quê?');
-            suggestions.push('Que área você trabalha?');
-            suggestions.push('E você, o que faz da vida?');
-            suggestions.push('Qual sua profissão?');
-            suggestions.push('Trabalha com o quê?');
+        // Pega a última mensagem que você enviou
+        const myLastMessage = context.lastMessages.filter(m => m.direction === 'out').slice(-1)[0];
+        const myLastText = myLastMessage ? myLastMessage.text.toLowerCase() : '';
+        
+        // Se você fez uma pergunta, sugere outras perguntas relacionadas ou comentários
+        if (myLastText.includes('?')) {
+            // Se perguntou sobre localização
+            if (myLastText.includes('onde') || myLastText.includes('mora') || myLastText.includes('bairro') || myLastText.includes('zona')) {
+                suggestions.push('Que legal!');
+                suggestions.push('É perto daqui?');
+                suggestions.push('Já conhece a região?');
+                suggestions.push('E você, trabalha com o quê?');
+                suggestions.push('O que você gosta de fazer por lá?');
+            }
+            // Se perguntou sobre trabalho
+            else if (myLastText.includes('faz') || myLastText.includes('trabalho') || myLastText.includes('profissão')) {
+                suggestions.push('Que interessante!');
+                suggestions.push('Há quanto tempo trabalha nisso?');
+                suggestions.push('Gosta do que faz?');
+                suggestions.push('E você, mora onde?');
+                suggestions.push('O que você gosta de fazer no tempo livre?');
+            }
+            // Outras perguntas genéricas
+            else {
+                suggestions.push('Que legal!');
+                suggestions.push('E você, o que gosta de fazer?');
+                suggestions.push('Tem algum hobby?');
+                suggestions.push('O que você faz da vida?');
+            }
         }
+        // Se você fez uma afirmação ou comentário
+        else {
+            // Se mencionou trabalho
+            const workMentioned = context.topics.includes('trabalho');
+            if (workMentioned) {
+                suggestions.push('E você, trabalha com o quê?');
+                suggestions.push('Que área você trabalha?');
+                suggestions.push('E você, o que faz da vida?');
+                suggestions.push('Qual sua profissão?');
+                suggestions.push('Trabalha com o quê?');
+            }
 
-        // Verifica se mencionou localização
-        const locationMentioned = context.topics.includes('localização');
-        if (locationMentioned) {
-            suggestions.push('Que legal! Moramos perto mesmo');
-            suggestions.push('Já conhece a região?');
-            suggestions.push('Que coincidência!');
-            suggestions.push('É uma região bem legal');
-            suggestions.push('Já visitou por aqui?');
+            // Se mencionou localização
+            const locationMentioned = context.topics.includes('localização');
+            if (locationMentioned) {
+                suggestions.push('E você, mora onde?');
+                suggestions.push('Que bairro você mora?');
+                suggestions.push('É perto daqui?');
+                suggestions.push('Já conhece a região?');
+            }
+
+            // Sugestões genéricas de continuidade
+            suggestions.push('E você, o que gosta de fazer?');
+            suggestions.push('Tem algum hobby?');
+            suggestions.push('O que você gosta de fazer no tempo livre?');
+            suggestions.push('Quais seus interesses?');
+            suggestions.push('O que você faz da vida?');
+            suggestions.push('Mora onde?');
         }
-
-        // Sugestões genéricas de continuidade
-        suggestions.push('E você, o que gosta de fazer?');
-        suggestions.push('Tem algum hobby?');
-        suggestions.push('O que você gosta de fazer no tempo livre?');
-        suggestions.push('Quais seus interesses?');
-        suggestions.push('O que te faz feliz?');
-        suggestions.push('Tem algum sonho ou objetivo?');
-        suggestions.push('O que você mais gosta de fazer?');
-        suggestions.push('Tem algum lugar que gostaria de conhecer?');
 
         return suggestions;
     }
@@ -370,25 +408,57 @@ class ChatSuggestions {
     getResponseSuggestions(context, lastMessage) {
         const suggestions = [];
         const text = lastMessage.text.toLowerCase();
+        
+        // Verifica qual foi a última pergunta que VOCÊ fez
+        const myLastQuestion = context.lastMessages
+            .filter(m => m.direction === 'out' && m.text.includes('?'))
+            .slice(-1)[0];
+        const myLastQuestionText = myLastQuestion ? myLastQuestion.text.toLowerCase() : '';
 
-        // Respostas para perguntas sobre trabalho
-        if (text.includes('faz o que') || text.includes('trabalho') || text.includes('profissão') || text.includes('emprego')) {
-            suggestions.push('Sou desenvolvedor de software');
-            suggestions.push('Trabalho com tecnologia');
-            suggestions.push('Sou engenheiro de software, e você?');
-            suggestions.push('Trabalho na área de tecnologia');
-            suggestions.push('Sou programador, e você?');
-            suggestions.push('Trabalho com desenvolvimento de software');
+        // Se a outra pessoa está respondendo uma pergunta sua sobre trabalho
+        if (myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho') || myLastQuestionText.includes('profissão')) {
+            // A outra pessoa provavelmente respondeu sobre o trabalho dela
+            suggestions.push('Que interessante!');
+            suggestions.push('Há quanto tempo trabalha nisso?');
+            suggestions.push('Gosta do que faz?');
+            suggestions.push('E você, mora onde?');
+            suggestions.push('O que você gosta de fazer no tempo livre?');
         }
-
-        // Respostas para perguntas sobre localização
-        if (text.includes('onde') || text.includes('mora') || text.includes('cidade') || text.includes('bairro') || text.includes('zona')) {
-            suggestions.push('Moro em São Paulo');
-            suggestions.push('Sou da capital');
-            suggestions.push('Moro aqui na região metropolitana');
-            suggestions.push('Sou de São Paulo');
-            suggestions.push('Moro na capital');
-            suggestions.push('Sou da região metropolitana');
+        // Se a outra pessoa está respondendo uma pergunta sua sobre localização
+        else if (myLastQuestionText.includes('onde') || myLastQuestionText.includes('mora') || myLastQuestionText.includes('bairro') || myLastQuestionText.includes('zona')) {
+            // A outra pessoa provavelmente respondeu sobre onde mora
+            suggestions.push('Que legal!');
+            suggestions.push('É perto daqui?');
+            suggestions.push('Já conhece a região?');
+            suggestions.push('E você, trabalha com o quê?');
+            suggestions.push('O que você gosta de fazer por lá?');
+        }
+        // Se a outra pessoa fez uma pergunta para você
+        else if (text.includes('?')) {
+            // Respostas para perguntas sobre trabalho
+            if (text.includes('faz o que') || text.includes('trabalho') || text.includes('profissão') || text.includes('emprego')) {
+                suggestions.push('Sou desenvolvedor de software');
+                suggestions.push('Trabalho com tecnologia');
+                suggestions.push('Sou engenheiro de software, e você?');
+                suggestions.push('Trabalho na área de tecnologia');
+                suggestions.push('Sou programador, e você?');
+                suggestions.push('Trabalho com desenvolvimento de software');
+            }
+            // Respostas para perguntas sobre localização
+            else if (text.includes('onde') || text.includes('mora') || text.includes('cidade') || text.includes('bairro') || text.includes('zona')) {
+                suggestions.push('Moro no bairro de Tatuapé, São Paulo capital');
+                suggestions.push('Moro no bairro de Tatuapé');
+                suggestions.push('Moro em São Paulo');
+                suggestions.push('Sou da capital');
+                suggestions.push('Moro aqui na região metropolitana');
+            }
+            // Outras perguntas
+            else {
+                suggestions.push('Sim!');
+                suggestions.push('Claro!');
+                suggestions.push('Exatamente!');
+                suggestions.push('Com certeza!');
+            }
         }
 
         // Respostas para elogios
@@ -409,8 +479,39 @@ class ChatSuggestions {
             suggestions.push('Que gentil!');
         }
 
-        // Respostas genéricas para perguntas
-        if (text.includes('?')) {
+        // Se a outra pessoa respondeu uma informação (não é pergunta)
+        // e você tinha feito uma pergunta antes, sugere comentários sobre a resposta
+        if (!text.includes('?') && myLastQuestionText) {
+            // Se você perguntou sobre localização e ela respondeu
+            if (myLastQuestionText.includes('onde') || myLastQuestionText.includes('mora')) {
+                if (text.includes('zn') || text.includes('zona') || text.includes('norte') || text.includes('sul') || text.includes('leste') || text.includes('oeste')) {
+                    suggestions.push('Que legal!');
+                    suggestions.push('É perto daqui?');
+                    suggestions.push('Já conhece a região?');
+                    suggestions.push('E você, trabalha com o quê?');
+                } else {
+                    suggestions.push('Que interessante!');
+                    suggestions.push('É perto?');
+                    suggestions.push('Já conhece por lá?');
+                }
+            }
+            // Se você perguntou sobre trabalho e ela respondeu
+            else if (myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho')) {
+                suggestions.push('Que interessante!');
+                suggestions.push('Há quanto tempo trabalha nisso?');
+                suggestions.push('Gosta do que faz?');
+                suggestions.push('E você, mora onde?');
+            }
+            // Respostas genéricas para informações
+            else {
+                suggestions.push('Que legal!');
+                suggestions.push('Interessante!');
+                suggestions.push('E você, o que gosta de fazer?');
+            }
+        }
+        
+        // Respostas genéricas para perguntas (se a outra pessoa fez uma pergunta)
+        if (text.includes('?') && !myLastQuestionText) {
             suggestions.push('Sim!');
             suggestions.push('Claro!');
             suggestions.push('Exatamente!');
@@ -957,25 +1058,81 @@ class ChatSuggestions {
         // Garante que o container está visível
         this.suggestionsContainer.style.display = 'flex';
 
+        // Armazena o número de mensagens para detectar mudanças
+        this.lastMessageCount = 0;
+        
         // Atualiza sugestões inicialmente
         this.updateSuggestions();
 
-        // Observa mudanças no chat para atualizar sugestões
-        const observer = new MutationObserver(() => {
-            this.updateSuggestions();
+        // Função para verificar se há novas mensagens
+        const checkForNewMessages = () => {
+            const currentMessages = this.chatContainer.querySelectorAll('[data-qa="chat-message"]');
+            const currentCount = currentMessages.length;
+            
+            // Se o número de mensagens mudou, atualiza as sugestões
+            if (currentCount !== this.lastMessageCount) {
+                this.lastMessageCount = currentCount;
+                this.updateSuggestions();
+                console.log(`Nova mensagem detectada! Total: ${currentCount}`);
+            }
+        };
+
+        // Observa mudanças no chat para atualizar sugestões em tempo real
+        const chatObserver = new MutationObserver((mutations) => {
+            // Verifica se alguma mutação adicionou uma nova mensagem
+            let hasNewMessage = false;
+            
+            mutations.forEach(mutation => {
+                if (mutation.type === 'childList') {
+                    // Verifica se algum nó adicionado é uma mensagem
+                    mutation.addedNodes.forEach(node => {
+                        if (node.nodeType === 1) { // Element node
+                            // Verifica se é uma mensagem ou contém mensagens
+                            if (node.matches && node.matches('[data-qa="chat-message"]')) {
+                                hasNewMessage = true;
+                            } else if (node.querySelector && node.querySelector('[data-qa="chat-message"]')) {
+                                hasNewMessage = true;
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // Se detectou nova mensagem, atualiza imediatamente
+            if (hasNewMessage) {
+                // Usa debounce para evitar múltiplas atualizações muito rápidas
+                clearTimeout(this.updateTimeout);
+                this.updateTimeout = setTimeout(() => {
+                    this.updateSuggestions();
+                    this.lastMessageCount = this.chatContainer.querySelectorAll('[data-qa="chat-message"]').length;
+                    console.log('Sugestões atualizadas devido a nova mensagem');
+                }, 300);
+            } else {
+                // Verifica periodicamente mesmo sem mutações óbvias
+                checkForNewMessages();
+            }
         });
 
-        observer.observe(this.chatContainer, {
+        // Observa o container de mensagens com configuração otimizada
+        chatObserver.observe(this.chatContainer, {
             childList: true,
-            subtree: true
+            subtree: true,
+            attributes: false,
+            characterData: false
         });
 
-        // Atualiza sugestões periodicamente (a cada 2 segundos)
-        setInterval(() => {
-            this.updateSuggestions();
-        }, 2000);
+        // Verifica periodicamente se há novas mensagens (backup)
+        // Isso garante que mesmo se o observer falhar, ainda detecta mudanças
+        this.messageCheckInterval = setInterval(() => {
+            checkForNewMessages();
+        }, 1000); // Verifica a cada 1 segundo
 
-        console.log('ChatSuggestions inicializado com sucesso');
+        // Atualiza sugestões periodicamente também (a cada 3 segundos como backup)
+        this.periodicUpdateInterval = setInterval(() => {
+            this.updateSuggestions();
+        }, 3000);
+
+        console.log('ChatSuggestions inicializado com sucesso - Escutando novas mensagens');
     }
 }
 
