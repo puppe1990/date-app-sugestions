@@ -134,6 +134,7 @@
         'fotografia', 'foto', 'fotos',
         'cozinhar', 'culinária', 'culinaria',
         'dança', 'danca', 'dançar', 'dancar',
+        'jiu', 'jiu-jitsu', 'jiujitsu', 'muay thai', 'boxe', 'luta', 'artes marciais',
         'hobby', 'hobbies', 'passatempo', 'passatempos',
         'tempo livre', 'horas vagas', 'lazer', 'diversão', 'diversao'
     ];

@@ -322,10 +322,26 @@
             const mentionsWork = text.match(/\b(pedágio|pedagio|loja|porcelanato|trabalho|trabalha|faz o que|profissão)\b/i);
             const asksLocation = text.includes('onde') || text.includes('mora') || text.includes('bairro') || text.includes('zona') || text.includes('cidade');
             const isReverseQuestion = text.includes('e vc') || text.includes('e você');
+            const hobbyKeywords = window.BadooChatSuggestions.constants.HOBBY_KEYWORDS || [];
+            const mentionsHobby = hobbyKeywords.some(keyword => normalizedText.includes(keyword.normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
+            const myHobbies = (context.mentionedHobbies || []).filter(Boolean);
+            const myHobbiesJoined = myHobbies.slice(0, 3).join(', ');
 
             if (isQuestion) {
                 const lastQuestionWasWork = myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho') || myLastQuestionText.includes('profissão') || myLastQuestionText.includes('emprego') || myLastQuestionText.includes('trabalha');
                 const lastQuestionWasLocation = myLastQuestionText.includes('onde') || myLastQuestionText.includes('mora') || myLastQuestionText.includes('bairro') || myLastQuestionText.includes('zona') || myLastQuestionText.includes('cidade');
+
+                if (mentionsHobby || (isReverseQuestion && myHobbies.length > 0)) {
+                    if (myHobbiesJoined) {
+                        suggestions.push(`Eu curto ${myHobbiesJoined}.`);
+                    } else {
+                        suggestions.push('Gosto de treinar e ler.');
+                    }
+                    suggestions.push('E você, tem mais algum hobby?');
+                    suggestions.push('Legal! Você treina há muito tempo?');
+                    suggestions.push('Curte fazer isso com frequência?');
+                    return suggestions;
+                }
 
                 if (asksLocation || (isReverseQuestion && (lastQuestionWasLocation || context.topics.includes('localização')))) {
                     suggestions.push('Moro no bairro de Tatuapé, São Paulo capital');
