@@ -101,6 +101,20 @@ class ChatSuggestions {
             }
         });
 
+        // Log das mensagens no console
+        console.log('=== MENSAGENS ANALISADAS ===');
+        console.log(`Total de mensagens: ${context.conversationLength}`);
+        console.log(`Últimas ${context.lastMessages.length} mensagens:`);
+        context.lastMessages.forEach((msg, index) => {
+            const direction = msg.direction === 'out' ? 'VOCÊ' : 'OUTRO';
+            console.log(`${index + 1}. [${direction}] ${msg.sender}: "${msg.text}"`);
+        });
+        console.log(`Tópicos detectados:`, context.topics);
+        console.log(`Lugares mencionados:`, context.mentionedPlaces);
+        console.log(`Profissões mencionadas:`, context.mentionedJobs);
+        console.log(`Hobbies mencionados:`, context.mentionedHobbies);
+        console.log('============================');
+
         return context;
     }
 
@@ -232,7 +246,17 @@ class ChatSuggestions {
         }
 
         // Remove duplicatas e limita a 5 sugestões
-        return [...new Set(suggestions)].slice(0, 5);
+        const finalSuggestions = [...new Set(suggestions)].slice(0, 5);
+        
+        // Log das sugestões no console
+        console.log('=== SUGESTÕES GERADAS ===');
+        console.log(`Total de sugestões geradas: ${finalSuggestions.length}`);
+        finalSuggestions.forEach((suggestion, index) => {
+            console.log(`${index + 1}. "${suggestion}"`);
+        });
+        console.log('==========================');
+        
+        return finalSuggestions;
     }
 
     /**
