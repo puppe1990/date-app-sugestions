@@ -17,16 +17,18 @@
                 messages: [
                     {
                         role: 'system',
-                        content: 'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil. Responda em frases curtas (máx 80 caracteres), em primeira pessoa, tom leve. Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem aspas fora do JSON.'
+                        content: 'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil. Responda em frases curtas (máx 80 caracteres), em primeira pessoa, tom leve. Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente. Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.'
                     },
                     {
                         role: 'user',
                         content: userPrompt
                     }
                 ],
-                max_tokens: 256,
-                temperature: 0.7,
-                top_p: 0.9
+                max_tokens: 160,
+                temperature: 0.6,
+                top_p: 0.9,
+                stream: false,
+                response_format: { type: 'json_object' }
             };
 
             if (typeof window !== 'undefined' && window.badooChatSuggestionsDebug) {
@@ -58,7 +60,8 @@
             }
 
             const data = await response.json();
-            const content = data?.choices?.[0]?.message?.content || '';
+            const choice = data?.choices?.[0];
+            const content = choice?.message?.content || choice?.message?.reasoning || '';
             return this.extractSuggestions(content);
         }
 
@@ -69,20 +72,23 @@
                 return `${idx + 1}. ${dir}: ${msg.text}`;
             }).join('\n');
 
-            const lastPartnerMessage = [...lastMessages].reverse().find(m => m.direction !== 'out');
+            const lastInboundIndex = [...lastMessages].map((m, i) => ({ m, i })).reverse().find(item => item.m.direction !== 'out')?.i ?? -1;
+            const lastOutboundIndex = [...lastMessages].map((m, i) => ({ m, i })).reverse().find(item => item.m.direction === 'out')?.i ?? -1;
+            const hasPendingInbound = lastInboundIndex > lastOutboundIndex && lastInboundIndex >= 0;
+            const pendingMessage = hasPendingInbound ? lastMessages[lastInboundIndex] : null;
             const lastMyMessage = [...lastMessages].reverse().find(m => m.direction === 'out');
 
             const profileLine = profile ? `\nContexto sobre mim:\n${profile}` : '';
-            const focusLine = lastPartnerMessage
-                ? `\nÚltima mensagem da outra pessoa: "${lastPartnerMessage.text}". Responda a isso diretamente.`
-                : '';
+            const focusLine = pendingMessage
+                ? `\nMensagem pendente da outra pessoa: "${pendingMessage.text}". Responda a isso diretamente, sem cumprimentar.`
+                : 'Nenhuma mensagem pendente; continue a conversa com um follow-up natural (sem cumprimentar nem repetir perguntas).';
             const myLastLine = lastMyMessage ? `\nMinha última mensagem: "${lastMyMessage.text}".` : '';
 
             return [
-                'Use o histórico abaixo (ordem cronológica) para responder a última mensagem da outra pessoa.',
+                'Use o histórico abaixo (ordem cronológica).',
                 'Gere 3 a 5 respostas curtas (até 80 caracteres), em primeira pessoa, naturais e coerentes com o histórico.',
                 'Não cumprimente de novo se já houve cumprimento. Não repita perguntas já feitas. Evite respostas genéricas.',
-                'Responda APENAS com JSON válido: {"suggestions":["resposta1","resposta2",...]} sem texto extra.',
+                'Responda APENAS com JSON válido: {"suggestions":["resposta1","resposta2",...]} sem texto extra, sem markdown, sem texto antes/depois. Não inclua saudações a menos que a última mensagem peça. Assim que fechar o JSON, pare.',
                 profileLine,
                 focusLine,
                 myLastLine,
@@ -141,16 +147,8 @@
                 return Array.from(new Set(suggestions)).slice(0, 5);
             }
 
-            // 4) fallback para linhas
-            const lines = cleaned
-                .split(/\r?\n/)
-                .map(line => line.replace(/^[\s*-]*\d*[\s)*.-]*/, '').trim())
-                .filter(Boolean);
-            if (lines.length > 0) {
-                return Array.from(new Set(lines)).slice(0, 5);
-            }
-
-            return [text.trim()].filter(Boolean).slice(0, 5);
+            // se não conseguiu extrair JSON, devolve vazio para cair no fallback padrão
+            return [];
         }
     }
 
