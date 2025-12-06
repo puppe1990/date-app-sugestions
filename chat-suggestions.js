@@ -22,14 +22,26 @@ class ChatSuggestions {
 
         const messages = this.chatContainer.querySelectorAll('[data-qa="chat-message"]');
         const context = {
+            allMessages: [],
             lastMessages: [],
             participants: new Set(),
             topics: [],
-            lastSender: null
+            mentionedPlaces: [],
+            mentionedJobs: [],
+            mentionedHobbies: [],
+            questions: [],
+            lastSender: null,
+            conversationLength: 0,
+            hasQuestions: false,
+            hasElogios: false
         };
 
-        // Analisa as últimas mensagens (últimas 5)
-        const recentMessages = Array.from(messages).slice(-5);
+        // Analisa TODAS as mensagens para ter contexto completo
+        const allMessagesArray = Array.from(messages);
+        context.conversationLength = allMessagesArray.length;
+        
+        // Analisa as últimas 10 mensagens para contexto recente
+        const recentMessages = allMessagesArray.slice(-10);
         
         recentMessages.forEach(message => {
             const direction = message.getAttribute('data-qa-message-direction');
@@ -41,27 +53,46 @@ class ChatSuggestions {
                 const sender = message.querySelector('.csms-a11y-visually-hidden')?.textContent || 
                               (direction === 'out' ? 'Você' : 'Outro');
                 
-                context.lastMessages.push({
+                const messageObj = {
                     sender: sender,
                     text: text,
                     direction: direction,
                     type: 'text'
-                });
+                };
                 
+                context.allMessages.push(messageObj);
+                context.lastMessages.push(messageObj);
                 context.participants.add(sender);
                 context.lastSender = sender;
                 
-                // Extrai tópicos da conversa
+                // Extrai informações detalhadas da mensagem
                 this.extractTopics(text, context.topics);
+                this.extractMentionedPlaces(text, context.mentionedPlaces);
+                this.extractMentionedJobs(text, context.mentionedJobs);
+                this.extractMentionedHobbies(text, context.mentionedHobbies);
+                
+                // Detecta perguntas
+                if (text.includes('?') || text.match(/\b(qual|quando|onde|como|quem|por que|porque)\b/i)) {
+                    context.hasQuestions = true;
+                    context.questions.push(text);
+                }
+                
+                // Detecta elogios
+                if (text.match(/\b(gostei|legal|interessante|bonito|lindo|adoro|amo|curto|incrível|maravilhoso)\b/i)) {
+                    context.hasElogios = true;
+                }
+                
             } else if (audioButton) {
                 const sender = message.querySelector('.csms-a11y-visually-hidden')?.textContent || 
                               (direction === 'out' ? 'Você' : 'Outro');
-                context.lastMessages.push({
+                const messageObj = {
                     sender: sender,
                     text: 'Mensagem de voz',
                     direction: direction,
                     type: 'audio'
-                });
+                };
+                context.allMessages.push(messageObj);
+                context.lastMessages.push(messageObj);
                 context.lastSender = sender;
             }
         });
@@ -77,13 +108,13 @@ class ChatSuggestions {
         
         // Tópicos comuns em conversas de relacionamento
         const topicKeywords = {
-            'trabalho': ['trabalho', 'emprego', 'profissão', 'engenheiro', 'desenvolve', 'programas', 'escritório', 'empresa', 'carreira', 'faz o que', 'trabalha'],
-            'localização': ['moro', 'onde', 'cidade', 'capital', 'santo andré', 'tatuapé', 'perto', 'bairro', 'zona', 'região', 'endereço', 'local'],
+            'trabalho': ['trabalho', 'emprego', 'profissão', 'engenheiro', 'desenvolve', 'programas', 'escritório', 'empresa', 'carreira', 'faz o que', 'trabalha', 'trabalho', 'escritório', 'cliente'],
+            'localização': ['moro', 'onde', 'cidade', 'capital', 'santo andré', 'tatuapé', 'perto', 'bairro', 'zona', 'região', 'endereço', 'local', 'sp', 'são paulo', 'abc', 'paulista'],
             'saudação': ['bom dia', 'boa tarde', 'boa noite', 'tudo bem', 'como vai', 'olá', 'oi', 'e aí'],
             'interesse': ['gostei', 'fotos', 'legal', 'interessante', 'bonito', 'lindo', 'adoro', 'amo', 'curto'],
             'pergunta': ['?', 'vc', 'você', 'faz o que', 'qual', 'quando', 'onde', 'como'],
-            'hobby': ['hobby', 'gosto', 'curto', 'interesse', 'fazer', 'tempo livre', 'lazer', 'diversão'],
-            'encontro': ['encontrar', 'ver', 'conhecer', 'sair', 'encontro', 'marcar', 'combinar', 'quando']
+            'hobby': ['hobby', 'gosto', 'curto', 'interesse', 'fazer', 'tempo livre', 'lazer', 'diversão', 'academia', 'caminhar', 'ler', 'youtube', 'restaurante', 'cafeteria'],
+            'encontro': ['encontrar', 'ver', 'conhecer', 'sair', 'encontro', 'marcar', 'combinar', 'quando', 'semana', 'fim de semana']
         };
 
         for (const [topic, keywords] of Object.entries(topicKeywords)) {
@@ -96,47 +127,201 @@ class ChatSuggestions {
     }
 
     /**
-     * Gera sugestões baseadas no contexto
+     * Extrai lugares mencionados na conversa
+     */
+    extractMentionedPlaces(text, places) {
+        const lowerText = text.toLowerCase();
+        const placePatterns = [
+            /\b(são paulo|sp|capital|tatuapé|santo andré|abc|paulista|zona sul|zona norte|zona leste|zona oeste|berrini|vila|bairro|região|metropolitana)\b/gi,
+            /\bmoro (em|no|na) ([^,.!?]+)/gi,
+            /\b(em|no|na) ([A-Z][a-z]+(?: [A-Z][a-z]+)*)\b/g
+        ];
+        
+        placePatterns.forEach(pattern => {
+            const matches = text.match(pattern);
+            if (matches) {
+                matches.forEach(match => {
+                    const place = match.replace(/\b(moro|em|no|na)\b/gi, '').trim();
+                    if (place && place.length > 2 && !places.includes(place)) {
+                        places.push(place);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Extrai profissões mencionadas na conversa
+     */
+    extractMentionedJobs(text, jobs) {
+        const lowerText = text.toLowerCase();
+        const jobPatterns = [
+            /\b(engenheiro|desenvolvedor|programador|médico|professor|advogado|designer|arquiteto|psicólogo|enfermeiro|dentista|veterinário|fotógrafo|jornalista|publicitário|contador|administrador)\b/gi,
+            /\bsou ([^,.!?]+)\b/gi,
+            /\btrabalho (com|como) ([^,.!?]+)\b/gi
+        ];
+        
+        jobPatterns.forEach(pattern => {
+            const matches = text.match(pattern);
+            if (matches) {
+                matches.forEach(match => {
+                    const job = match.replace(/\b(sou|trabalho|com|como)\b/gi, '').trim();
+                    if (job && job.length > 2 && !jobs.includes(job)) {
+                        jobs.push(job);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Extrai hobbies mencionados na conversa
+     */
+    extractMentionedHobbies(text, hobbies) {
+        const lowerText = text.toLowerCase();
+        const hobbyKeywords = ['academia', 'caminhar', 'ler', 'youtube', 'restaurante', 'cafeteria', 'cinema', 'música', 'esporte', 'futebol', 'natação', 'corrida', 'viagem', 'fotografia', 'cozinhar', 'dança'];
+        
+        hobbyKeywords.forEach(keyword => {
+            if (lowerText.includes(keyword) && !hobbies.includes(keyword)) {
+                hobbies.push(keyword);
+            }
+        });
+    }
+
+    /**
+     * Gera sugestões baseadas no contexto REAL da conversa
      */
     generateSuggestions(context) {
-        if (!context || context.lastMessages.length === 0) {
+        // Sempre analisa o contexto, mesmo que não haja mensagens
+        if (!context) {
             return this.getDefaultSuggestions();
         }
 
         const suggestions = [];
+        
+        // Se não há mensagens, retorna sugestões padrão
+        if (context.lastMessages.length === 0) {
+            return this.getDefaultSuggestions();
+        }
+
         const lastMessage = context.lastMessages[context.lastMessages.length - 1];
         const isLastFromMe = lastMessage.direction === 'out';
         
-        // Se a última mensagem foi minha, sugere respostas de continuidade
+        // Gera sugestões baseadas na última mensagem e no contexto completo
         if (isLastFromMe) {
+            // Você enviou a última mensagem - sugere continuidade
             suggestions.push(...this.getContinuationSuggestions(context));
         } else {
-            // Se a última mensagem foi do outro, sugere respostas
+            // O outro enviou a última mensagem - sugere respostas específicas
             suggestions.push(...this.getResponseSuggestions(context, lastMessage));
         }
 
+        // Adiciona sugestões baseadas em informações específicas mencionadas
+        suggestions.push(...this.getPersonalizedSuggestions(context));
+
         // Adiciona sugestões contextuais baseadas nos tópicos
         suggestions.push(...this.getContextualSuggestions(context));
+
+        // Se ainda não tem sugestões suficientes, adiciona genéricas
+        if (suggestions.length < 3) {
+            suggestions.push(...this.getDefaultSuggestions());
+        }
 
         // Remove duplicatas e limita a 5 sugestões
         return [...new Set(suggestions)].slice(0, 5);
     }
 
     /**
+     * Gera sugestões personalizadas baseadas em informações específicas mencionadas
+     */
+    getPersonalizedSuggestions(context) {
+        const suggestions = [];
+        
+        // Se mencionaram lugares específicos
+        if (context.mentionedPlaces.length > 0) {
+            const place = context.mentionedPlaces[0];
+            suggestions.push(`Que legal! Já conhece ${place}?`);
+            suggestions.push(`É uma região bem legal`);
+            suggestions.push(`Já visitou ${place}?`);
+        }
+        
+        // Se mencionaram profissões
+        if (context.mentionedJobs.length > 0) {
+            const job = context.mentionedJobs[0];
+            suggestions.push(`Que interessante! Trabalha com ${job} há quanto tempo?`);
+            suggestions.push(`Adoro pessoas que trabalham com ${job}`);
+        }
+        
+        // Se mencionaram hobbies
+        if (context.mentionedHobbies.length > 0) {
+            const hobbies = context.mentionedHobbies.slice(0, 2).join(' e ');
+            suggestions.push(`Que legal! Também gosto de ${hobbies}`);
+            suggestions.push(`Adoro ${hobbies}!`);
+        }
+        
+        // Se há perguntas não respondidas
+        if (context.hasQuestions && context.questions.length > 0) {
+            const lastQuestion = context.questions[context.questions.length - 1];
+            if (lastQuestion.includes('onde') || lastQuestion.includes('mora')) {
+                suggestions.push('Moro em São Paulo');
+                suggestions.push('Sou da capital');
+            } else if (lastQuestion.includes('faz') || lastQuestion.includes('trabalho')) {
+                suggestions.push('Sou desenvolvedor de software');
+                suggestions.push('Trabalho com tecnologia');
+            }
+        }
+        
+        return suggestions;
+    }
+
+    /**
      * Sugestões padrão quando não há contexto suficiente
+     * Baseadas no horário atual
      */
     getDefaultSuggestions() {
+        const hour = new Date().getHours();
+        let timeGreeting = '';
+        let timeBasedSuggestions = [];
+        
+        // Determina a saudação baseada no horário
+        if (hour >= 5 && hour < 12) {
+            // Manhã: 5h às 11h59
+            timeGreeting = 'Bom dia';
+            timeBasedSuggestions = [
+                'Bom dia! Como você está?',
+                'Bom dia! Tudo bem?',
+                'Bom dia! Como foi seu despertar?',
+                'Bom dia! Espero que tenha um ótimo dia',
+                'Bom dia! Que tal conversarmos?'
+            ];
+        } else if (hour >= 12 && hour < 18) {
+            // Tarde: 12h às 17h59
+            timeGreeting = 'Boa tarde';
+            timeBasedSuggestions = [
+                'Boa tarde! Como você está?',
+                'Boa tarde! Tudo bem?',
+                'Boa tarde! Como está seu dia?',
+                'Boa tarde! Espero que esteja tendo um bom dia',
+                'Boa tarde! Que tal conversarmos?'
+            ];
+        } else {
+            // Noite: 18h às 4h59
+            timeGreeting = 'Boa noite';
+            timeBasedSuggestions = [
+                'Boa noite! Como você está?',
+                'Boa noite! Tudo bem?',
+                'Boa noite! Como foi seu dia?',
+                'Boa noite! Espero que tenha tido um bom dia',
+                'Boa noite! Que tal conversarmos?'
+            ];
+        }
+        
+        // Combina sugestões baseadas no horário com sugestões genéricas
         return [
-            'Oi! Como você está?',
-            'Tudo bem?',
-            'Que tal conversarmos?',
-            'Oi! Prazer em te conhecer',
-            'Olá! Como vai?',
-            'Oi! Tudo certo?',
-            'Olá! Espero que esteja bem',
-            'Oi! Que bom te conhecer',
-            'Olá! Como está seu dia?',
-            'Oi! Tudo tranquilo?'
+            ...timeBasedSuggestions,
+            `${timeGreeting}! Prazer em te conhecer`,
+            `${timeGreeting}! Como vai?`,
+            `${timeGreeting}! Tudo certo?`
         ];
     }
 
