@@ -12,12 +12,22 @@
             }
 
             const userPrompt = this.buildUserPrompt(messages, profile);
+            this.profile = this.profile || profile;
+            const profileLine = this.profile ? `\nContexto sobre o usuário:\n${this.profile}` : '';
+            const systemPrompt = [
+                'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil.',
+                'Responda em frases curtas (máx 80 caracteres), em primeira pessoa, tom leve.',
+                'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
+                'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.',
+                profileLine
+            ].filter(Boolean).join('\n');
+
             const payload = {
                 model: this.model,
                 messages: [
                     {
                         role: 'system',
-                        content: 'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil. Responda em frases curtas (máx 80 caracteres), em primeira pessoa, tom leve. Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente. Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.'
+                        content: systemPrompt
                     },
                     {
                         role: 'user',

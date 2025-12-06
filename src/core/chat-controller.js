@@ -172,6 +172,8 @@
             const model = this.aiClientConfig.model ||
                 (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterModel) ||
                 'openai/gpt-oss-120b:free';
+            const profile = this.aiClientConfig.profile ||
+                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
 
             if (!apiKey) {
                 this.info('OpenRouter não configurado; botão de IA ficará inativo');
@@ -183,7 +185,7 @@
                 return null;
             }
 
-            return new window.BadooChatSuggestions.AIClient({ apiKey, model });
+            return new window.BadooChatSuggestions.AIClient({ apiKey, model, profile });
         }
 
         async generateAISuggestions() {
