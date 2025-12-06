@@ -36,8 +36,13 @@
                 if (!message) return;
                 const { sender, text, direction, type } = message;
 
-                context.allMessages.push(message);
-                context.lastMessages.push(message);
+                if (fullHistory) {
+                    context.allMessages = allMessagesArray;
+                    context.lastMessages = allMessagesArray.slice(-20); // usa um subconjunto recente para decisões rápidas
+                } else {
+                    context.allMessages.push(message);
+                    context.lastMessages.push(message);
+                }
                 context.participants.add(sender);
                 context.lastSender = sender;
 

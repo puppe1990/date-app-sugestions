@@ -199,7 +199,9 @@
                 this.ui.setAiLoading(true);
                 const context = this.contextExtractor.extract(this.chatContainer, { fullHistory: true });
                 const messages = context?.allMessages || context?.lastMessages || [];
-                const aiSuggestions = await this.aiClient.generateSuggestions({ messages });
+                const profile = (this.aiClientConfig && this.aiClientConfig.profile) ||
+                    (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
+                const aiSuggestions = await this.aiClient.generateSuggestions({ messages, profile });
                 const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
                 this.ui.render(safe, { isAI: true });
                 this.info('Sugestões de IA geradas', { total: safe.length });

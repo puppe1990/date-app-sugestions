@@ -18,10 +18,11 @@
                 resolve({});
                 return;
             }
-            chrome.storage.local.get(['openRouterModel', 'openRouterApiKey'], (result) => {
+            chrome.storage.local.get(['openRouterModel', 'openRouterApiKey', 'openRouterProfile'], (result) => {
                 resolve({
                     openRouterModel: result.openRouterModel || defaultModel,
-                    openRouterApiKey: result.openRouterApiKey
+                    openRouterApiKey: result.openRouterApiKey,
+                    openRouterProfile: result.openRouterProfile
                 });
             });
         });

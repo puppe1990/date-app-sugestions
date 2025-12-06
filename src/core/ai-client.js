@@ -6,7 +6,7 @@
             this.endpoint = endpoint;
         }
 
-        async generateSuggestions({ messages }) {
+        async generateSuggestions({ messages, profile }) {
             if (!this.apiKey) {
                 throw new Error('OpenRouter API key não configurada');
             }
@@ -16,11 +16,11 @@
                 messages: [
                     {
                         role: 'system',
-                        content: 'Você é um assistente que gera respostas curtas e naturais para conversa casual de paquera em português do Brasil. Responda em frases curtas (max 80 caracteres cada), em primeira pessoa, mantendo o tom leve. Gere até 5 sugestões.'
+                        content: 'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil. Responda em frases curtas (máx 80 caracteres), em primeira pessoa, tom leve. Sempre devolva um JSON puro no formato {"suggestions":["...","..."]} sem texto extra.'
                     },
                     {
                         role: 'user',
-                        content: this.buildUserPrompt(messages)
+                        content: this.buildUserPrompt(messages, profile)
                     }
                 ],
                 max_tokens: 256,
@@ -57,26 +57,33 @@
             return this.extractSuggestions(content);
         }
 
-        buildUserPrompt(messages = []) {
-            const lastMessages = messages.slice(-8);
+        buildUserPrompt(messages = [], profile) {
+            const lastMessages = messages.slice(-20);
             const mapped = lastMessages.map(msg => {
                 const dir = msg.direction === 'out' ? 'EU' : 'ELA/ELE';
                 return `${dir}: ${msg.text}`;
             }).join('\n');
-            return `Baseie-se nesta conversa e sugira 3-5 respostas curtas e naturais em português do Brasil, sem repetir perguntas já feitas:\n${mapped}`;
+            const profileLine = profile ? `\n\nContexto sobre mim:\n${profile}` : '';
+            return `Baseie-se nesta conversa completa (ordem cronológica) e sugira 3-5 respostas curtas e naturais em português do Brasil, sem repetir perguntas já feitas. Responda APENAS com JSON puro: {"suggestions":["resposta1","resposta2",...]} ${profileLine}\n\nMensagens anteriores:\n${mapped}`;
         }
 
         extractSuggestions(text) {
             if (!text) return [];
+            try {
+                const json = JSON.parse(text);
+                if (json && Array.isArray(json.suggestions)) {
+                    return json.suggestions.filter(Boolean).slice(0, 5);
+                }
+            } catch (e) {
+                // fallback parsing
+            }
             const lines = text
                 .split(/\r?\n/)
                 .map(line => line.replace(/^[\s*-]*\d*[\s)*.-]*/, '').trim())
                 .filter(Boolean);
-
             if (lines.length > 0) {
                 return Array.from(new Set(lines)).slice(0, 5);
             }
-
             return [text.trim()].filter(Boolean).slice(0, 5);
         }
     }
