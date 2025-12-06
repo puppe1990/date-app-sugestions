@@ -10,7 +10,9 @@
     }
     window.badooChatSuggestionsInitialized = true;
 
-    const defaultModel = 'google/gemini-2.0-flash-exp:free';
+    const defaultProvider = 'gemini';
+    const defaultGeminiModel = 'gemini-2.0-flash-exp';
+    const defaultOpenRouterModel = 'google/gemini-2.0-flash-exp:free';
 
     const loadConfig = () => {
         return new Promise(resolve => {
@@ -18,11 +20,21 @@
                 resolve({});
                 return;
             }
-            chrome.storage.local.get(['openRouterModel', 'openRouterApiKey', 'openRouterProfile'], (result) => {
+            chrome.storage.local.get([
+                'llmProvider',
+                'openRouterModel',
+                'openRouterApiKey',
+                'openRouterProfile',
+                'geminiApiKey',
+                'geminiModel'
+            ], (result) => {
                 resolve({
-                    openRouterModel: result.openRouterModel || defaultModel,
+                    llmProvider: result.llmProvider || defaultProvider,
+                    openRouterModel: result.openRouterModel || defaultOpenRouterModel,
                     openRouterApiKey: result.openRouterApiKey,
-                    openRouterProfile: result.openRouterProfile
+                    openRouterProfile: result.openRouterProfile,
+                    geminiApiKey: result.geminiApiKey,
+                    geminiModel: result.geminiModel || defaultGeminiModel
                 });
             });
         });
@@ -56,11 +68,19 @@
         const messageReader = config.messageReaderConfig
             ? new window.BadooChatSuggestions.MessageReader(config.messageReaderConfig)
             : config.messageReader;
-        const aiClientConfig = config.aiClientConfig || {
-            apiKey: config.openRouterApiKey ||
-                envApiKey ||
-                (typeof window !== 'undefined' && window.OPENROUTER_API_KEY),
-            model: config.openRouterModel || defaultModel
+        const provider = config.llmProvider || defaultProvider;
+        const apiKey = provider === 'gemini'
+            ? (config.geminiApiKey || envApiKey)
+            : (config.openRouterApiKey || envApiKey || (typeof window !== 'undefined' && window.OPENROUTER_API_KEY));
+        const model = provider === 'gemini'
+            ? (config.geminiModel || defaultGeminiModel)
+            : (config.openRouterModel || defaultOpenRouterModel);
+
+        const aiClientConfig = {
+            provider,
+            apiKey,
+            model,
+            profile: config.openRouterProfile
         };
 
         console.info('[Badoo Chat Suggestions] Iniciando content script', {

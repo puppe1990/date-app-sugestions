@@ -13,7 +13,8 @@
   ],
   "host_permissions": [
     "https://badoo.com/*",
-    "https://openrouter.ai/*"
+    "https://openrouter.ai/*",
+    "https://generativelanguage.googleapis.com/*"
   ],
   "content_scripts": [
     {

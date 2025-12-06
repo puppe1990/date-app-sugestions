@@ -19,7 +19,7 @@
       display: block;
       margin-bottom: 4px;
     }
-    select, button, input {
+    select, button, input, textarea {
       width: 100%;
       box-sizing: border-box;
       padding: 8px;
@@ -31,19 +31,47 @@
       color: #555;
       line-height: 1.4;
     }
+    .section {
+      margin-bottom: 12px;
+      padding: 8px;
+      border: 1px solid #eee;
+      border-radius: 6px;
+    }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>Modelo IA</h1>
-  <label for="modelSelect">Escolha o modelo (1 é o padrão):</label>
-  <select id="modelSelect"></select>
-  <label for="apiKeyInput">OpenRouter API Key:</label>
-  <input id="apiKeyInput" type="password" placeholder="sk-..." autocomplete="off" />
+
+  <div class="section">
+    <label for="providerSelect">Provedor (default: Gemini):</label>
+    <select id="providerSelect">
+      <option value="gemini">Gemini (Google)</option>
+      <option value="openrouter">OpenRouter</option>
+    </select>
+  </div>
+
+  <div class="section" id="geminiSection">
+    <label for="geminiModelSelect">Modelo Gemini:</label>
+    <select id="geminiModelSelect"></select>
+    <label for="geminiKeyInput">Gemini API Key:</label>
+    <input id="geminiKeyInput" type="password" placeholder="GEMINI_API_KEY" autocomplete="off" />
+  </div>
+
+  <div class="section" id="openrouterSection">
+    <label for="modelSelect">Modelo OpenRouter:</label>
+    <select id="modelSelect"></select>
+    <label for="apiKeyInput">OpenRouter API Key:</label>
+    <input id="apiKeyInput" type="password" placeholder="sk-..." autocomplete="off" />
+  </div>
+
   <label for="profileInput">Contexto sobre você (perfil, estilo, limites):</label>
-  <textarea id="profileInput" rows="4" placeholder="Ex.: Tenho 32 anos, moro em SP, gosto de treinar e café. Prefiro respostas curtas e respeitosas." style="width:100%; box-sizing: border-box; margin-bottom: 10px;"></textarea>
+  <textarea id="profileInput" rows="4" placeholder="Ex.: Tenho 32 anos, moro em SP, gosto de treinar e café. Prefiro respostas curtas e respeitosas."></textarea>
   <button id="saveBtn">Salvar</button>
   <div class="note">
-    A chave é salva localmente (chrome.storage) e usada pelo content script.
+    As chaves são salvas localmente (chrome.storage) e usadas pelo content script.
   </div>
   <script src="popup.js"></script>
 </body>

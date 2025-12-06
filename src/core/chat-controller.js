@@ -174,6 +174,7 @@
                 'openai/gpt-oss-120b:free';
             const profile = this.aiClientConfig.profile ||
                 (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
+            const provider = this.aiClientConfig.provider || 'gemini';
 
             if (!apiKey) {
                 this.info('OpenRouter não configurado; botão de IA ficará inativo');
@@ -185,7 +186,7 @@
                 return null;
             }
 
-            return new window.BadooChatSuggestions.AIClient({ apiKey, model, profile });
+            return new window.BadooChatSuggestions.AIClient({ apiKey, model, profile, provider });
         }
 
         async generateAISuggestions() {

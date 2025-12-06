@@ -1,14 +1,22 @@
 (() => {
     class AIClient {
-        constructor({ apiKey, model = 'openai/gpt-4o', endpoint = 'https://openrouter.ai/api/v1/chat/completions' } = {}) {
+        constructor({
+            apiKey,
+            model = 'google/gemini-2.0-flash-exp:free',
+            endpoint = 'https://openrouter.ai/api/v1/chat/completions',
+            provider = 'gemini',
+            profile = null
+        } = {}) {
             this.apiKey = apiKey;
             this.model = model;
             this.endpoint = endpoint;
+            this.provider = provider || 'gemini';
+            this.profile = profile;
         }
 
         async generateSuggestions({ messages, profile }) {
             if (!this.apiKey) {
-                throw new Error('OpenRouter API key não configurada');
+                throw new Error('API key não configurada');
             }
 
             const userPrompt = this.buildUserPrompt(messages, profile);
@@ -21,6 +29,13 @@
                 'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.',
                 profileLine
             ].filter(Boolean).join('\n');
+
+            if (this.provider === 'gemini') {
+                if (typeof window !== 'undefined' && window.badooChatSuggestionsDebug) {
+                    console.info('[Badoo Chat Suggestions][AI] Prompt enviado para IA (Gemini):', { model: this.model, prompt: `${systemPrompt}\n\n${userPrompt}` });
+                }
+                return this.callGemini({ prompt: `${systemPrompt}\n\n${userPrompt}` });
+            }
 
             const payload = {
                 model: this.model,
@@ -42,7 +57,7 @@
             };
 
             if (typeof window !== 'undefined' && window.badooChatSuggestionsDebug) {
-                console.info('[Badoo Chat Suggestions][AI] Prompt enviado para IA:', { model: this.model, payload });
+                console.info('[Badoo Chat Suggestions][AI] Prompt enviado para IA (OpenRouter):', { model: this.model, payload });
             }
 
             const response = await fetch(this.endpoint, {
@@ -73,6 +88,50 @@
             const choice = data?.choices?.[0];
             const content = choice?.message?.content || choice?.message?.reasoning || '';
             return this.extractSuggestions(content);
+        }
+
+        async callGemini({ prompt }) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+            const body = {
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [{ text: prompt }]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 0.6,
+                    maxOutputTokens: 160,
+                    topP: 0.9
+                }
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                let errorText = response.statusText;
+                try {
+                    const raw = await response.text();
+                    errorText = raw || response.statusText;
+                    const json = JSON.parse(raw);
+                    if (json?.error?.message) {
+                        errorText = json.error.message;
+                    }
+                } catch (e) {
+                    // ignore parse error
+                }
+                throw new Error(`Erro Gemini (${response.status}): ${errorText}`);
+            }
+
+            const data = await response.json();
+            const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join('\n') || '';
+            return this.extractSuggestions(text);
         }
 
         buildUserPrompt(messages = [], profile) {
