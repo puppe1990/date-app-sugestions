@@ -131,6 +131,7 @@
 
             const myLastMessage = context.lastMessages.filter(m => m.direction === 'out').slice(-1)[0];
             const myLastText = myLastMessage ? myLastMessage.text.toLowerCase() : '';
+            const normalizedLastText = myLastText.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
             const isTalkingAboutWork = context.topics.includes('trabalho') ||
                                       myLastText.includes('trabalho') ||
@@ -150,7 +151,23 @@
                                       );
 
             if (myLastText.includes('?')) {
-                if (isTalkingAboutWork || myLastText.includes('faz') || myLastText.includes('trabalho') || myLastText.includes('trabalha') || myLastText.includes('profissão') || myLastText.includes('tempo')) {
+                const isWellbeingQuestion = normalizedLastText.includes('tudo bem') ||
+                                            normalizedLastText.includes('tudo certo') ||
+                                            normalizedLastText.includes('como voce esta') ||
+                                            normalizedLastText.includes('como vc esta') ||
+                                            normalizedLastText.includes('como voce ta') ||
+                                            normalizedLastText.includes('como vc ta') ||
+                                            normalizedLastText.includes('como vai') ||
+                                            normalizedLastText.includes('como esta');
+
+                if (isWellbeingQuestion) {
+                    suggestions.push('Tudo ótimo por aqui! E você, como está?');
+                    suggestions.push('Estou bem, obrigado por perguntar! Como foi seu dia?');
+                    suggestions.push('Tudo certo! O que você tem feito de bom hoje?');
+                    suggestions.push('Tudo bem, e você? Como está seu dia?');
+                    suggestions.push('Estou ótimo! O que tem feito hoje?');
+                    return suggestions;
+                } else if (isTalkingAboutWork || myLastText.includes('faz') || myLastText.includes('trabalho') || myLastText.includes('trabalha') || myLastText.includes('profissão') || myLastText.includes('tempo')) {
                     suggestions.push('Que interessante!');
                     suggestions.push('Gosta do que faz?');
                     suggestions.push('Como é trabalhar nisso?');
@@ -231,6 +248,7 @@
         getResponseSuggestions(context, lastMessage) {
             const suggestions = [];
             const text = lastMessage.text.toLowerCase();
+            const normalizedText = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
             const isTalkingAboutWork = context.topics.includes('trabalho') ||
                                        text.includes('trabalho') ||
@@ -248,6 +266,23 @@
                                            m.text.toLowerCase().includes('profissão')
                                        );
 
+            const isWellbeingQuestion = normalizedText.includes('tudo bem') ||
+                                        normalizedText.includes('tudo certo') ||
+                                        normalizedText.includes('como voce esta') ||
+                                        normalizedText.includes('como vc esta') ||
+                                        normalizedText.includes('como voce ta') ||
+                                        normalizedText.includes('como vc ta') ||
+                                        normalizedText.includes('como vai') ||
+                                        normalizedText.includes('como esta');
+
+            if (isWellbeingQuestion) {
+                suggestions.push('Estou bem, obrigado por perguntar! Como você está?');
+                suggestions.push('Tudo ótimo por aqui. Como está seu dia?');
+                suggestions.push('Tudo certo! O que você tem feito de bom hoje?');
+                suggestions.push('Estou bem, e você? Como foi seu dia até agora?');
+                return suggestions;
+            }
+
             const myLastQuestion = context.lastMessages
                 .filter(m => m.direction === 'out' && m.text.includes('?'))
                 .slice(-1)[0];
@@ -257,20 +292,27 @@
             const isReaction = text.match(/\b(oloko|rs|kkk|haha|nossa|caramba|entendi|ah sim|ok|tá)\b/i);
             const mentionsTime = text.match(/\b(\d+)\s*(meses?|anos?|anos)\b/i);
             const mentionsWork = text.match(/\b(pedágio|pedagio|loja|porcelanato|trabalho|trabalha|faz o que|profissão)\b/i);
+            const asksLocation = text.includes('onde') || text.includes('mora') || text.includes('bairro') || text.includes('zona') || text.includes('cidade');
+            const isReverseQuestion = text.includes('e vc') || text.includes('e você');
 
             if (isQuestion) {
-                if (text.includes('faz o que') || text.includes('trabalho') || text.includes('profissão') || text.includes('emprego') || text.includes('trabalha') || text.includes('e vc')) {
+                const lastQuestionWasWork = myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho') || myLastQuestionText.includes('profissão') || myLastQuestionText.includes('emprego') || myLastQuestionText.includes('trabalha');
+                const lastQuestionWasLocation = myLastQuestionText.includes('onde') || myLastQuestionText.includes('mora') || myLastQuestionText.includes('bairro') || myLastQuestionText.includes('zona') || myLastQuestionText.includes('cidade');
+
+                if (asksLocation || (isReverseQuestion && (lastQuestionWasLocation || context.topics.includes('localização')))) {
+                    suggestions.push('Moro no bairro de Tatuapé, São Paulo capital');
+                    suggestions.push('Moro no bairro de Tatuapé');
+                    suggestions.push('Moro em São Paulo');
+                    suggestions.push('Sou da capital');
+                    return suggestions;
+                }
+
+                if (text.includes('faz o que') || text.includes('trabalho') || text.includes('profissão') || text.includes('emprego') || text.includes('trabalha') || (isReverseQuestion && lastQuestionWasWork)) {
                     suggestions.push('Sou desenvolvedor de software');
                     suggestions.push('Sou desenvolvedor de software numa startup');
                     suggestions.push('Tenho um consultoria de tecnologia');
                     suggestions.push('Trabalho com tecnologia');
                     suggestions.push('Sou engenheiro de software, e você?');
-                    return suggestions;
-                } else if (text.includes('onde') || text.includes('mora') || text.includes('bairro') || text.includes('zona')) {
-                    suggestions.push('Moro no bairro de Tatuapé, São Paulo capital');
-                    suggestions.push('Moro no bairro de Tatuapé');
-                    suggestions.push('Moro em São Paulo');
-                    suggestions.push('Sou da capital');
                     return suggestions;
                 } else {
                     suggestions.push('Sim!');
