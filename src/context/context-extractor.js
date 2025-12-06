@@ -1,7 +1,8 @@
 (() => {
     class ContextExtractor {
-        constructor({ debug = false } = {}) {
+        constructor({ debug = false, messageReader } = {}) {
             this.debug = debug;
+            this.messageReader = messageReader || window.BadooChatSuggestions.createBadooMessageReader();
         }
 
         extract(chatContainer) {
@@ -11,7 +12,7 @@
             }
 
             const { TOPIC_KEYWORDS } = window.BadooChatSuggestions.constants;
-            const messages = chatContainer.querySelectorAll('[data-qa="chat-message"]');
+            const messages = this.messageReader.read(chatContainer);
             const context = {
                 allMessages: [],
                 lastMessages: [],
@@ -32,27 +33,15 @@
             const recentMessages = allMessagesArray.slice(-10);
 
             recentMessages.forEach(message => {
-                const direction = message.getAttribute('data-qa-message-direction');
-                const contentText = message.querySelector('.csms-chat-message-content-text__message');
-                const audioButton = message.querySelector('[data-qa-message-content-type="audio"]');
+                if (!message) return;
+                const { sender, text, direction, type } = message;
 
-                if (contentText) {
-                    const text = contentText.textContent.trim();
-                    const sender = message.querySelector('.csms-a11y-visually-hidden')?.textContent ||
-                                  (direction === 'out' ? 'Você' : 'Outro');
+                context.allMessages.push(message);
+                context.lastMessages.push(message);
+                context.participants.add(sender);
+                context.lastSender = sender;
 
-                    const messageObj = {
-                        sender,
-                        text,
-                        direction,
-                        type: 'text'
-                    };
-
-                    context.allMessages.push(messageObj);
-                    context.lastMessages.push(messageObj);
-                    context.participants.add(sender);
-                    context.lastSender = sender;
-
+                if (type === 'text' && text) {
                     this.extractTopics(text, context.topics, TOPIC_KEYWORDS);
                     this.extractMentionedPlaces(text, context.mentionedPlaces);
                     this.extractMentionedJobs(text, context.mentionedJobs);
@@ -66,18 +55,6 @@
                     if (text.match(/\b(gostei|legal|interessante|bonito|lindo|adoro|amo|curto|incrível|maravilhoso)\b/i)) {
                         context.hasElogios = true;
                     }
-                } else if (audioButton) {
-                    const sender = message.querySelector('.csms-a11y-visually-hidden')?.textContent ||
-                                  (direction === 'out' ? 'Você' : 'Outro');
-                    const messageObj = {
-                        sender,
-                        text: 'Mensagem de voz',
-                        direction,
-                        type: 'audio'
-                    };
-                    context.allMessages.push(messageObj);
-                    context.lastMessages.push(messageObj);
-                    context.lastSender = sender;
                 }
             });
 

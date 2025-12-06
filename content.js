@@ -15,9 +15,15 @@
             return;
         }
 
+        const config = window.badooChatSuggestionsConfig || {};
+        const messageReader = config.messageReaderConfig
+            ? new window.BadooChatSuggestions.MessageReader(config.messageReaderConfig)
+            : config.messageReader;
+
         const controller = new window.BadooChatSuggestions.ChatSuggestionsController({
-            chatContainerSelector: '.csms-chat-messages',
-            inputSelector: '#chat-composer-input-message',
+            chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
+            inputSelector: config.inputSelector || '#chat-composer-input-message',
+            messageReader,
             debug: window.badooChatSuggestionsDebug
         });
 

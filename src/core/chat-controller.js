@@ -3,11 +3,13 @@
         constructor({
             chatContainerSelector = '.csms-chat-messages',
             inputSelector = '#chat-composer-input-message',
+            messageReader = null,
             debug = false
         } = {}) {
             this.chatContainerSelector = chatContainerSelector;
             this.inputSelector = inputSelector;
             this.debug = debug;
+            this.messageReader = messageReader || window.BadooChatSuggestions.createBadooMessageReader();
 
             this.chatContainer = null;
             this.contextExtractor = null;
@@ -43,7 +45,10 @@
                 console.log('[Badoo Chat Suggestions] Inicializando...');
             }
 
-            this.contextExtractor = new window.BadooChatSuggestions.ContextExtractor({ debug: this.debug });
+            this.contextExtractor = new window.BadooChatSuggestions.ContextExtractor({
+                debug: this.debug,
+                messageReader: this.messageReader
+            });
             this.suggestionEngine = new window.BadooChatSuggestions.SuggestionEngine({ debug: this.debug });
             this.ui = new window.BadooChatSuggestions.SuggestionsUI({ inputSelector: this.inputSelector });
 
