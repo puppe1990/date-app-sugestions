@@ -112,7 +112,7 @@ class ChatSuggestions {
         
         // Tópicos comuns em conversas de relacionamento
         const topicKeywords = {
-            'trabalho': ['trabalho', 'emprego', 'profissão', 'engenheiro', 'desenvolve', 'programas', 'escritório', 'empresa', 'carreira', 'faz o que', 'trabalha', 'trabalho', 'escritório', 'cliente'],
+            'trabalho': ['trabalho', 'emprego', 'profissão', 'engenheiro', 'desenvolve', 'programas', 'escritório', 'empresa', 'carreira', 'faz o que', 'trabalha', 'trabalho', 'escritório', 'cliente', 'pedágio', 'loja', 'porcelanato', 'startup', 'consultoria', 'tecnologia', 'programador', 'desenvolvedor', 'software'],
             'localização': ['moro', 'onde', 'cidade', 'capital', 'santo andré', 'tatuapé', 'perto', 'bairro', 'zona', 'região', 'endereço', 'local', 'sp', 'são paulo', 'abc', 'paulista'],
             'saudação': ['bom dia', 'boa tarde', 'boa noite', 'tudo bem', 'como vai', 'olá', 'oi', 'e aí'],
             'interesse': ['gostei', 'fotos', 'legal', 'interessante', 'bonito', 'lindo', 'adoro', 'amo', 'curto'],
@@ -371,9 +371,44 @@ class ChatSuggestions {
         }
         // Se você fez uma afirmação ou comentário
         else {
-            // Se mencionou trabalho
-            const workMentioned = context.topics.includes('trabalho');
-            if (workMentioned) {
+            // Verifica se estão falando de trabalho (no contexto geral ou na sua última mensagem)
+            const isTalkingAboutWork = context.topics.includes('trabalho') || 
+                                      myLastText.includes('trabalho') || 
+                                      myLastText.includes('trabalha') ||
+                                      myLastText.includes('pedágio') ||
+                                      myLastText.includes('loja') ||
+                                      myLastText.includes('porcelanato') ||
+                                      myLastText.includes('engenheiro') ||
+                                      myLastText.includes('desenvolvedor') ||
+                                      myLastText.includes('software') ||
+                                      context.lastMessages.some(m => 
+                                          m.text.toLowerCase().includes('trabalho') || 
+                                          m.text.toLowerCase().includes('trabalha') ||
+                                          m.text.toLowerCase().includes('faz o que') ||
+                                          m.text.toLowerCase().includes('profissão')
+                                      );
+            
+            // Se estão falando de trabalho
+            if (isTalkingAboutWork) {
+                // Se você mencionou seu trabalho, sugere perguntas sobre o trabalho dela
+                if (myLastText.includes('engenheiro') || myLastText.includes('desenvolvedor') || myLastText.includes('software') || myLastText.includes('tecnologia')) {
+                    suggestions.push('E você, trabalha com o quê?');
+                    suggestions.push('Que área você trabalha?');
+                    suggestions.push('Qual sua profissão?');
+                    suggestions.push('Trabalha com o quê?');
+                    suggestions.push('Há quanto tempo trabalha nisso?');
+                }
+                // Se você perguntou sobre trabalho ou comentou sobre o trabalho dela
+                else {
+                    suggestions.push('Que interessante!');
+                    suggestions.push('Há quanto tempo trabalha nisso?');
+                    suggestions.push('Gosta do que faz?');
+                    suggestions.push('Como é trabalhar nisso?');
+                    suggestions.push('É desafiador?');
+                }
+            }
+            // Se mencionou trabalho (fallback)
+            else if (context.topics.includes('trabalho')) {
                 suggestions.push('E você, trabalha com o quê?');
                 suggestions.push('Que área você trabalha?');
                 suggestions.push('E você, o que faz da vida?');
@@ -409,14 +444,65 @@ class ChatSuggestions {
         const suggestions = [];
         const text = lastMessage.text.toLowerCase();
         
+        // Verifica se o tópico de trabalho está ativo na conversa
+        const isTalkingAboutWork = context.topics.includes('trabalho') || 
+                                   text.includes('trabalho') || 
+                                   text.includes('trabalha') ||
+                                   text.includes('pedágio') ||
+                                   text.includes('loja') ||
+                                   text.includes('porcelanato') ||
+                                   context.lastMessages.some(m => 
+                                       m.text.toLowerCase().includes('trabalho') || 
+                                       m.text.toLowerCase().includes('trabalha') ||
+                                       m.text.toLowerCase().includes('faz o que') ||
+                                       m.text.toLowerCase().includes('profissão')
+                                   );
+        
         // Verifica qual foi a última pergunta que VOCÊ fez
         const myLastQuestion = context.lastMessages
             .filter(m => m.direction === 'out' && m.text.includes('?'))
             .slice(-1)[0];
         const myLastQuestionText = myLastQuestion ? myLastQuestion.text.toLowerCase() : '';
 
-        // Se a outra pessoa está respondendo uma pergunta sua sobre trabalho
-        if (myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho') || myLastQuestionText.includes('profissão')) {
+        // Se estão falando de trabalho
+        if (isTalkingAboutWork) {
+            // Se a outra pessoa está respondendo uma pergunta sua sobre trabalho
+            if (myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho') || myLastQuestionText.includes('profissão') || myLastQuestionText.includes('emprego')) {
+                // A outra pessoa provavelmente respondeu sobre o trabalho dela
+                suggestions.push('Que interessante!');
+                suggestions.push('Há quanto tempo trabalha nisso?');
+                suggestions.push('Gosta do que faz?');
+                suggestions.push('Como é trabalhar nisso?');
+                suggestions.push('É uma área que sempre te interessou?');
+            }
+            // Se a outra pessoa fez uma pergunta sobre trabalho para você
+            else if (text.includes('faz o que') || text.includes('trabalho') || text.includes('profissão') || text.includes('emprego') || text.includes('trabalha')) {
+                suggestions.push('Sou desenvolvedor de software');
+                suggestions.push('Sou desenvolvedor de software numa startup');
+                suggestions.push('Tenho um consultoria de tecnologia');
+                suggestions.push('Trabalho com tecnologia');
+                suggestions.push('Sou engenheiro de software, e você?');
+                suggestions.push('Trabalho na área de tecnologia');
+                suggestions.push('Sou programador, e você?');
+            }
+            // Se a outra pessoa mencionou algo sobre trabalho (resposta ou comentário)
+            else if (text.includes('pedágio') || text.includes('loja') || text.includes('porcelanato') || text.includes('trabalha') || text.includes('trabalho')) {
+                suggestions.push('Que interessante!');
+                suggestions.push('Há quanto tempo trabalha nisso?');
+                suggestions.push('Gosta do que faz?');
+                suggestions.push('Como é trabalhar nisso?');
+                suggestions.push('É desafiador?');
+            }
+            // Se você já respondeu sobre seu trabalho e ela está comentando
+            else {
+                suggestions.push('Gosto muito do que faço');
+                suggestions.push('É uma área que sempre me interessou');
+                suggestions.push('É desafiador e gratificante');
+                suggestions.push('E você, o que gosta de fazer no tempo livre?');
+            }
+        }
+        // Se a outra pessoa está respondendo uma pergunta sua sobre trabalho (fallback)
+        else if (myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho') || myLastQuestionText.includes('profissão')) {
             // A outra pessoa provavelmente respondeu sobre o trabalho dela
             suggestions.push('Que interessante!');
             suggestions.push('Há quanto tempo trabalha nisso?');
@@ -433,19 +519,10 @@ class ChatSuggestions {
             suggestions.push('E você, trabalha com o quê?');
             suggestions.push('O que você gosta de fazer por lá?');
         }
-        // Se a outra pessoa fez uma pergunta para você
-        else if (text.includes('?')) {
-            // Respostas para perguntas sobre trabalho
-            if (text.includes('faz o que') || text.includes('trabalho') || text.includes('profissão') || text.includes('emprego')) {
-                suggestions.push('Sou desenvolvedor de software');
-                suggestions.push('Trabalho com tecnologia');
-                suggestions.push('Sou engenheiro de software, e você?');
-                suggestions.push('Trabalho na área de tecnologia');
-                suggestions.push('Sou programador, e você?');
-                suggestions.push('Trabalho com desenvolvimento de software');
-            }
+        // Se a outra pessoa fez uma pergunta para você (e não estão falando de trabalho)
+        else if (text.includes('?') && !isTalkingAboutWork) {
             // Respostas para perguntas sobre localização
-            else if (text.includes('onde') || text.includes('mora') || text.includes('cidade') || text.includes('bairro') || text.includes('zona')) {
+            if (text.includes('onde') || text.includes('mora') || text.includes('cidade') || text.includes('bairro') || text.includes('zona')) {
                 suggestions.push('Moro no bairro de Tatuapé, São Paulo capital');
                 suggestions.push('Moro no bairro de Tatuapé');
                 suggestions.push('Moro em São Paulo');
@@ -481,7 +558,7 @@ class ChatSuggestions {
 
         // Se a outra pessoa respondeu uma informação (não é pergunta)
         // e você tinha feito uma pergunta antes, sugere comentários sobre a resposta
-        if (!text.includes('?') && myLastQuestionText) {
+        if (!text.includes('?') && myLastQuestionText && !isTalkingAboutWork) {
             // Se você perguntou sobre localização e ela respondeu
             if (myLastQuestionText.includes('onde') || myLastQuestionText.includes('mora')) {
                 if (text.includes('zn') || text.includes('zona') || text.includes('norte') || text.includes('sul') || text.includes('leste') || text.includes('oeste')) {
@@ -494,13 +571,6 @@ class ChatSuggestions {
                     suggestions.push('É perto?');
                     suggestions.push('Já conhece por lá?');
                 }
-            }
-            // Se você perguntou sobre trabalho e ela respondeu
-            else if (myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho')) {
-                suggestions.push('Que interessante!');
-                suggestions.push('Há quanto tempo trabalha nisso?');
-                suggestions.push('Gosta do que faz?');
-                suggestions.push('E você, mora onde?');
             }
             // Respostas genéricas para informações
             else {
