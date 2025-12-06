@@ -138,6 +138,15 @@
             const context = this.contextExtractor.extract(this.chatContainer);
             const suggestions = this.suggestionEngine.generate(context);
             const safeSuggestions = suggestions.length > 0 ? suggestions : this.suggestionEngine.getDefaultSuggestions();
+            if (this.debug && Array.isArray(context?.lastMessages)) {
+                const conversationLog = context.lastMessages.map((msg, index) => ({
+                    index: index + 1,
+                    direction: msg.direction,
+                    sender: msg.sender,
+                    text: msg.text
+                }));
+                console.table(conversationLog);
+            }
             this.ui.render(safeSuggestions);
             this.info('Sugestões atualizadas', {
                 total: safeSuggestions.length,

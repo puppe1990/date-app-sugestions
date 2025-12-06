@@ -46,12 +46,40 @@
 
         getPersonalizedSuggestions(context) {
             const suggestions = [];
+            const normalizedPlaces = (context.mentionedPlaces || []).map(p => p.toLowerCase());
 
-            if (context.mentionedPlaces.length > 0) {
-                const place = context.mentionedPlaces[0];
-                suggestions.push(`Que legal! Já conhece ${place}?`);
-                suggestions.push('É uma região bem legal');
-                suggestions.push(`Já visitou ${place}?`);
+            const findPlaceByDirection = (direction) => {
+                if (!context.lastMessages || normalizedPlaces.length === 0) return null;
+                for (let i = context.lastMessages.length - 1; i >= 0; i--) {
+                    const msg = context.lastMessages[i];
+                    if (msg.direction !== direction || !msg.text) continue;
+                    const lower = msg.text.toLowerCase();
+                    const matchIndex = normalizedPlaces.findIndex(place => lower.includes(place));
+                    if (matchIndex !== -1) {
+                        return context.mentionedPlaces[matchIndex];
+                    }
+                }
+                return null;
+            };
+
+            const lastMessage = context.lastMessages[context.lastMessages.length - 1];
+            const lastOutbound = context.lastMessages.filter(m => m.direction === 'out').slice(-1)[0];
+
+            const inboundPlace = findPlaceByDirection('in');
+            const myPlace = findPlaceByDirection('out');
+            const myPlaceLower = myPlace ? myPlace.toLowerCase() : '';
+            const lastOutboundHasMyPlace = Boolean(lastOutbound && myPlaceLower && lastOutbound.text.toLowerCase().includes(myPlaceLower));
+            const lastIsOutWithPlace = Boolean(lastMessage && lastMessage.direction === 'out' && myPlaceLower && lastMessage.text.toLowerCase().includes(myPlaceLower));
+
+            if (inboundPlace && !(lastIsOutWithPlace && lastOutboundHasMyPlace)) {
+                const place = inboundPlace;
+                suggestions.push(`Legal, ${place}!`);
+                suggestions.push(`${place} é uma região bem legal.`);
+                suggestions.push(`Você gosta de ${place}?`);
+                if (myPlace && !lastOutboundHasMyPlace) {
+                    suggestions.push(`Eu sou de ${myPlace}.`);
+                }
+                suggestions.push('Costuma sair por aí?');
             }
 
             if (context.mentionedJobs.length > 0) {
