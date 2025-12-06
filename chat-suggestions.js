@@ -798,6 +798,8 @@ class ChatSuggestions {
                 suggestions.push('O que você gosta de fazer no tempo livre?');
                 return suggestions;
             }
+        }
+        
         // PRIORIDADE 3: Se a outra pessoa está respondendo uma pergunta sua sobre localização
         if (myLastQuestionText.includes('onde') || myLastQuestionText.includes('mora') || myLastQuestionText.includes('bairro') || myLastQuestionText.includes('zona')) {
             suggestions.push('Que legal!');
