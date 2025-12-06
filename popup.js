@@ -1,4 +1,5 @@
 const MODELS = [
+  'google/gemini-2.0-flash-exp:free',
   'openai/gpt-oss-120b:free',
   'qwen/qwen3-235b-a22b:free',
   'tngtech/deepseek-r1t2-chimera:free',

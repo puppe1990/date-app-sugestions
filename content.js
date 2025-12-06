@@ -10,7 +10,7 @@
     }
     window.badooChatSuggestionsInitialized = true;
 
-    const defaultModel = 'openai/gpt-oss-120b:free';
+    const defaultModel = 'google/gemini-2.0-flash-exp:free';
 
     const loadConfig = () => {
         return new Promise(resolve => {
