@@ -77,11 +77,13 @@ class ChatSuggestions {
         
         // Tópicos comuns em conversas de relacionamento
         const topicKeywords = {
-            'trabalho': ['trabalho', 'emprego', 'profissão', 'engenheiro', 'desenvolve', 'programas'],
-            'localização': ['moro', 'onde', 'cidade', 'capital', 'santo andré', 'tatuapé', 'perto'],
-            'saudação': ['bom dia', 'boa tarde', 'boa noite', 'tudo bem', 'como vai'],
-            'interesse': ['gostei', 'fotos', 'legal', 'interessante'],
-            'pergunta': ['?', 'vc', 'você', 'faz o que']
+            'trabalho': ['trabalho', 'emprego', 'profissão', 'engenheiro', 'desenvolve', 'programas', 'escritório', 'empresa', 'carreira', 'faz o que', 'trabalha'],
+            'localização': ['moro', 'onde', 'cidade', 'capital', 'santo andré', 'tatuapé', 'perto', 'bairro', 'zona', 'região', 'endereço', 'local'],
+            'saudação': ['bom dia', 'boa tarde', 'boa noite', 'tudo bem', 'como vai', 'olá', 'oi', 'e aí'],
+            'interesse': ['gostei', 'fotos', 'legal', 'interessante', 'bonito', 'lindo', 'adoro', 'amo', 'curto'],
+            'pergunta': ['?', 'vc', 'você', 'faz o que', 'qual', 'quando', 'onde', 'como'],
+            'hobby': ['hobby', 'gosto', 'curto', 'interesse', 'fazer', 'tempo livre', 'lazer', 'diversão'],
+            'encontro': ['encontrar', 'ver', 'conhecer', 'sair', 'encontro', 'marcar', 'combinar', 'quando']
         };
 
         for (const [topic, keywords] of Object.entries(topicKeywords)) {
@@ -116,8 +118,8 @@ class ChatSuggestions {
         // Adiciona sugestões contextuais baseadas nos tópicos
         suggestions.push(...this.getContextualSuggestions(context));
 
-        // Remove duplicatas e limita a 3 sugestões
-        return [...new Set(suggestions)].slice(0, 3);
+        // Remove duplicatas e limita a 5 sugestões
+        return [...new Set(suggestions)].slice(0, 5);
     }
 
     /**
@@ -127,7 +129,14 @@ class ChatSuggestions {
         return [
             'Oi! Como você está?',
             'Tudo bem?',
-            'Que tal conversarmos?'
+            'Que tal conversarmos?',
+            'Oi! Prazer em te conhecer',
+            'Olá! Como vai?',
+            'Oi! Tudo certo?',
+            'Olá! Espero que esteja bem',
+            'Oi! Que bom te conhecer',
+            'Olá! Como está seu dia?',
+            'Oi! Tudo tranquilo?'
         ];
     }
 
@@ -142,6 +151,9 @@ class ChatSuggestions {
         if (workMentioned) {
             suggestions.push('E você, trabalha com o quê?');
             suggestions.push('Que área você trabalha?');
+            suggestions.push('E você, o que faz da vida?');
+            suggestions.push('Qual sua profissão?');
+            suggestions.push('Trabalha com o quê?');
         }
 
         // Verifica se mencionou localização
@@ -149,11 +161,20 @@ class ChatSuggestions {
         if (locationMentioned) {
             suggestions.push('Que legal! Moramos perto mesmo');
             suggestions.push('Já conhece a região?');
+            suggestions.push('Que coincidência!');
+            suggestions.push('É uma região bem legal');
+            suggestions.push('Já visitou por aqui?');
         }
 
         // Sugestões genéricas de continuidade
         suggestions.push('E você, o que gosta de fazer?');
         suggestions.push('Tem algum hobby?');
+        suggestions.push('O que você gosta de fazer no tempo livre?');
+        suggestions.push('Quais seus interesses?');
+        suggestions.push('O que te faz feliz?');
+        suggestions.push('Tem algum sonho ou objetivo?');
+        suggestions.push('O que você mais gosta de fazer?');
+        suggestions.push('Tem algum lugar que gostaria de conhecer?');
 
         return suggestions;
     }
@@ -166,49 +187,92 @@ class ChatSuggestions {
         const text = lastMessage.text.toLowerCase();
 
         // Respostas para perguntas sobre trabalho
-        if (text.includes('faz o que') || text.includes('trabalho') || text.includes('profissão')) {
+        if (text.includes('faz o que') || text.includes('trabalho') || text.includes('profissão') || text.includes('emprego')) {
             suggestions.push('Sou desenvolvedor de software');
             suggestions.push('Trabalho com tecnologia');
             suggestions.push('Sou engenheiro de software, e você?');
+            suggestions.push('Trabalho na área de tecnologia');
+            suggestions.push('Sou programador, e você?');
+            suggestions.push('Trabalho com desenvolvimento de software');
         }
 
         // Respostas para perguntas sobre localização
-        if (text.includes('onde') || text.includes('mora') || text.includes('cidade')) {
+        if (text.includes('onde') || text.includes('mora') || text.includes('cidade') || text.includes('bairro') || text.includes('zona')) {
             suggestions.push('Moro em São Paulo');
             suggestions.push('Sou da capital');
             suggestions.push('Moro aqui na região metropolitana');
+            suggestions.push('Sou de São Paulo');
+            suggestions.push('Moro na capital');
+            suggestions.push('Sou da região metropolitana');
         }
 
         // Respostas para elogios
-        if (text.includes('gostei') || text.includes('legal') || text.includes('interessante')) {
+        if (text.includes('gostei') || text.includes('legal') || text.includes('interessante') || text.includes('bonito') || text.includes('lindo')) {
             suggestions.push('Obrigado! 😊');
             suggestions.push('Que bom que gostou!');
             suggestions.push('Fico feliz!');
+            suggestions.push('Muito obrigado!');
+            suggestions.push('Que gentil!');
+            suggestions.push('Obrigado pelo elogio!');
         }
 
         // Respostas para perguntas sobre fotos
-        if (text.includes('foto')) {
+        if (text.includes('foto') || text.includes('fotos') || text.includes('fotografia')) {
             suggestions.push('Obrigado! As suas também são lindas');
             suggestions.push('Que bom que gostou!');
+            suggestions.push('Obrigado! 😊');
+            suggestions.push('Que gentil!');
         }
 
-        // Respostas genéricas
+        // Respostas genéricas para perguntas
         if (text.includes('?')) {
             suggestions.push('Sim!');
             suggestions.push('Claro!');
             suggestions.push('Exatamente!');
+            suggestions.push('Com certeza!');
+            suggestions.push('Sim, claro!');
+            suggestions.push('Pode ser!');
         }
 
         // Respostas para saudações
         if (text.includes('bom dia') || text.includes('boa tarde') || text.includes('boa noite')) {
             suggestions.push('Oi! Tudo bem sim, e você?');
             suggestions.push('Tudo ótimo, obrigado!');
+            suggestions.push('Oi! Tudo certo, e você?');
+            suggestions.push('Olá! Tudo bem, obrigado!');
         }
 
         // Respostas para "tudo bem?"
-        if (text.includes('tudo bem') || text.includes('como vai')) {
+        if (text.includes('tudo bem') || text.includes('como vai') || text.includes('como está')) {
             suggestions.push('Tudo ótimo, e você?');
             suggestions.push('Estou bem, obrigado!');
+            suggestions.push('Tudo certo, e você?');
+            suggestions.push('Tudo tranquilo, e você?');
+            suggestions.push('Estou ótimo, obrigado!');
+        }
+
+        // Respostas para convites ou encontros
+        if (text.includes('encontrar') || text.includes('ver') || text.includes('conhecer') || text.includes('sair') || text.includes('encontro')) {
+            suggestions.push('Adoraria!');
+            suggestions.push('Seria ótimo!');
+            suggestions.push('Combinado!');
+            suggestions.push('Que legal! Quando?');
+            suggestions.push('Claro! Quando você pode?');
+        }
+
+        // Respostas para mensagens de voz
+        if (lastMessage.type === 'audio') {
+            suggestions.push('Obrigado pela mensagem!');
+            suggestions.push('Que legal!');
+            suggestions.push('Gostei!');
+        }
+
+        // Respostas para perguntas sobre hobbies/interesses
+        if (text.includes('gosta') || text.includes('hobby') || text.includes('interesse') || text.includes('fazer')) {
+            suggestions.push('Gosto de ler, assistir séries e sair');
+            suggestions.push('Gosto de música, cinema e viagens');
+            suggestions.push('Gosto de esportes e atividades ao ar livre');
+            suggestions.push('Gosto de tecnologia e inovação');
         }
 
         return suggestions;
@@ -223,17 +287,57 @@ class ChatSuggestions {
         if (context.topics.includes('trabalho')) {
             suggestions.push('Gosto muito do que faço');
             suggestions.push('É uma área que sempre me interessou');
+            suggestions.push('É um trabalho que me realiza');
+            suggestions.push('Amo o que faço');
+            suggestions.push('É desafiador e gratificante');
         }
 
         if (context.topics.includes('localização')) {
             suggestions.push('É uma região legal');
             suggestions.push('Já conhece por aqui?');
+            suggestions.push('É um lugar bem agradável');
+            suggestions.push('Gosto muito daqui');
+            suggestions.push('É uma região bem completa');
         }
 
         if (context.topics.includes('interesse')) {
             suggestions.push('Que tal nos conhecermos melhor?');
             suggestions.push('Gostaria de conversar mais');
+            suggestions.push('Seria legal nos conhecermos');
+            suggestions.push('Que tal conversarmos mais?');
+            suggestions.push('Adoraria te conhecer melhor');
         }
+
+        if (context.topics.includes('saudação')) {
+            suggestions.push('Oi! Como você está?');
+            suggestions.push('Olá! Tudo bem?');
+            suggestions.push('Oi! Espero que esteja bem');
+        }
+
+        if (context.topics.includes('hobby')) {
+            suggestions.push('Gosto de ler e assistir séries');
+            suggestions.push('Adoro música e cinema');
+            suggestions.push('Gosto de esportes e atividades ao ar livre');
+            suggestions.push('Curto tecnologia e inovação');
+            suggestions.push('Gosto de viajar e conhecer lugares novos');
+        }
+
+        if (context.topics.includes('encontro')) {
+            suggestions.push('Adoraria! Quando você pode?');
+            suggestions.push('Seria ótimo! Vamos combinar');
+            suggestions.push('Combinado! Qual dia funciona melhor?');
+            suggestions.push('Que legal! Vamos marcar');
+            suggestions.push('Perfeito! Quando você está livre?');
+        }
+
+        // Sugestões gerais de engajamento
+        suggestions.push('Que tal conversarmos mais?');
+        suggestions.push('Gostaria de te conhecer melhor');
+        suggestions.push('Seria legal nos conhecermos');
+        suggestions.push('Adoraria conversar mais contigo');
+        suggestions.push('Que tal marcarmos algo?');
+        suggestions.push('Gostaria de te conhecer pessoalmente');
+        suggestions.push('Seria incrível nos encontrarmos');
 
         return suggestions;
     }
