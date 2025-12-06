@@ -10,15 +10,39 @@
     }
     window.badooChatSuggestionsInitialized = true;
 
-    const start = () => {
+    const defaultModel = 'openai/gpt-oss-120b:free';
+
+    const loadConfig = () => {
+        return new Promise(resolve => {
+            if (!chrome?.storage?.local) {
+                resolve({});
+                return;
+            }
+            chrome.storage.local.get(['openRouterModel'], (result) => {
+                resolve({
+                    openRouterModel: result.openRouterModel || defaultModel
+                });
+            });
+        });
+    };
+
+    const start = async () => {
         if (window.badooChatSuggestionsInstance) {
             return;
         }
 
-        const config = window.badooChatSuggestionsConfig || {};
+        const stored = await loadConfig();
+        const config = {
+            ...stored,
+            ...(window.badooChatSuggestionsConfig || {})
+        };
         const messageReader = config.messageReaderConfig
             ? new window.BadooChatSuggestions.MessageReader(config.messageReaderConfig)
             : config.messageReader;
+        const aiClientConfig = config.aiClientConfig || {
+            apiKey: config.openRouterApiKey || (typeof window !== 'undefined' && window.OPENROUTER_API_KEY),
+            model: config.openRouterModel || 'openai/gpt-4o'
+        };
 
         console.info('[Badoo Chat Suggestions] Iniciando content script', {
             chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
@@ -29,6 +53,7 @@
             chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
             inputSelector: config.inputSelector || '#chat-composer-input-message',
             messageReader,
+            aiClientConfig,
             debug: window.badooChatSuggestionsDebug
         });
 

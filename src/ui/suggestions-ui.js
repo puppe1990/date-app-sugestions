@@ -1,9 +1,12 @@
 (() => {
     class SuggestionsUI {
-        constructor({ inputSelector } = {}) {
+        constructor({ inputSelector, onAiGenerate } = {}) {
             this.inputSelector = inputSelector || '#chat-composer-input-message';
             this.container = null;
             this.domObserver = null;
+            this.onAiGenerate = onAiGenerate;
+            this.aiLoading = false;
+            this.aiButton = null;
         }
 
         getContainer() {
@@ -174,6 +177,12 @@
 
             container.innerHTML = '';
 
+            if (typeof this.onAiGenerate === 'function') {
+                const aiButton = this.createAiButton();
+                container.appendChild(aiButton);
+                this.aiButton = aiButton;
+            }
+
             const finalSuggestions = suggestions && suggestions.length > 0 ? suggestions : [];
             finalSuggestions.forEach(suggestion => {
                 const button = this.createSuggestionButton(suggestion);
@@ -221,6 +230,55 @@
             });
 
             return button;
+        }
+
+        createAiButton() {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button chat-suggestion-button--ai';
+            button.textContent = this.aiLoading ? 'IA (gerando...)' : '✨ IA';
+            button.disabled = this.aiLoading;
+            button.style.cssText = `
+                padding: 8px 14px;
+                border: 1px solid #a0a0a0;
+                border-radius: 16px;
+                background-color: #333;
+                color: #fff;
+                font-size: 13px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: all 0.2s;
+                flex-shrink: 0;
+            `;
+
+            button.addEventListener('mouseenter', () => {
+                button.style.backgroundColor = '#111';
+                button.style.borderColor = '#888';
+            });
+
+            button.addEventListener('mouseleave', () => {
+                button.style.backgroundColor = '#333';
+                button.style.borderColor = '#a0a0a0';
+            });
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof this.onAiGenerate === 'function' && !this.aiLoading) {
+                    this.onAiGenerate();
+                }
+            });
+
+            return button;
+        }
+
+        setAiLoading(isLoading) {
+            this.aiLoading = Boolean(isLoading);
+            if (this.aiButton) {
+                this.aiButton.textContent = this.aiLoading ? 'IA (gerando...)' : '✨ IA';
+                this.aiButton.disabled = this.aiLoading;
+                this.aiButton.style.opacity = this.aiLoading ? '0.7' : '1';
+            }
         }
 
         insertSuggestion(text) {

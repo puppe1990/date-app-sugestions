@@ -4,12 +4,16 @@
             chatContainerSelector = '.csms-chat-messages',
             inputSelector = '#chat-composer-input-message',
             messageReader = null,
+            aiClient = null,
+            aiClientConfig = {},
             debug = false
         } = {}) {
             this.chatContainerSelector = chatContainerSelector;
             this.inputSelector = inputSelector;
             this.debug = debug;
             this.messageReader = messageReader || window.BadooChatSuggestions.createBadooMessageReader();
+            this.aiClient = aiClient;
+            this.aiClientConfig = aiClientConfig || {};
 
             this.chatContainer = null;
             this.contextExtractor = null;
@@ -22,6 +26,7 @@
             this.periodicUpdateInterval = null;
             this.chatObserver = null;
             this.initRetryTimeout = null;
+            this.aiLoading = false;
         }
 
         init() {
@@ -51,8 +56,12 @@
                 debug: this.debug,
                 messageReader: this.messageReader
             });
+            this.aiClient = this.aiClient || this.createAIClient();
             this.suggestionEngine = new window.BadooChatSuggestions.SuggestionEngine({ debug: this.debug });
-            this.ui = new window.BadooChatSuggestions.SuggestionsUI({ inputSelector: this.inputSelector });
+            this.ui = new window.BadooChatSuggestions.SuggestionsUI({
+                inputSelector: this.inputSelector,
+                onAiGenerate: () => this.generateAISuggestions()
+            });
 
             const mounted = this.ui.mount();
             this.info('Container de sugestões montado', { mounted, inputSelector: this.inputSelector });
@@ -152,6 +161,54 @@
                 total: safeSuggestions.length,
                 topics: context?.topics || []
             });
+        }
+
+        createAIClient() {
+            const apiKey = this.aiClientConfig.apiKey ||
+                (typeof window !== 'undefined' && window.OPENROUTER_API_KEY) ||
+                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterApiKey);
+
+            const model = this.aiClientConfig.model ||
+                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterModel) ||
+                'openai/gpt-4o';
+
+            if (!apiKey) {
+                this.info('OpenRouter não configurado; botão de IA ficará inativo');
+                return null;
+            }
+
+            if (!window.BadooChatSuggestions.AIClient) {
+                this.info('AIClient não disponível');
+                return null;
+            }
+
+            return new window.BadooChatSuggestions.AIClient({ apiKey, model });
+        }
+
+        async generateAISuggestions() {
+            if (this.aiLoading) return;
+            if (!this.aiClient) {
+                this.info('OpenRouter não configurado; defina openRouterApiKey em window.badooChatSuggestionsConfig');
+                alert('IA não configurada. Defina openRouterApiKey em window.badooChatSuggestionsConfig ou window.OPENROUTER_API_KEY.');
+                return;
+            }
+
+            try {
+                this.aiLoading = true;
+                this.ui.setAiLoading(true);
+                const context = this.contextExtractor.extract(this.chatContainer);
+                const messages = context?.lastMessages || [];
+                const aiSuggestions = await this.aiClient.generateSuggestions({ messages });
+                const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
+                this.ui.render(safe);
+                this.info('Sugestões de IA geradas', { total: safe.length });
+            } catch (error) {
+                console.error('[Badoo Chat Suggestions] Erro ao gerar via IA', error);
+                alert('Não foi possível gerar sugestões via IA.');
+            } finally {
+                this.aiLoading = false;
+                this.ui.setAiLoading(false);
+            }
         }
 
         cleanup() {
