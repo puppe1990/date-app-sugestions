@@ -20,6 +20,11 @@
             ? new window.BadooChatSuggestions.MessageReader(config.messageReaderConfig)
             : config.messageReader;
 
+        console.info('[Badoo Chat Suggestions] Iniciando content script', {
+            chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
+            inputSelector: config.inputSelector || '#chat-composer-input-message'
+        });
+
         const controller = new window.BadooChatSuggestions.ChatSuggestionsController({
             chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
             inputSelector: config.inputSelector || '#chat-composer-input-message',
@@ -51,6 +56,7 @@
                         window.badooChatSuggestionsInstance = null;
                     }
                     window.badooChatSuggestionsInitialized = false;
+                    console.info('[Badoo Chat Suggestions] URL de mensagens detectada, reinicializando...');
                     start();
                 }, 1000);
             }

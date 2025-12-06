@@ -59,6 +59,7 @@
                 this.attachDomObserver();
             }
             container.style.display = 'flex';
+            console.info('[Badoo Chat Suggestions] UI montada', { inserted, inputSelector: this.inputSelector });
             return inserted;
         }
 
@@ -77,6 +78,7 @@
                         container.parentElement.removeChild(container);
                     }
                     inputWrapper.parentElement.insertBefore(container, inputWrapper);
+                    console.info('[Badoo Chat Suggestions] Sugestões inseridas antes do wrapper do input');
                     return true;
                 }
 
@@ -87,12 +89,14 @@
                             container.parentElement.removeChild(container);
                         }
                         parent.insertBefore(container, inputElement);
+                        console.info('[Badoo Chat Suggestions] Sugestões inseridas antes do input (fallback no parent imediato)');
                         return true;
                     } else if (parent.parentElement) {
                         if (container.parentElement) {
                             container.parentElement.removeChild(container);
                         }
                         parent.parentElement.insertBefore(container, parent);
+                        console.info('[Badoo Chat Suggestions] Sugestões inseridas antes do container do input (parent)');
                         return true;
                     }
                 }
@@ -113,6 +117,7 @@
                         container.parentElement.removeChild(container);
                     }
                     element.parentElement.insertBefore(container, element);
+                    console.info('[Badoo Chat Suggestions] Sugestões inseridas via seletor alternativo', { selector });
                     return true;
                 }
             }
@@ -121,6 +126,7 @@
                 container.parentElement.removeChild(container);
             }
             document.body.appendChild(container);
+            console.info('[Badoo Chat Suggestions] Sugestões inseridas no body (fallback final)');
             return false;
         }
 
@@ -211,6 +217,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 this.insertSuggestion(text);
+                console.info('[Badoo Chat Suggestions] Sugestão aplicada', { text });
             });
 
             return button;

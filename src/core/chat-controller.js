@@ -41,6 +41,8 @@
                 return;
             }
 
+            this.info('Container de chat encontrado', { selector: this.chatContainerSelector });
+
             if (this.debug) {
                 console.log('[Badoo Chat Suggestions] Inicializando...');
             }
@@ -52,7 +54,8 @@
             this.suggestionEngine = new window.BadooChatSuggestions.SuggestionEngine({ debug: this.debug });
             this.ui = new window.BadooChatSuggestions.SuggestionsUI({ inputSelector: this.inputSelector });
 
-            this.ui.mount();
+            const mounted = this.ui.mount();
+            this.info('Container de sugestões montado', { mounted, inputSelector: this.inputSelector });
 
             this.lastMessageCount = 0;
             this.updateSuggestions();
@@ -136,9 +139,14 @@
             const suggestions = this.suggestionEngine.generate(context);
             const safeSuggestions = suggestions.length > 0 ? suggestions : this.suggestionEngine.getDefaultSuggestions();
             this.ui.render(safeSuggestions);
+            this.info('Sugestões atualizadas', {
+                total: safeSuggestions.length,
+                topics: context?.topics || []
+            });
         }
 
         cleanup() {
+            this.info('Limpando observadores e UI');
             if (this.chatObserver) {
                 this.chatObserver.disconnect();
                 this.chatObserver = null;
@@ -173,6 +181,14 @@
             this.contextExtractor = null;
             this.suggestionEngine = null;
             this.lastMessageCount = 0;
+        }
+
+        info(message, data) {
+            if (data) {
+                console.info(`[Badoo Chat Suggestions] ${message}`, data);
+            } else {
+                console.info(`[Badoo Chat Suggestions] ${message}`);
+            }
         }
     }
 
