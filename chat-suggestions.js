@@ -244,6 +244,7 @@ class ChatSuggestions {
     createSuggestionsContainer() {
         const container = document.createElement('div');
         container.className = 'chat-suggestions-container';
+        container.id = 'chat-suggestions-container';
         container.style.cssText = `
             display: flex;
             gap: 8px;
@@ -251,7 +252,12 @@ class ChatSuggestions {
             overflow-x: auto;
             background-color: #f5f5f5;
             border-top: 1px solid #e0e0e0;
+            border-bottom: 1px solid #e0e0e0;
             scrollbar-width: thin;
+            z-index: 1000;
+            position: relative;
+            width: 100%;
+            box-sizing: border-box;
         `;
 
         // Estilos para scrollbar no Chrome
@@ -278,6 +284,7 @@ class ChatSuggestions {
      */
     createSuggestionButton(text) {
         const button = document.createElement('button');
+        button.type = 'button'; // Previne submit de formulário
         button.className = 'chat-suggestion-button';
         button.textContent = text;
         button.style.cssText = `
@@ -305,7 +312,9 @@ class ChatSuggestions {
         });
 
         // Click handler - insere o texto na caixa de mensagem
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault(); // Previne comportamento padrão
+            e.stopPropagation(); // Previne propagação do evento
             this.insertSuggestion(text);
         });
 
@@ -337,55 +346,128 @@ class ChatSuggestions {
         }
 
         if (input) {
-            // Para inputs e textareas normais
-            if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
-                // Define o valor
-                input.value = text;
+            try {
+                // Foca no input primeiro
+                input.focus();
                 
-                // Dispara eventos para garantir que o app detecte a mudança
-                input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
-                
-                // Dispara eventos nativos do navegador
-                const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                    window.HTMLInputElement.prototype || 
-                    window.HTMLTextAreaElement.prototype, 
-                    'value'
-                )?.set;
-                
-                if (nativeInputValueSetter) {
-                    nativeInputValueSetter.call(input, text);
-                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                // Para inputs e textareas normais
+                if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
+                    // Limpa o valor atual
+                    input.value = '';
+                    
+                    // Define o novo valor
+                    input.value = text;
+                    
+                    // Tenta múltiplas abordagens para garantir que o app detecte
+                    
+                    // 1. Dispara evento input com InputEvent
+                    try {
+                        const inputEvent = new InputEvent('input', {
+                            bubbles: true,
+                            cancelable: true,
+                            inputType: 'insertText',
+                            data: text
+                        });
+                        input.dispatchEvent(inputEvent);
+                    } catch (e) {
+                        // Fallback para navegadores que não suportam InputEvent
+                        input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    }
+                    
+                    // 2. Dispara evento change
+                    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+                    
+                    // 3. Dispara eventos de teclado
+                    input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'a' }));
+                    input.dispatchEvent(new KeyboardEvent('keypress', { bubbles: true, cancelable: true, key: 'a' }));
+                    input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'a' }));
+                    
+                    // 4. Tenta definir o valor novamente após os eventos
+                    setTimeout(() => {
+                        if (input.value !== text) {
+                            input.value = text;
+                            input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                        }
+                    }, 10);
+                    
+                    // 5. Tenta acessar propriedades internas (se disponível)
+                    try {
+                        if (input._valueTracker) {
+                            input._valueTracker.setValue('');
+                        }
+                        input.value = text;
+                        if (input._valueTracker) {
+                            input._valueTracker.setValue(text);
+                        }
+                    } catch (e) {
+                        // Ignora se não disponível
+                    }
+                    
+                } 
+                // Para elementos contentEditable (divs editáveis)
+                else if (input.contentEditable === 'true' || input.isContentEditable) {
+                    // Limpa o conteúdo existente
+                    input.textContent = '';
+                    input.innerText = '';
+                    
+                    // Insere o novo texto
+                    input.textContent = text;
+                    input.innerText = text;
+                    
+                    // Dispara eventos para contentEditable
+                    try {
+                        const inputEvent = new InputEvent('input', {
+                            bubbles: true,
+                            cancelable: true,
+                            inputType: 'insertText',
+                            data: text
+                        });
+                        input.dispatchEvent(inputEvent);
+                    } catch (e) {
+                        input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                    }
+                    
+                    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+                    
+                    // Move o cursor para o final
+                    try {
+                        const range = document.createRange();
+                        const selection = window.getSelection();
+                        if (selection) {
+                            if (input.firstChild) {
+                                range.selectNodeContents(input);
+                            } else {
+                                range.setStart(input, 0);
+                                range.setEnd(input, 0);
+                            }
+                            range.collapse(false);
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        }
+                    } catch (e) {
+                        console.warn('Não foi possível mover o cursor:', e);
+                    }
                 }
                 
+                // Força o foco novamente
                 input.focus();
                 
-            } 
-            // Para elementos contentEditable (divs editáveis)
-            else if (input.contentEditable === 'true' || input.isContentEditable) {
-                input.textContent = text;
-                input.innerText = text;
-                
-                // Dispara eventos para contentEditable
-                input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
-                
-                // Dispara evento de paste para alguns apps
-                const pasteEvent = new ClipboardEvent('paste', { bubbles: true, cancelable: true });
-                input.dispatchEvent(pasteEvent);
-                
-                input.focus();
-                
-                // Move o cursor para o final
-                const range = document.createRange();
-                const selection = window.getSelection();
-                range.selectNodeContents(input);
-                range.collapse(false);
-                selection.removeAllRanges();
-                selection.addRange(range);
+                console.log('Texto inserido:', text, 'Valor atual do input:', input.value || input.textContent);
+            } catch (error) {
+                console.error('Erro ao inserir texto:', error);
+                // Fallback: tenta apenas definir o valor
+                try {
+                    if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
+                        input.value = text;
+                        input.focus();
+                    } else if (input.contentEditable === 'true' || input.isContentEditable) {
+                        input.textContent = text;
+                        input.focus();
+                    }
+                } catch (e) {
+                    console.error('Erro no fallback:', e);
+                }
             }
-            
-            console.log('Texto inserido:', text);
         } else {
             console.warn('Caixa de mensagem não encontrada. Texto sugerido:', text);
             // Fallback: copia para clipboard
@@ -407,17 +489,28 @@ class ChatSuggestions {
         this.suggestions = this.generateSuggestions(context);
 
         if (!this.suggestionsContainer) {
+            console.warn('Container de sugestões não encontrado');
             return;
         }
 
         // Limpa sugestões anteriores
         this.suggestionsContainer.innerHTML = '';
 
+        // Se não houver sugestões, mostra sugestões padrão
+        if (this.suggestions.length === 0) {
+            this.suggestions = this.getDefaultSuggestions();
+        }
+
         // Adiciona novas sugestões
         this.suggestions.forEach(suggestion => {
             const button = this.createSuggestionButton(suggestion);
             this.suggestionsContainer.appendChild(button);
         });
+
+        // Garante que o container está visível
+        if (this.suggestionsContainer.style.display === 'none') {
+            this.suggestionsContainer.style.display = 'flex';
+        }
     }
 
     /**
@@ -429,25 +522,151 @@ class ChatSuggestions {
             return;
         }
 
+        console.log('Inicializando ChatSuggestions...');
+
         // Cria o container de sugestões
         this.suggestionsContainer = this.createSuggestionsContainer();
 
-        // Tenta encontrar a caixa de mensagem para inserir as sugestões acima dela
-        const inputContainer = document.querySelector('.csms-chat-input') || 
-                              document.querySelector('[class*="input"]') ||
-                              document.querySelector('[class*="message-input"]') ||
-                              document.body;
+        // Função auxiliar para tentar inserir as sugestões
+        const tryInsertSuggestions = () => {
+            // Prioriza encontrar o input específico
+            const inputElement = document.querySelector(this.inputSelector);
+            
+            if (inputElement) {
+                // Encontra o container do input que contém o textarea
+                // Procura pelo container específico do Badoo
+                const inputWrapper = inputElement.closest('.csms-chat-controls-base-input-message') ||
+                                    inputElement.closest('.csms-chat-composer-input-wrapper__content') ||
+                                    inputElement.closest('[class*="input-wrapper"]') ||
+                                    inputElement.closest('[class*="composer-input"]') ||
+                                    inputElement.parentElement;
+                
+                if (inputWrapper && inputWrapper.parentElement) {
+                    // Remove o container se já estiver em outro lugar
+                    if (this.suggestionsContainer.parentElement) {
+                        this.suggestionsContainer.parentElement.removeChild(this.suggestionsContainer);
+                    }
+                    // Insere antes do container do input, não dentro dele
+                    inputWrapper.parentElement.insertBefore(this.suggestionsContainer, inputWrapper);
+                    console.log('Sugestões inseridas antes do container do input');
+                    return true;
+                }
+                
+                // Fallback: se não encontrou o wrapper, tenta inserir antes do input diretamente
+                if (inputElement.parentElement) {
+                    // Verifica se o parent não é o container que queremos evitar
+                    const parent = inputElement.parentElement;
+                    if (!parent.classList.contains('csms-chat-controls-base-input-message')) {
+                        if (this.suggestionsContainer.parentElement) {
+                            this.suggestionsContainer.parentElement.removeChild(this.suggestionsContainer);
+                        }
+                        parent.insertBefore(this.suggestionsContainer, inputElement);
+                        console.log('Sugestões inseridas antes do input (fallback)');
+                        return true;
+                    } else {
+                        // Se o parent é o container do input, insere antes dele
+                        if (parent.parentElement) {
+                            if (this.suggestionsContainer.parentElement) {
+                                this.suggestionsContainer.parentElement.removeChild(this.suggestionsContainer);
+                            }
+                            parent.parentElement.insertBefore(this.suggestionsContainer, parent);
+                            console.log('Sugestões inseridas antes do container do input (parent)');
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            // Fallback: tenta encontrar o input por outros seletores
+            const fallbackSelectors = [
+                '.csms-chat-controls-base-input-message',
+                '.csms-chat-composer-input-wrapper__content',
+                'textarea',
+                'input[type="text"]',
+                '[contenteditable="true"]'
+            ];
+            
+            for (const selector of fallbackSelectors) {
+                const element = document.querySelector(selector);
+                if (element && element.parentElement) {
+                    if (this.suggestionsContainer.parentElement) {
+                        this.suggestionsContainer.parentElement.removeChild(this.suggestionsContainer);
+                    }
+                    element.parentElement.insertBefore(this.suggestionsContainer, element);
+                    console.log(`Sugestões inseridas antes do elemento: ${selector}`);
+                    return true;
+                }
+            }
+            
+            // Último recurso: insere no final do body
+            if (this.suggestionsContainer.parentElement) {
+                this.suggestionsContainer.parentElement.removeChild(this.suggestionsContainer);
+            }
+            document.body.appendChild(this.suggestionsContainer);
+            console.log('Sugestões inseridas no final do body (fallback)');
+            return false;
+        };
 
-        // Insere antes da caixa de mensagem ou no final do body
-        if (inputContainer && inputContainer !== document.body) {
-            inputContainer.parentNode.insertBefore(this.suggestionsContainer, inputContainer);
-        } else {
-            // Se não encontrar, insere antes do container de chat
-            this.chatContainer.parentNode.insertBefore(
-                this.suggestionsContainer, 
-                this.chatContainer.nextSibling
-            );
+        // Tenta inserir imediatamente
+        let inserted = tryInsertSuggestions();
+
+        // Se não encontrou o input, tenta novamente com intervalos
+        if (!inserted || !document.querySelector(this.inputSelector)) {
+            const retryInterval = setInterval(() => {
+                const inputFound = document.querySelector(this.inputSelector);
+                if (inputFound) {
+                    tryInsertSuggestions();
+                    clearInterval(retryInterval);
+                }
+            }, 300);
+            
+            // Para de tentar após 5 segundos
+            setTimeout(() => {
+                clearInterval(retryInterval);
+            }, 5000);
         }
+        
+        // Observa mudanças no DOM para reposicionar se necessário
+        const domObserver = new MutationObserver(() => {
+            const inputElement = document.querySelector(this.inputSelector);
+            if (inputElement && this.suggestionsContainer) {
+                const currentParent = this.suggestionsContainer.parentElement;
+                
+                // Verifica se as sugestões estão dentro do container do input (não deveriam estar)
+                const inputWrapper = inputElement.closest('.csms-chat-controls-base-input-message') ||
+                                    inputElement.closest('.csms-chat-composer-input-wrapper__content');
+                
+                // Se as sugestões estão dentro do wrapper do input, move para fora
+                if (inputWrapper && inputWrapper.contains(this.suggestionsContainer)) {
+                    if (inputWrapper.parentElement) {
+                        if (currentParent) {
+                            currentParent.removeChild(this.suggestionsContainer);
+                        }
+                        inputWrapper.parentElement.insertBefore(this.suggestionsContainer, inputWrapper);
+                        console.log('Sugestões reposicionadas para fora do container do input');
+                    }
+                }
+                // Se o input mudou de posição, reposiciona as sugestões
+                else if (inputWrapper && inputWrapper.parentElement) {
+                    const expectedParent = inputWrapper.parentElement;
+                    if (currentParent !== expectedParent) {
+                        if (currentParent) {
+                            currentParent.removeChild(this.suggestionsContainer);
+                        }
+                        expectedParent.insertBefore(this.suggestionsContainer, inputWrapper);
+                        console.log('Sugestões reposicionadas para acompanhar o input');
+                    }
+                }
+            }
+        });
+        
+        domObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+        // Garante que o container está visível
+        this.suggestionsContainer.style.display = 'flex';
 
         // Atualiza sugestões inicialmente
         this.updateSuggestions();
@@ -466,6 +685,8 @@ class ChatSuggestions {
         setInterval(() => {
             this.updateSuggestions();
         }, 2000);
+
+        console.log('ChatSuggestions inicializado com sucesso');
     }
 }
 
