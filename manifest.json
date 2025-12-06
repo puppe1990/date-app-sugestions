@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Badoo Chat Suggestions",
+  "version": "1.0.0",
+  "description": "Adiciona sugestões de texto inteligentes baseadas no contexto da conversa no Badoo",
+  "permissions": [
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://badoo.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://badoo.com/messages/*"
+      ],
+      "js": [
+        "src/constants/keywords.js",
+        "src/context/context-extractor.js",
+        "src/suggestions/suggestion-engine.js",
+        "src/ui/suggestions-ui.js",
+        "src/core/chat-controller.js",
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}
