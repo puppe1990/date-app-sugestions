@@ -107,3 +107,5 @@ Para atualizar a extensão após fazer alterações:
 - A extensão não coleta ou envia dados para servidores externos
 - Todas as análises são feitas localmente no navegador
 
+
+

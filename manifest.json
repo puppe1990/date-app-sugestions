@@ -13,13 +13,15 @@
   ],
   "host_permissions": [
     "https://badoo.com/*",
+    "https://tinder.com/*",
     "https://openrouter.ai/*",
     "https://generativelanguage.googleapis.com/*"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://badoo.com/messages/*"
+        "https://badoo.com/messages/*",
+        "https://tinder.com/app/messages/*"
       ],
       "js": [
         "src/constants/keywords.js",

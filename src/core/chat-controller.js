@@ -3,6 +3,7 @@
         constructor({
             chatContainerSelector = '.csms-chat-messages',
             inputSelector = '#chat-composer-input-message',
+            messageSelector = null,
             messageReader = null,
             aiClient = null,
             aiClientConfig = {},
@@ -12,6 +13,9 @@
             this.inputSelector = inputSelector;
             this.debug = debug;
             this.messageReader = messageReader || window.BadooChatSuggestions.createBadooMessageReader();
+            this.messageSelector = messageSelector ||
+                (this.messageReader && this.messageReader.config && this.messageReader.config.messageSelector) ||
+                '[data-qa="chat-message"]';
             this.aiClient = aiClient;
             this.aiClientConfig = aiClientConfig || {};
 
@@ -80,7 +84,7 @@
             const checkForNewMessages = () => {
                 if (!this.chatContainer) return;
 
-                const currentMessages = this.chatContainer.querySelectorAll('[data-qa="chat-message"]');
+                const currentMessages = this.chatContainer.querySelectorAll(this.messageSelector);
                 const currentCount = currentMessages.length;
 
                 if (currentCount !== this.lastMessageCount) {
@@ -99,9 +103,9 @@
                     if (mutation.type === 'childList') {
                         mutation.addedNodes.forEach(node => {
                             if (node.nodeType === 1) {
-                                if (node.matches && node.matches('[data-qa="chat-message"]')) {
+                                if (node.matches && node.matches(this.messageSelector)) {
                                     hasNewMessage = true;
-                                } else if (node.querySelector && node.querySelector('[data-qa="chat-message"]')) {
+                                } else if (node.querySelector && node.querySelector(this.messageSelector)) {
                                     hasNewMessage = true;
                                 }
                             }
@@ -113,7 +117,7 @@
                     clearTimeout(this.updateTimeout);
                     this.updateTimeout = setTimeout(() => {
                         this.updateSuggestions();
-                        this.lastMessageCount = this.chatContainer.querySelectorAll('[data-qa="chat-message"]').length;
+                        this.lastMessageCount = this.chatContainer.querySelectorAll(this.messageSelector).length;
                         if (this.debug) {
                             console.log('[Badoo Chat Suggestions] Sugestões atualizadas devido a nova mensagem');
                         }
@@ -161,7 +165,7 @@
                 total: safeSuggestions.length,
                 topics: context?.topics || []
             });
-            this.lastMessageCount = this.chatContainer.querySelectorAll('[data-qa="chat-message"]').length;
+            this.lastMessageCount = this.chatContainer.querySelectorAll(this.messageSelector).length;
         }
 
         createAIClient() {

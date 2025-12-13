@@ -11,6 +11,7 @@
                 directionOutValue: 'out',
                 fallbackSenderOut: 'Você',
                 fallbackSenderIn: 'Outro',
+                allowTextContentFallback: false,
                 ...config
             };
         }
@@ -26,10 +27,20 @@
         parseMessage(node) {
             const rawDirection = this.resolveDirection(node);
             const direction = this.normalizeDirection(rawDirection);
-            const contentText = node.querySelector(this.config.textSelector);
+            const contentText = this.config.textSelector ? node.querySelector(this.config.textSelector) : null;
             const audioButton = node.querySelector(this.config.audioSelector);
 
             const sender = this.getSender(node, direction);
+
+            const textFromResolver = this.resolveText(node);
+            if (textFromResolver) {
+                return {
+                    sender,
+                    text: textFromResolver,
+                    direction,
+                    type: 'text'
+                };
+            }
 
             if (contentText) {
                 const text = contentText.textContent.trim();
@@ -51,6 +62,24 @@
             }
 
             return null;
+        }
+
+        resolveText(node) {
+            if (typeof this.config.textResolver === 'function') {
+                const text = this.config.textResolver(node);
+                if (typeof text === 'string' && text.trim()) {
+                    return text.trim();
+                }
+            }
+
+            if (this.config.allowTextContentFallback) {
+                const text = (node && node.textContent) ? node.textContent.trim() : '';
+                if (text) {
+                    return text.replace(/\s+/g, ' ').trim();
+                }
+            }
+
+            return '';
         }
 
         resolveDirection(node) {
