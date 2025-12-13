@@ -50,6 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const geminiModelSelect = document.getElementById('geminiModelSelect');
   const geminiKeyInput = document.getElementById('geminiKeyInput');
   const uiPlacementSelect = document.getElementById('uiPlacementSelect');
+  const responseLengthSelect = document.getElementById('responseLengthSelect');
 
   OPENROUTER_MODELS.forEach((model, index) => {
     const option = document.createElement('option');
@@ -65,7 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     geminiModelSelect.appendChild(option);
   });
 
-  chrome.storage.local.get(['openRouterModel', 'openRouterApiKey', 'openRouterProfile', 'llmProvider', 'geminiApiKey', 'geminiModel', 'uiPlacementOverride'], (result) => {
+  chrome.storage.local.get(['openRouterModel', 'openRouterApiKey', 'openRouterProfile', 'llmProvider', 'geminiApiKey', 'geminiModel', 'uiPlacementOverride', 'aiResponseLength'], (result) => {
     const storedModel = result.openRouterModel;
     const storedKey = result.openRouterApiKey;
     const storedProfile = result.openRouterProfile;
@@ -73,6 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const storedGeminiKey = result.geminiApiKey;
     const storedGeminiModel = result.geminiModel;
     const storedUiPlacementOverride = result.uiPlacementOverride || 'auto';
+    const storedAiResponseLength = result.aiResponseLength || 'short';
 
     providerSelect.value = storedProvider;
 
@@ -100,6 +102,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       uiPlacementSelect.value = storedUiPlacementOverride;
     }
 
+    if (responseLengthSelect) {
+      responseLengthSelect.value = storedAiResponseLength;
+    }
+
     toggleSections(storedProvider);
   });
 
@@ -111,6 +117,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const geminiModel = geminiModelSelect.value || DEFAULT_GEMINI_MODEL;
     const profile = profileInput.value.trim();
     const uiPlacementOverride = uiPlacementSelect ? (uiPlacementSelect.value || 'auto') : 'auto';
+    const aiResponseLength = responseLengthSelect ? (responseLengthSelect.value || 'short') : 'short';
     chrome.storage.local.set({
       llmProvider: provider,
       openRouterModel: chosen,
@@ -118,7 +125,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       openRouterProfile: profile,
       geminiApiKey,
       geminiModel,
-      uiPlacementOverride
+      uiPlacementOverride,
+      aiResponseLength
     }, () => {
       saveBtn.textContent = 'Salvo!';
       setTimeout(() => (saveBtn.textContent = 'Salvar'), 1200);

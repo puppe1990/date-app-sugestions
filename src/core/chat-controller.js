@@ -253,6 +253,9 @@
             const profile = this.aiClientConfig.profile ||
                 (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
             const provider = this.aiClientConfig.provider || 'gemini';
+            const responseLength = this.aiClientConfig.responseLength ||
+                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.aiResponseLength) ||
+                'short';
 
             if (!apiKey) {
                 this.info('OpenRouter não configurado; botão de IA ficará inativo');
@@ -264,7 +267,7 @@
                 return null;
             }
 
-            return new window.BadooChatSuggestions.AIClient({ apiKey, model, profile, provider });
+            return new window.BadooChatSuggestions.AIClient({ apiKey, model, profile, provider, responseLength });
         }
 
         extractProfileText() {

@@ -11,7 +11,7 @@
             this.aiButton = null;
             this.aiSuggestions = [];
             this.normalSuggestions = [];
-            this.suggestionsCollapsed = this.placement === 'floating' ? false : true;
+            this.suggestionsCollapsed = true;
             this.selectedPersonality = 'default';
             this.fixedPlacementEnabled = false;
             this.boundRecalcPlacement = null;

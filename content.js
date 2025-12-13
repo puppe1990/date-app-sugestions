@@ -136,7 +136,8 @@
                 'openRouterProfile',
                 'geminiApiKey',
                 'geminiModel',
-                'uiPlacementOverride'
+                'uiPlacementOverride',
+                'aiResponseLength'
             ], (result) => {
                 resolve({
                     llmProvider: result.llmProvider || defaultProvider,
@@ -145,7 +146,8 @@
                     openRouterProfile: result.openRouterProfile,
                     geminiApiKey: result.geminiApiKey,
                     geminiModel: result.geminiModel || defaultGeminiModel,
-                    uiPlacementOverride: result.uiPlacementOverride || 'auto'
+                    uiPlacementOverride: result.uiPlacementOverride || 'auto',
+                    aiResponseLength: result.aiResponseLength || 'short'
                 });
             });
         });
@@ -200,7 +202,8 @@
             provider,
             apiKey,
             model,
-            profile: config.openRouterProfile
+            profile: config.openRouterProfile,
+            responseLength: config.aiResponseLength || 'short'
         };
 
         let effectiveUiPlacement = config.uiPlacement;

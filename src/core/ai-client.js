@@ -5,39 +5,64 @@
             model = 'google/gemini-2.0-flash-exp:free',
             endpoint = 'https://openrouter.ai/api/v1/chat/completions',
             provider = 'gemini',
-            profile = null
+            profile = null,
+            responseLength = 'short'
         } = {}) {
             this.apiKey = apiKey;
             this.model = model;
             this.endpoint = endpoint;
             this.provider = provider || 'gemini';
             this.profile = profile;
+            this.responseLength = responseLength || 'short';
         }
 
-        buildSystemPrompt(profile) {
+        getResponseLengthConfig(responseLength) {
+            const value = String(responseLength || this.responseLength || 'short');
+            const map = {
+                short: {
+                    label: 'curta',
+                    maxChars: 80,
+                    maxTokens: 180
+                },
+                medium: {
+                    label: 'média',
+                    maxChars: 160,
+                    maxTokens: 320
+                },
+                long: {
+                    label: 'longa',
+                    maxChars: 280,
+                    maxTokens: 520
+                }
+            };
+            return map[value] || map.short;
+        }
+
+        buildSystemPrompt(profile, responseLength) {
             this.profile = this.profile || profile;
             const profileLine = this.profile ? `\nContexto sobre o usuário:\n${this.profile}` : '';
+            const cfg = this.getResponseLengthConfig(responseLength);
             return [
                 'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil.',
-                'Responda em frases curtas (máx 80 caracteres), em primeira pessoa, tom leve.',
+                `Gere sugestões em primeira pessoa, tom leve, tamanho ${cfg.label} (máx ${cfg.maxChars} caracteres por sugestão).`,
                 'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
                 'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.',
                 profileLine
             ].filter(Boolean).join('\n');
         }
 
-        buildPrompts({ messages, profile, otherPersonName }) {
-            const userPrompt = this.buildUserPrompt(messages, profile, otherPersonName);
-            const systemPrompt = this.buildSystemPrompt(profile);
+        buildPrompts({ messages, profile, otherPersonName, responseLength } = {}) {
+            const userPrompt = this.buildUserPrompt(messages, profile, otherPersonName, responseLength);
+            const systemPrompt = this.buildSystemPrompt(profile, responseLength);
             return { systemPrompt, userPrompt };
         }
 
-        async generateSuggestions({ messages, profile, otherPersonName }) {
+        async generateSuggestions({ messages, profile, otherPersonName, responseLength } = {}) {
             if (!this.apiKey) {
                 throw new Error('API key não configurada');
             }
 
-            const { systemPrompt, userPrompt } = this.buildPrompts({ messages, profile, otherPersonName });
+            const { systemPrompt, userPrompt } = this.buildPrompts({ messages, profile, otherPersonName, responseLength });
             return this.generateSuggestionsWithPrompts({ systemPrompt, userPrompt });
         }
 
@@ -46,11 +71,13 @@
                 throw new Error('API key não configurada');
             }
 
+            const cfg = this.getResponseLengthConfig(this.responseLength);
+
             if (this.provider === 'gemini') {
                 if (typeof window !== 'undefined' && window.badooChatSuggestionsDebug) {
                     console.info('[Chat Suggestions][AI] Prompt enviado para IA (Gemini):', { model: this.model, prompt: `${systemPrompt}\n\n${userPrompt}` });
                 }
-                return this.callGemini({ prompt: `${systemPrompt}\n\n${userPrompt}` });
+                return this.callGemini({ prompt: `${systemPrompt}\n\n${userPrompt}`, maxOutputTokens: cfg.maxTokens });
             }
 
             const payload = {
@@ -65,7 +92,7 @@
                         content: userPrompt
                     }
                 ],
-                max_tokens: 160,
+                max_tokens: cfg.maxTokens,
                 temperature: 0.6,
                 top_p: 0.9,
                 stream: false,
@@ -106,7 +133,7 @@
             return this.extractSuggestions(content);
         }
 
-        async callGemini({ prompt }) {
+        async callGemini({ prompt, maxOutputTokens }) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
             const body = {
                 contents: [
@@ -117,7 +144,7 @@
                 ],
                 generationConfig: {
                     temperature: 0.6,
-                    maxOutputTokens: 160,
+                    maxOutputTokens: typeof maxOutputTokens === 'number' ? maxOutputTokens : 160,
                     topP: 0.9
                 }
             };
@@ -150,7 +177,8 @@
             return this.extractSuggestions(text);
         }
 
-        buildUserPrompt(messages = [], profile, otherPersonName) {
+        buildUserPrompt(messages = [], profile, otherPersonName, responseLength) {
+            const cfg = this.getResponseLengthConfig(responseLength);
             const lastMessages = messages.slice(-25);
             const mapped = lastMessages.map((msg, idx) => {
                 const dir = msg.direction === 'out' ? 'EU' : (otherPersonName || 'OUTRA PESSOA');
@@ -172,7 +200,7 @@
 
             return [
                 'Use o histórico abaixo (ordem cronológica).',
-                'Gere 3 a 5 respostas curtas (até 80 caracteres), em primeira pessoa, naturais e coerentes com o histórico.',
+                `Gere 3 a 5 respostas em primeira pessoa, naturais e coerentes com o histórico (máx ${cfg.maxChars} caracteres por sugestão).`,
                 'Não cumprimente de novo se já houve cumprimento. Não repita perguntas já feitas. Evite respostas genéricas.',
                 'Responda APENAS com JSON válido: {"suggestions":["resposta1","resposta2",...]} sem texto extra, sem markdown, sem texto antes/depois. Não inclua saudações a menos que a última mensagem peça. Assim que fechar o JSON, pare.',
                 profileLine,
