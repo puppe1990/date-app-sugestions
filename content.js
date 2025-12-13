@@ -40,7 +40,7 @@
 	            chatContainerSelector: '#main',
 	            inputSelector: '#main footer [contenteditable="true"][data-lexical-editor="true"], #main footer [role="textbox"][contenteditable="true"], #main footer [contenteditable="true"]',
 	            uiPlacement: 'overlay',
-	            otherPersonNameSelector: '#main header span[title], header span[title]',
+	            otherPersonNameSelector: '#pane-side > div:nth-child(2) > div > div > div:nth-child(1) > div > div > div > div._ak8l._ap1_ > div._ak8o > div._ak8q > div > div > span, #main header span[title], header span[title]',
 	            profileContainerSelector: '#main header',
 	            messageReaderConfig: {
 	                messageSelector: 'div.message-in, div.message-out',
