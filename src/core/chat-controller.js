@@ -4,6 +4,7 @@
             chatContainerSelector = '.csms-chat-messages',
             inputSelector = '#chat-composer-input-message',
             messageSelector = null,
+            uiPlacement = 'inline',
             messageReader = null,
             aiClient = null,
             aiClientConfig = {},
@@ -12,6 +13,7 @@
             this.chatContainerSelector = chatContainerSelector;
             this.inputSelector = inputSelector;
             this.debug = debug;
+            this.uiPlacement = uiPlacement;
             this.messageReader = messageReader ||
                 window.BadooChatSuggestions.createDefaultMessageReader?.() ||
                 window.BadooChatSuggestions.createBadooMessageReader();
@@ -66,6 +68,7 @@
             this.suggestionEngine = new window.BadooChatSuggestions.SuggestionEngine({ debug: this.debug });
             this.ui = new window.BadooChatSuggestions.SuggestionsUI({
                 inputSelector: this.inputSelector,
+                placement: this.uiPlacement,
                 onAiGenerate: () => this.generateAISuggestions()
             });
 

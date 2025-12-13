@@ -33,14 +33,15 @@
         }
     };
 
-    const PLATFORM_DEFAULTS = {
-        tinder: {
-            chatContainerSelector: '[id^="SC.chat_"], [role="log"], main [role="log"], [data-testid="chatMessageList"]',
-            inputSelector: 'textarea, [role="textbox"], [contenteditable="true"], [data-testid="chatInput"]',
-            messageReaderConfig: {
-                messageSelector: '[data-testid="message"], [role="listitem"]',
-                textSelector: '[data-testid="messageText"], span',
-                senderSelector: null,
+	    const PLATFORM_DEFAULTS = {
+	        tinder: {
+	            chatContainerSelector: '[id^="SC.chat_"], [role="log"], main [role="log"], [data-testid="chatMessageList"]',
+	            inputSelector: 'textarea, [role="textbox"], [contenteditable="true"], [data-testid="chatInput"]',
+	            uiPlacement: 'overlay',
+	            messageReaderConfig: {
+	                messageSelector: '[data-testid="message"], [role="listitem"]',
+	                textSelector: '[data-testid="messageText"], span',
+	                senderSelector: null,
                 allowTextContentFallback: true,
                 directionResolver: (node) => {
                     try {
@@ -53,12 +54,13 @@
                 }
             }
         },
-        badoo: {
-            chatContainerSelector: '.csms-chat-messages',
-            inputSelector: '#chat-composer-input-message',
-            messageReaderConfig: null
-        }
-    };
+	        badoo: {
+	            chatContainerSelector: '.csms-chat-messages',
+	            inputSelector: '#chat-composer-input-message',
+	            uiPlacement: 'inline',
+	            messageReaderConfig: null
+	        }
+	    };
 
     const getPlatformDefaults = (platform) => {
         return PLATFORM_DEFAULTS[platform] || PLATFORM_DEFAULTS.badoo;
@@ -148,14 +150,15 @@
             inputSelector: config.inputSelector || '#chat-composer-input-message'
         });
 
-        const controller = new window.BadooChatSuggestions.ChatSuggestionsController({
-            chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
-            inputSelector: config.inputSelector || '#chat-composer-input-message',
-            messageSelector: config.messageReaderConfig?.messageSelector,
-            messageReader,
-            aiClientConfig,
-            debug: window.badooChatSuggestionsDebug
-        });
+	        const controller = new window.BadooChatSuggestions.ChatSuggestionsController({
+	            chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
+	            inputSelector: config.inputSelector || '#chat-composer-input-message',
+	            messageSelector: config.messageReaderConfig?.messageSelector,
+	            uiPlacement: config.uiPlacement,
+	            messageReader,
+	            aiClientConfig,
+	            debug: window.badooChatSuggestionsDebug
+	        });
 
         window.chatSuggestionsInstance = controller;
         window.badooChatSuggestionsInstance = controller;

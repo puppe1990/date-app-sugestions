@@ -1,7 +1,8 @@
 (() => {
     class SuggestionsUI {
-        constructor({ inputSelector, onAiGenerate } = {}) {
+        constructor({ inputSelector, placement = 'inline', onAiGenerate } = {}) {
             this.inputSelector = inputSelector || '#chat-composer-input-message';
+            this.placement = placement || 'inline';
             this.container = null;
             this.domObserver = null;
             this.onAiGenerate = onAiGenerate;
@@ -191,6 +192,16 @@
         }
 
         tryInsert(container) {
+            if (this.placement === 'overlay') {
+                if (container.parentElement !== document.body) {
+                    if (container.parentElement) {
+                        container.parentElement.removeChild(container);
+                    }
+                    document.body.appendChild(container);
+                }
+                return true;
+            }
+
             const inputElement = document.querySelector(this.inputSelector);
 
             if (inputElement) {
@@ -311,7 +322,9 @@
             const input = this.findInputElement();
             if (!container || !input) return;
 
-            this.ensureNotSharingFlexRowWithComposer(container, input);
+            if (this.placement !== 'overlay') {
+                this.ensureNotSharingFlexRowWithComposer(container, input);
+            }
 
             try {
                 const inputRect = input.getBoundingClientRect();
@@ -320,6 +333,11 @@
                 if (!inputRect.width || !inputRect.height) return;
 
                 const overlap = containerRect.bottom >= (inputRect.top - 4);
+                if (this.placement === 'overlay') {
+                    this.enableFixedPlacement(inputRect);
+                    return;
+                }
+
                 if (!overlap) {
                     if (this.fixedPlacementEnabled) {
                         this.disableFixedPlacement();
@@ -374,9 +392,11 @@
                     const input = this.findInputElement();
                     if (!input || !this.container) return;
                     try {
-                        const rect = input.getBoundingClientRect();
+                        const rect = this.getFixedAnchorRect(input) || input.getBoundingClientRect();
                         const bottomOffset = Math.max(8, Math.round(window.innerHeight - rect.top + 8));
                         this.container.style.bottom = `${bottomOffset}px`;
+                        this.container.style.left = `${Math.max(0, Math.round(rect.left))}px`;
+                        this.container.style.width = `${Math.max(240, Math.round(rect.width))}px`;
                     } catch (e) {
                         // Ignora
                     }
@@ -386,19 +406,31 @@
             this.fixedPlacementEnabled = true;
             const container = this.getContainer();
             container.style.position = 'fixed';
-            container.style.left = '0';
-            container.style.right = '0';
-            container.style.width = '100%';
+            container.style.right = 'auto';
             container.style.zIndex = '2147483647';
             container.style.borderTop = '1px solid #e0e0e0';
             container.style.borderBottom = '1px solid #e0e0e0';
 
             const bottomOffset = Math.max(8, Math.round(window.innerHeight - inputRect.top + 8));
             container.style.bottom = `${bottomOffset}px`;
+            container.style.left = `${Math.max(0, Math.round(inputRect.left))}px`;
+            container.style.width = `${Math.max(240, Math.round(inputRect.width))}px`;
 
             window.addEventListener('resize', this.boundRecalcPlacement, true);
             window.addEventListener('scroll', this.boundRecalcPlacement, true);
             this.boundRecalcPlacement();
+        }
+
+        getFixedAnchorRect(input) {
+            try {
+                const form = input.closest && input.closest('form');
+                const anchor = form || input;
+                const rect = anchor.getBoundingClientRect();
+                if (rect && rect.width && rect.height) return rect;
+            } catch (e) {
+                // Ignora
+            }
+            return null;
         }
 
         disableFixedPlacement() {
