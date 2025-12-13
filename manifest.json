@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Badoo Chat Suggestions",
+  "name": "Chat Suggestions",
   "version": "1.0.0",
-  "description": "Adiciona sugestões de texto inteligentes baseadas no contexto da conversa no Badoo",
+  "description": "Adds intelligent text suggestions based on the conversation context",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Chat Suggestions - IA"

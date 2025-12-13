@@ -9,6 +9,8 @@
             this.aiButton = null;
             this.aiSuggestions = [];
             this.normalSuggestions = [];
+            this.fixedPlacementEnabled = false;
+            this.boundRecalcPlacement = null;
         }
 
         getContainer() {
@@ -64,6 +66,7 @@
                 this.attachDomObserver();
             }
             container.style.display = 'flex';
+            this.ensureGoodPlacement();
             console.info('[Badoo Chat Suggestions] UI montada', { inserted, inputSelector: this.inputSelector });
             return inserted;
         }
@@ -165,12 +168,134 @@
                         expectedParent.insertBefore(container, inputWrapper);
                     }
                 }
+
+                this.ensureGoodPlacement();
             });
 
             this.domObserver.observe(document.body, {
                 childList: true,
                 subtree: true
             });
+        }
+
+        findInputElement() {
+            const selectors = [this.inputSelector, ...(window.BadooChatSuggestions?.constants?.INPUT_SELECTORS || [])];
+            for (const selector of selectors) {
+                const input = document.querySelector(selector);
+                if (input) return input;
+            }
+            return null;
+        }
+
+        ensureGoodPlacement() {
+            const container = this.getContainer();
+            const input = this.findInputElement();
+            if (!container || !input) return;
+
+            this.ensureNotSharingFlexRowWithComposer(container, input);
+
+            try {
+                const inputRect = input.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+
+                if (!inputRect.width || !inputRect.height) return;
+
+                const overlap = containerRect.bottom >= (inputRect.top - 4);
+                if (!overlap) {
+                    if (this.fixedPlacementEnabled) {
+                        this.disableFixedPlacement();
+                    }
+                    return;
+                }
+
+                this.enableFixedPlacement(inputRect);
+            } catch (e) {
+                // Ignora
+            }
+        }
+
+        ensureNotSharingFlexRowWithComposer(container, input) {
+            const form = input.closest && input.closest('form');
+            const composerRow = form ? form.parentElement : null;
+            if (!form || !composerRow || !composerRow.contains(container)) {
+                return;
+            }
+
+            try {
+                const style = window.getComputedStyle(composerRow);
+                const flexDirection = style.flexDirection || 'row';
+                if (style.display !== 'flex' || !flexDirection.startsWith('row')) {
+                    return;
+                }
+
+                const parent = composerRow.parentElement;
+                if (parent) {
+                    if (container.parentElement) {
+                        container.parentElement.removeChild(container);
+                    }
+                    parent.insertBefore(container, composerRow);
+                    container.style.marginBottom = '8px';
+                    console.info('[Badoo Chat Suggestions] Ajuste de layout: movendo sugestões acima do composer (flex row detectado)');
+                    return;
+                }
+
+                composerRow.style.flexWrap = 'wrap';
+                container.style.flexBasis = '100%';
+                container.style.order = '0';
+                form.style.order = '1';
+                console.info('[Badoo Chat Suggestions] Ajuste de layout: forçando wrap no composer (fallback)');
+            } catch (e) {
+                // Ignora
+            }
+        }
+
+        enableFixedPlacement(inputRect) {
+            if (!this.boundRecalcPlacement) {
+                this.boundRecalcPlacement = () => {
+                    const input = this.findInputElement();
+                    if (!input || !this.container) return;
+                    try {
+                        const rect = input.getBoundingClientRect();
+                        const bottomOffset = Math.max(8, Math.round(window.innerHeight - rect.top + 8));
+                        this.container.style.bottom = `${bottomOffset}px`;
+                    } catch (e) {
+                        // Ignora
+                    }
+                };
+            }
+
+            this.fixedPlacementEnabled = true;
+            const container = this.getContainer();
+            container.style.position = 'fixed';
+            container.style.left = '0';
+            container.style.right = '0';
+            container.style.width = '100%';
+            container.style.zIndex = '2147483647';
+            container.style.borderTop = '1px solid #e0e0e0';
+            container.style.borderBottom = '1px solid #e0e0e0';
+
+            const bottomOffset = Math.max(8, Math.round(window.innerHeight - inputRect.top + 8));
+            container.style.bottom = `${bottomOffset}px`;
+
+            window.addEventListener('resize', this.boundRecalcPlacement, true);
+            window.addEventListener('scroll', this.boundRecalcPlacement, true);
+            this.boundRecalcPlacement();
+        }
+
+        disableFixedPlacement() {
+            this.fixedPlacementEnabled = false;
+            if (this.boundRecalcPlacement) {
+                window.removeEventListener('resize', this.boundRecalcPlacement, true);
+                window.removeEventListener('scroll', this.boundRecalcPlacement, true);
+            }
+            if (this.container) {
+                this.container.style.position = 'relative';
+                this.container.style.left = '';
+                this.container.style.right = '';
+                this.container.style.bottom = '';
+                this.container.style.width = '100%';
+                this.container.style.zIndex = '1000';
+            }
         }
 
         render(suggestions, { isAI = false } = {}) {
@@ -477,6 +602,11 @@
             if (this.domObserver) {
                 this.domObserver.disconnect();
                 this.domObserver = null;
+            }
+
+            if (this.boundRecalcPlacement) {
+                window.removeEventListener('resize', this.boundRecalcPlacement, true);
+                window.removeEventListener('scroll', this.boundRecalcPlacement, true);
             }
 
             if (this.container && this.container.parentElement) {
