@@ -7,6 +7,7 @@
             uiPlacement = 'inline',
             profileContainerSelector = null,
             otherPersonNameSelector = null,
+            platform = null,
             messageReader = null,
             aiClient = null,
             aiClientConfig = {},
@@ -18,6 +19,7 @@
             this.uiPlacement = uiPlacement;
             this.profileContainerSelector = profileContainerSelector;
             this.otherPersonNameSelector = otherPersonNameSelector;
+            this.platform = platform;
             this.messageReader = messageReader ||
                 window.BadooChatSuggestions.createDefaultMessageReader?.() ||
                 window.BadooChatSuggestions.createBadooMessageReader();
@@ -37,6 +39,7 @@
             this.messageCheckInterval = null;
             this.periodicUpdateInterval = null;
             this.chatObserver = null;
+            this.platformObserver = null;
             this.initRetryTimeout = null;
             this.aiLoading = false;
         }
@@ -83,10 +86,71 @@
             this.updateSuggestions();
 
             this.setupObservers();
+            this.setupPlatformObservers();
 
             if (this.debug) {
                 console.log('[Chat Suggestions] Inicializado com sucesso!');
             }
+        }
+
+        setupPlatformObservers() {
+            if (this.platformObserver) return;
+
+            const effectivePlatform = this.platform ||
+                ((location.hostname || '').includes('whatsapp.com') ? 'whatsapp' : null);
+
+            if (effectivePlatform !== 'whatsapp') return;
+
+            const pane = document.querySelector('#pane-side');
+            if (!pane) return;
+
+            const onConversationChanged = () => {
+                clearTimeout(this.updateTimeout);
+                this.updateTimeout = setTimeout(() => {
+                    this.handleConversationChanged();
+                }, 300);
+            };
+
+            this.platformObserver = new MutationObserver((mutations) => {
+                let changed = false;
+                mutations.forEach(m => {
+                    if (m.type === 'attributes' && m.attributeName === 'aria-selected') {
+                        const target = m.target;
+                        if (target && target.getAttribute && target.getAttribute('aria-selected') === 'true') {
+                            changed = true;
+                        }
+                    }
+                    if (m.type === 'childList' && (m.addedNodes.length || m.removedNodes.length)) {
+                        changed = true;
+                    }
+                });
+                if (changed) onConversationChanged();
+            });
+
+            const list = pane.querySelector('[role="grid"]') || pane;
+            this.platformObserver.observe(list, {
+                attributes: true,
+                attributeFilter: ['aria-selected'],
+                childList: true,
+                subtree: true
+            });
+        }
+
+        handleConversationChanged() {
+            const current = this.chatContainer;
+            const next = document.querySelector(this.chatContainerSelector);
+            if (next && next !== current) {
+                this.chatContainer = next;
+                if (this.chatObserver) {
+                    this.chatObserver.disconnect();
+                    this.chatObserver = null;
+                }
+                this.setupObservers();
+            }
+
+            this.lastMessageCount = 0;
+            this.updateSuggestions();
+            this.info('Conversa alterada; sugestões atualizadas');
         }
 
         setupObservers() {
@@ -358,6 +422,11 @@
             if (this.chatObserver) {
                 this.chatObserver.disconnect();
                 this.chatObserver = null;
+            }
+
+            if (this.platformObserver) {
+                this.platformObserver.disconnect();
+                this.platformObserver = null;
             }
 
             if (this.messageCheckInterval) {

@@ -214,6 +214,7 @@
 	            uiPlacement: config.uiPlacement,
 	            profileContainerSelector: config.profileContainerSelector,
 	            otherPersonNameSelector: config.otherPersonNameSelector,
+	            platform,
 	            messageReader,
 	            aiClientConfig,
 	            debug: window.badooChatSuggestionsDebug
