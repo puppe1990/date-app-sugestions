@@ -40,21 +40,35 @@
 	            uiPlacement: 'overlay',
 	            profileContainerSelector: '#main-content > div.H\\(100\\%\\) > div > div > div > div > div.BdStart.Bdc\\(\\$c-ds-divider-primary\\).Fxg\\(0\\).Fxs\\(0\\).Fxb\\(1\\/3\\).Miw\\(325px\\).Maw\\(640px\\).D\\(n\\)--m > div > div > div',
 	            messageReaderConfig: {
-	                messageSelector: '[data-testid="message"], [role="listitem"]',
-	                textSelector: '[data-testid="messageText"], span',
+	                messageSelector: '[role="article"]',
+	                textSelector: 'span.text',
 	                senderSelector: null,
-                allowTextContentFallback: true,
-                directionResolver: (node) => {
-                    try {
-                        const rect = node.getBoundingClientRect();
-                        const mid = rect.left + rect.width / 2;
-                        return mid > (window.innerWidth / 2) ? 'out' : 'in';
-                    } catch (e) {
-                        return '';
-                    }
-                }
-            }
-        },
+	                allowTextContentFallback: true,
+	                textResolver: (node) => {
+	                    try {
+	                        const textEl = node.querySelector('span.text');
+	                        if (textEl && textEl.textContent) {
+	                            return textEl.textContent;
+	                        }
+	                    } catch (e) {
+	                        // Ignora
+	                    }
+	                    return '';
+	                },
+	                directionResolver: (node) => {
+	                    try {
+	                        const cls = (node && node.className) ? String(node.className) : '';
+	                        if (cls.includes('Ta(e)')) return 'out';
+	                        if (cls.includes('Ta(start)')) return 'in';
+	                        const rect = node.getBoundingClientRect();
+	                        const mid = rect.left + rect.width / 2;
+	                        return mid > (window.innerWidth / 2) ? 'out' : 'in';
+	                    } catch (e) {
+	                        return '';
+	                    }
+	                }
+	            }
+	        },
 	        badoo: {
 	            chatContainerSelector: '.csms-chat-messages',
 	            inputSelector: '#chat-composer-input-message',
