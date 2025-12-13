@@ -26,18 +26,18 @@
             ].filter(Boolean).join('\n');
         }
 
-        buildPrompts({ messages, profile }) {
-            const userPrompt = this.buildUserPrompt(messages, profile);
+        buildPrompts({ messages, profile, otherPersonName }) {
+            const userPrompt = this.buildUserPrompt(messages, profile, otherPersonName);
             const systemPrompt = this.buildSystemPrompt(profile);
             return { systemPrompt, userPrompt };
         }
 
-        async generateSuggestions({ messages, profile }) {
+        async generateSuggestions({ messages, profile, otherPersonName }) {
             if (!this.apiKey) {
                 throw new Error('API key não configurada');
             }
 
-            const { systemPrompt, userPrompt } = this.buildPrompts({ messages, profile });
+            const { systemPrompt, userPrompt } = this.buildPrompts({ messages, profile, otherPersonName });
             return this.generateSuggestionsWithPrompts({ systemPrompt, userPrompt });
         }
 
@@ -150,10 +150,10 @@
             return this.extractSuggestions(text);
         }
 
-        buildUserPrompt(messages = [], profile) {
+        buildUserPrompt(messages = [], profile, otherPersonName) {
             const lastMessages = messages.slice(-25);
             const mapped = lastMessages.map((msg, idx) => {
-                const dir = msg.direction === 'out' ? 'EU' : 'OUTRA PESSOA';
+                const dir = msg.direction === 'out' ? 'EU' : (otherPersonName || 'OUTRA PESSOA');
                 return `${idx + 1}. ${dir}: ${msg.text}`;
             }).join('\n');
 
@@ -164,6 +164,7 @@
             const lastMyMessage = [...lastMessages].reverse().find(m => m.direction === 'out');
 
             const profileLine = profile ? `\nContexto sobre mim:\n${profile}` : '';
+            const otherPersonLine = otherPersonName ? `\nNome da outra pessoa: ${otherPersonName}` : '';
             const focusLine = pendingMessage
                 ? `\nMensagem pendente da outra pessoa: "${pendingMessage.text}". Responda a isso diretamente, sem cumprimentar.`
                 : 'Nenhuma mensagem pendente; continue a conversa com um follow-up natural (sem cumprimentar nem repetir perguntas).';
@@ -175,6 +176,7 @@
                 'Não cumprimente de novo se já houve cumprimento. Não repita perguntas já feitas. Evite respostas genéricas.',
                 'Responda APENAS com JSON válido: {"suggestions":["resposta1","resposta2",...]} sem texto extra, sem markdown, sem texto antes/depois. Não inclua saudações a menos que a última mensagem peça. Assim que fechar o JSON, pare.',
                 profileLine,
+                otherPersonLine,
                 focusLine,
                 myLastLine,
                 '\nHistórico:',

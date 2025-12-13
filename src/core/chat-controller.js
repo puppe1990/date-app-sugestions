@@ -234,6 +234,34 @@
             return cleaned.length > MAX ? `${cleaned.slice(0, MAX)}…` : cleaned;
         }
 
+        extractOtherPersonName() {
+            const selectors = [
+                '.navigation-profile .csms-profile-info__name-inner',
+                '.navigation-profile .csms-a11y-visually-hidden',
+                '[data-qa="profile-info__name"] .csms-profile-info__name-inner',
+                '.csms-profile-info__name-inner',
+                '[data-qa="profile-info__name"]',
+                '[data-qa="mini-profile-user-info__heading"] [data-qa="profile-info__name"]'
+            ];
+
+            for (const selector of selectors) {
+                try {
+                    const el = document.querySelector(selector);
+                    let name = (el && (el.textContent || el.innerText)) ? (el.textContent || el.innerText).trim() : '';
+                    if (!name) continue;
+                    name = name.replace(/\s+/g, ' ').trim();
+                    // Ex.: "Mayara, Abrir perfil"
+                    if (name.includes(',')) {
+                        name = name.split(',')[0].trim();
+                    }
+                    if (name) return name;
+                } catch (e) {
+                    // Ignora
+                }
+            }
+            return '';
+        }
+
         async generateAISuggestions() {
             if (this.aiLoading) return;
             if (!this.aiClient) {
@@ -251,12 +279,13 @@
                     (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
                 const pageProfile = this.extractProfileText();
                 const profile = [configuredProfile, pageProfile].filter(Boolean).join('\n\n');
+                const otherPersonName = this.extractOtherPersonName();
 
                 if (this.debug && pageProfile) {
                     console.info('[Chat Suggestions][AI] Contexto extraído da página', { chars: pageProfile.length });
                 }
 
-                const aiSuggestions = await this.aiClient.generateSuggestions({ messages, profile });
+                const aiSuggestions = await this.aiClient.generateSuggestions({ messages, profile, otherPersonName });
                 const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
                 this.ui.render(safe, { isAI: true });
                 this.info('Sugestões de IA geradas', { total: safe.length });
@@ -283,8 +312,9 @@
                 (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
             const pageProfile = this.extractProfileText();
             const profile = [configuredProfile, pageProfile].filter(Boolean).join('\n\n');
+            const otherPersonName = this.extractOtherPersonName();
 
-            const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({ messages, profile });
+            const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({ messages, profile, otherPersonName });
 
             if (!this.ui || typeof this.ui.openAiPromptModal !== 'function') {
                 this.generateAISuggestions();
