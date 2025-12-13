@@ -18,7 +18,16 @@
 
         read(container) {
             if (!container) return [];
-            const nodes = Array.from(container.querySelectorAll(this.config.messageSelector));
+            let nodes = Array.from(container.querySelectorAll(this.config.messageSelector));
+            if (typeof this.config.nodeFilter === 'function') {
+                nodes = nodes.filter(node => {
+                    try {
+                        return Boolean(this.config.nodeFilter(node));
+                    } catch (e) {
+                        return true;
+                    }
+                });
+            }
             return nodes
                 .map(node => this.parseMessage(node))
                 .filter(Boolean);

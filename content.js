@@ -40,13 +40,20 @@
 	            chatContainerSelector: '#main',
 	            inputSelector: '#main footer [contenteditable="true"][data-lexical-editor="true"], #main footer [role="textbox"][contenteditable="true"], #main footer [contenteditable="true"]',
 	            uiPlacement: 'overlay',
-	            otherPersonNameSelector: '#pane-side > div:nth-child(2) > div > div > div:nth-child(1) > div > div > div > div._ak8l._ap1_ > div._ak8o > div._ak8q > div > div > span, #main header span[title], header span[title]',
+	            otherPersonNameSelector: '#pane-side [role="row"][aria-selected="true"] span[title], #pane-side [aria-selected="true"] span[title], #main header span[title], header span[title], #pane-side > div:nth-child(2) > div > div > div:nth-child(1) > div > div > div > div._ak8l._ap1_ > div._ak8o > div._ak8q > div > div > span',
 	            profileContainerSelector: '#main header',
 	            messageReaderConfig: {
 	                messageSelector: 'div.message-in, div.message-out',
 	                textSelector: 'span.selectable-text.copyable-text span',
 	                senderSelector: null,
 	                allowTextContentFallback: true,
+	                nodeFilter: (node) => {
+	                    try {
+	                        return node && typeof node.getClientRects === 'function' && node.getClientRects().length > 0;
+	                    } catch (e) {
+	                        return true;
+	                    }
+	                },
 	                textResolver: (node) => {
 	                    try {
 	                        const textEl = node.querySelector('span.selectable-text.copyable-text span');
