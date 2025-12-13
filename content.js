@@ -19,6 +19,7 @@
     const detectChatPlatform = () => {
         const host = (location.hostname || '').toLowerCase();
         if (host === 'tinder.com' || host.endsWith('.tinder.com')) return 'tinder';
+        if (host === 'web.whatsapp.com') return 'whatsapp';
         return 'badoo';
     };
 
@@ -27,6 +28,7 @@
             const parsed = new URL(url);
             const path = parsed.pathname || '';
             if (platform === 'tinder') return path.startsWith('/app/messages');
+            if (platform === 'whatsapp') return true;
             return path.startsWith('/messages');
         } catch (e) {
             return url.includes('/messages/');
@@ -34,6 +36,38 @@
     };
 
 	    const PLATFORM_DEFAULTS = {
+	        whatsapp: {
+	            chatContainerSelector: '#main',
+	            inputSelector: '#main footer [contenteditable="true"][data-lexical-editor="true"], #main footer [role="textbox"][contenteditable="true"], #main footer [contenteditable="true"]',
+	            uiPlacement: 'overlay',
+	            otherPersonNameSelector: '#main header span[title], header span[title]',
+	            profileContainerSelector: '#main header',
+	            messageReaderConfig: {
+	                messageSelector: 'div.message-in, div.message-out',
+	                textSelector: 'span.selectable-text.copyable-text span',
+	                senderSelector: null,
+	                allowTextContentFallback: true,
+	                textResolver: (node) => {
+	                    try {
+	                        const textEl = node.querySelector('span.selectable-text.copyable-text span');
+	                        if (textEl && textEl.textContent) return textEl.textContent;
+	                    } catch (e) {
+	                        // Ignora
+	                    }
+	                    return '';
+	                },
+	                directionResolver: (node) => {
+	                    try {
+	                        const cls = (node && node.classList) ? node.classList : null;
+	                        if (cls && cls.contains('message-out')) return 'out';
+	                        if (cls && cls.contains('message-in')) return 'in';
+	                        return '';
+	                    } catch (e) {
+	                        return '';
+	                    }
+	                }
+	            }
+	        },
 	        tinder: {
 	            chatContainerSelector: '[id^="SC.chat_"], [role="log"], main [role="log"], [data-testid="chatMessageList"]',
 	            inputSelector: 'textarea, [role="textbox"], [contenteditable="true"], [data-testid="chatInput"]',

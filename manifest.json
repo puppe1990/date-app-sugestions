@@ -14,6 +14,7 @@
   "host_permissions": [
     "https://badoo.com/*",
     "https://tinder.com/*",
+    "https://web.whatsapp.com/*",
     "https://openrouter.ai/*",
     "https://generativelanguage.googleapis.com/*"
   ],
@@ -21,7 +22,8 @@
     {
       "matches": [
         "https://badoo.com/messages/*",
-        "https://tinder.com/app/messages/*"
+        "https://tinder.com/app/messages/*",
+        "https://web.whatsapp.com/*"
       ],
       "js": [
         "src/constants/keywords.js",
