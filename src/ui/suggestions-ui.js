@@ -1,6 +1,6 @@
 (() => {
     class SuggestionsUI {
-        constructor({ inputSelector, placement = 'inline', onAiGenerate, onAiCopyPrompt } = {}) {
+        constructor({ inputSelector, placement = 'inline', onAiGenerate, onAiCopyPrompt, responseLength = 'short', onResponseLengthChange } = {}) {
             this.inputSelector = inputSelector || '#chat-composer-input-message';
             this.placement = placement || 'inline';
             this.container = null;
@@ -13,6 +13,8 @@
             this.normalSuggestions = [];
             this.suggestionsCollapsed = true;
             this.selectedPersonality = 'default';
+            this.selectedResponseLength = responseLength || 'short';
+            this.onResponseLengthChange = onResponseLengthChange;
             this.fixedPlacementEnabled = false;
             this.boundRecalcPlacement = null;
             this.dragEnabled = false;
@@ -136,7 +138,8 @@
                     }
 
                     .chat-suggestion-button,
-                    .chat-suggestions-personality-select {
+                    .chat-suggestions-personality-select,
+                    .chat-suggestions-response-length-select {
                         height: var(--bcs-control-height);
                         line-height: var(--bcs-control-height);
                         border-radius: 999px;
@@ -155,7 +158,8 @@
                     }
 
                     .chat-suggestion-button:hover,
-                    .chat-suggestions-personality-select:hover {
+                    .chat-suggestions-personality-select:hover,
+                    .chat-suggestions-response-length-select:hover {
                         background: var(--bcs-chip-hover);
                         border-color: rgba(127, 127, 127, 0.35);
                     }
@@ -317,6 +321,22 @@
                         padding: 0 28px 0 12px;
                         width: 132px;
                         max-width: 148px;
+                        appearance: none;
+                        -webkit-appearance: none;
+                        background-image:
+                            linear-gradient(45deg, transparent 50%, var(--bcs-muted) 50%),
+                            linear-gradient(135deg, var(--bcs-muted) 50%, transparent 50%);
+                        background-position:
+                            calc(100% - 14px) 16px,
+                            calc(100% - 9px) 16px;
+                        background-size: 5px 5px, 5px 5px;
+                        background-repeat: no-repeat;
+                    }
+
+                    .chat-suggestions-response-length-select {
+                        padding: 0 28px 0 12px;
+                        width: 110px;
+                        max-width: 120px;
                         appearance: none;
                         -webkit-appearance: none;
                         background-image:
@@ -1158,6 +1178,41 @@
             return select;
         }
 
+        getResponseLengthOptions() {
+            return [
+                { value: 'short', label: 'Curta' },
+                { value: 'medium', label: 'Média' },
+                { value: 'long', label: 'Longa' }
+            ];
+        }
+
+        createResponseLengthSelect() {
+            const hasAI = typeof this.onAiGenerate === 'function' || typeof this.onAiCopyPrompt === 'function';
+            if (!hasAI) return null;
+
+            const select = document.createElement('select');
+            select.className = 'chat-suggestions-response-length-select';
+
+            this.getResponseLengthOptions().forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.label;
+                select.appendChild(option);
+            });
+
+            select.value = this.selectedResponseLength || 'short';
+
+            select.addEventListener('change', () => {
+                const value = select.value || 'short';
+                this.selectedResponseLength = value;
+                if (typeof this.onResponseLengthChange === 'function') {
+                    this.onResponseLengthChange({ responseLength: value });
+                }
+            });
+
+            return select;
+        }
+
         createCopyPromptButton() {
             if (typeof this.onAiCopyPrompt !== 'function') return null;
 
@@ -1404,6 +1459,11 @@
             const personalitySelect = this.createInlinePersonalitySelect();
             if (personalitySelect) {
                 container.appendChild(personalitySelect);
+            }
+
+            const responseLengthSelect = this.createResponseLengthSelect();
+            if (responseLengthSelect) {
+                container.appendChild(responseLengthSelect);
             }
 
             const copyPromptButton = this.createCopyPromptButton();

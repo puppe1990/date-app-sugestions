@@ -1,5 +1,5 @@
 (() => {
-    class ChatSuggestionsController {
+class ChatSuggestionsController {
         constructor({
             chatContainerSelector = '.csms-chat-messages',
             inputSelector = '#chat-composer-input-message',
@@ -76,8 +76,10 @@
             this.ui = new window.BadooChatSuggestions.SuggestionsUI({
                 inputSelector: this.inputSelector,
                 placement: this.uiPlacement,
+                responseLength: this.aiClientConfig?.responseLength || 'short',
                 onAiGenerate: (opts) => this.openAIPromptModal(opts),
-                onAiCopyPrompt: (opts) => this.buildAIPrompts(opts)
+                onAiCopyPrompt: (opts) => this.buildAIPrompts(opts),
+                onResponseLengthChange: ({ responseLength }) => this.setAIResponseLength(responseLength)
             });
 
             const mounted = this.ui.mount();
@@ -268,6 +270,45 @@
             }
 
             return new window.BadooChatSuggestions.AIClient({ apiKey, model, profile, provider, responseLength });
+        }
+
+        setAIResponseLength(responseLength) {
+            const value = String(responseLength || '').toLowerCase();
+            const allowed = new Set(['short', 'medium', 'long']);
+            const next = allowed.has(value) ? value : 'short';
+
+            this.aiClientConfig = this.aiClientConfig || {};
+            this.aiClientConfig.responseLength = next;
+
+            if (this.aiClient) {
+                this.aiClient.responseLength = next;
+            }
+
+            try {
+                window.badooChatSuggestionsConfig = window.badooChatSuggestionsConfig || {};
+                window.badooChatSuggestionsConfig.aiResponseLength = next;
+            } catch (e) {
+                // Ignora
+            }
+
+            try {
+                if (chrome?.storage?.local) {
+                    chrome.storage.local.set({ aiResponseLength: next });
+                } else {
+                    localStorage.setItem('bcs:aiResponseLength', next);
+                }
+            } catch (e) {
+                // Ignora
+            }
+
+            try {
+                if (this.ui && typeof this.ui.showToast === 'function') {
+                    const label = next === 'short' ? 'Curta' : (next === 'medium' ? 'Média' : 'Longa');
+                    this.ui.showToast(`Respostas: ${label}`);
+                }
+            } catch (e) {
+                // Ignora
+            }
         }
 
         extractProfileText() {
