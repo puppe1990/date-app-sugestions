@@ -54,6 +54,8 @@
                 display: flex;
                 gap: 8px;
                 padding: 8px 16px;
+                align-items: center;
+                flex-wrap: nowrap;
                 overflow-x: auto;
                 background-color: #f5f5f5;
                 border-top: 1px solid #e0e0e0;
@@ -382,7 +384,10 @@
         }
 
         findInputElement() {
-            const selectors = [this.inputSelector, ...(window.BadooChatSuggestions?.constants?.INPUT_SELECTORS || [])];
+            const allowGlobalFallback = !String(this.inputSelector || '').includes('#main footer');
+            const selectors = allowGlobalFallback
+                ? [this.inputSelector, ...(window.BadooChatSuggestions?.constants?.INPUT_SELECTORS || [])]
+                : [this.inputSelector];
             for (const selector of selectors) {
                 const input = document.querySelector(selector);
                 if (input) return input;
@@ -666,6 +671,11 @@
                 white-space: nowrap;
                 transition: all 0.2s;
                 flex-shrink: 0;
+                flex: 0 0 auto;
+                width: 140px;
+                max-width: 160px;
+                appearance: none;
+                -webkit-appearance: none;
                 height: 36px;
             `;
 
