@@ -205,6 +205,21 @@
                         overflow: auto !important;
                         flex-wrap: wrap !important;
                         overscroll-behavior: contain !important;
+                        padding-right: 52px !important;
+                    }
+
+                    .chat-suggestions-container.bcs-floating-panel .bcs-floating-close {
+                        position: absolute;
+                        top: 10px;
+                        right: 10px;
+                        width: var(--bcs-control-height);
+                        height: var(--bcs-control-height);
+                        padding: 0;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 16px;
+                        line-height: 1;
                     }
 
                     .bcs-floating-launcher {
@@ -1370,6 +1385,11 @@
 
             container.innerHTML = '';
 
+            const floatingClose = this.createFloatingCloseButton();
+            if (floatingClose) {
+                container.appendChild(floatingClose);
+            }
+
             const dragHandle = this.createDragHandleButton();
             if (dragHandle) {
                 container.appendChild(dragHandle);
@@ -1437,6 +1457,26 @@
             if (this.aiLoading) {
                 this.setAiLoading(true);
             }
+        }
+
+        createFloatingCloseButton() {
+            if (this.placement !== 'floating') return null;
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button bcs-floating-close';
+            button.textContent = '✕';
+            button.title = 'Fechar';
+            button.setAttribute('aria-label', 'Fechar sugestões');
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.floatingOpen = false;
+                this.updateFloatingVisibility();
+            });
+
+            return button;
         }
 
         createSuggestionsToggleButton() {
