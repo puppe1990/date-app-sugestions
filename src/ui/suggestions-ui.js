@@ -25,6 +25,10 @@
             this.aiPromptCancelButton = null;
             this.boundAiPromptKeydown = null;
             this.aiPromptOnSend = null;
+            this.aiPromptPersonalitySelect = null;
+            this.aiPromptBaseSystemPrompt = '';
+            this.aiPromptBaseUserPrompt = '';
+            this.aiPromptDirty = false;
         }
 
         getContainer() {
@@ -223,6 +227,19 @@
                     .bcs-modal__btn:disabled {
                         opacity: 0.6;
                         cursor: not-allowed;
+                    }
+
+                    .bcs-modal__select {
+                        width: 100%;
+                        box-sizing: border-box;
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                        background: rgba(255, 255, 255, 0.06);
+                        color: #fff;
+                        border-radius: 10px;
+                        padding: 10px 12px;
+                        outline: none;
+                        font-size: 13px;
+                        margin-bottom: 12px;
                     }
                 `;
                 document.head.appendChild(style);
@@ -835,6 +852,33 @@
             const body = document.createElement('div');
             body.className = 'bcs-modal__body';
 
+            const personalityLabel = this.createLabel('Personalidade');
+            personalityLabel.style.color = 'rgba(255, 255, 255, 0.72)';
+            personalityLabel.style.marginRight = '0';
+            body.appendChild(personalityLabel);
+
+            const personalitySelect = document.createElement('select');
+            personalitySelect.className = 'bcs-modal__select';
+            this.getPersonalityOptions().forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.label;
+                personalitySelect.appendChild(option);
+            });
+            personalitySelect.value = 'default';
+            personalitySelect.addEventListener('change', () => {
+                const value = personalitySelect.value;
+                if (this.aiPromptDirty) {
+                    const ok = confirm('Você editou o prompt. Trocar a personalidade vai redefinir o texto. Continuar?');
+                    if (!ok) {
+                        personalitySelect.value = 'default';
+                        return;
+                    }
+                }
+                this.applyPersonalityToPrompts(value);
+            });
+            body.appendChild(personalitySelect);
+
             const systemLabel = this.createLabel('System');
             systemLabel.style.color = 'rgba(255, 255, 255, 0.72)';
             systemLabel.style.marginRight = '0';
@@ -843,6 +887,9 @@
             const systemTextarea = document.createElement('textarea');
             systemTextarea.className = 'bcs-modal__textarea';
             systemTextarea.placeholder = 'System prompt...';
+            systemTextarea.addEventListener('input', () => {
+                this.aiPromptDirty = true;
+            });
             body.appendChild(systemTextarea);
 
             const userLabel = this.createLabel('User');
@@ -855,6 +902,9 @@
             userTextarea.className = 'bcs-modal__textarea';
             userTextarea.placeholder = 'User prompt...';
             userTextarea.style.minHeight = '150px';
+            userTextarea.addEventListener('input', () => {
+                this.aiPromptDirty = true;
+            });
             body.appendChild(userTextarea);
 
             const row = document.createElement('div');
@@ -934,6 +984,65 @@
             this.aiPromptUserTextarea = userTextarea;
             this.aiPromptSendButton = sendBtn;
             this.aiPromptCancelButton = cancelBtn;
+            this.aiPromptPersonalitySelect = personalitySelect;
+        }
+
+        getPersonalityOptions() {
+            return [
+                { value: 'default', label: 'Padrão (atual)' },
+                { value: 'ousado', label: 'Ousado' },
+                { value: 'romantico', label: 'Romântico' },
+                { value: 'engracado', label: 'Engraçado' },
+                { value: 'fofo', label: 'Fofo' },
+                { value: 'direto', label: 'Direto' }
+            ];
+        }
+
+        buildPersonalityAddon(personality) {
+            const map = {
+                ousado: [
+                    'Personalidade: ousado(a).',
+                    'Flert leve e confiante, com brincadeiras sutis.',
+                    'Evite conteúdo sexual explícito, vulgaridade ou pressão.',
+                    'Seja respeitoso(a) e mantenha consentimento implícito.'
+                ],
+                romantico: [
+                    'Personalidade: romântico(a).',
+                    'Tom carinhoso, gentil e atencioso.',
+                    'Use elogios leves e linguagem mais afetiva, sem exagerar.'
+                ],
+                engracado: [
+                    'Personalidade: engraçado(a).',
+                    'Use humor leve, trocadilhos simples e espontaneidade.',
+                    'Evite piadas ofensivas ou que dependam de temas sensíveis.'
+                ],
+                fofo: [
+                    'Personalidade: fofo(a).',
+                    'Tom doce, simpático e acolhedor.',
+                    'Use expressões leves e positivas, sem infantilizar demais.'
+                ],
+                direto: [
+                    'Personalidade: direto(a).',
+                    'Respostas objetivas, claras e sem enrolação.',
+                    'Mantenha o tom educado e natural.'
+                ]
+            };
+
+            const lines = map[personality] || [];
+            if (!lines.length) return '';
+            return `\n\nRegras de estilo (personalidade):\n- ${lines.join('\n- ')}`;
+        }
+
+        applyPersonalityToPrompts(personality) {
+            if (!this.aiPromptSystemTextarea || !this.aiPromptUserTextarea) return;
+
+            const baseSystem = this.aiPromptBaseSystemPrompt || '';
+            const baseUser = this.aiPromptBaseUserPrompt || '';
+            const addon = this.buildPersonalityAddon(personality);
+
+            this.aiPromptSystemTextarea.value = `${baseSystem}${addon}`.trim();
+            this.aiPromptUserTextarea.value = baseUser;
+            this.aiPromptDirty = false;
         }
 
         async copyToClipboard(text) {
@@ -968,8 +1077,14 @@
             this.ensureAiPromptModal();
             this.aiPromptOnSend = onSend;
 
-            if (this.aiPromptSystemTextarea) this.aiPromptSystemTextarea.value = systemPrompt || '';
-            if (this.aiPromptUserTextarea) this.aiPromptUserTextarea.value = userPrompt || '';
+            this.aiPromptBaseSystemPrompt = systemPrompt || '';
+            this.aiPromptBaseUserPrompt = userPrompt || '';
+            this.aiPromptDirty = false;
+
+            if (this.aiPromptPersonalitySelect) {
+                this.aiPromptPersonalitySelect.value = 'default';
+            }
+            this.applyPersonalityToPrompts('default');
 
             if (this.aiPromptOverlay) {
                 this.aiPromptOverlay.style.display = 'flex';
