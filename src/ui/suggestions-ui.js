@@ -52,19 +52,22 @@
             container.setAttribute('data-bcs-legacy-id', 'badoo-chat-suggestions-container');
             container.style.cssText = `
                 display: flex;
-                gap: 8px;
-                padding: 8px 16px;
                 align-items: center;
+                gap: 8px;
                 flex-wrap: nowrap;
+                padding: 10px 12px;
                 overflow-x: auto;
-                background-color: #f5f5f5;
-                border-top: 1px solid #e0e0e0;
-                border-bottom: 1px solid #e0e0e0;
                 scrollbar-width: thin;
                 z-index: 1000;
                 position: relative;
                 width: 100%;
                 box-sizing: border-box;
+                border-radius: 14px;
+                border: 1px solid rgba(127, 127, 127, 0.25);
+                background: rgba(255, 255, 255, 0.92);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
             `;
 
             const styleId = 'chat-suggestions-styles';
@@ -73,15 +76,124 @@
                 const style = document.createElement('style');
                 style.id = styleId;
                 style.textContent = `
+                    :root {
+                        --bcs-surface: rgba(255, 255, 255, 0.92);
+                        --bcs-surface-border: rgba(127, 127, 127, 0.25);
+                        --bcs-text: #111;
+                        --bcs-muted: rgba(17, 17, 17, 0.65);
+                        --bcs-chip-bg: rgba(17, 17, 17, 0.06);
+                        --bcs-chip-border: rgba(17, 17, 17, 0.14);
+                        --bcs-chip-hover: rgba(17, 17, 17, 0.10);
+                        --bcs-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+                    }
+
+                    .chat-suggestions-container {
+                        background: var(--bcs-surface) !important;
+                        border-color: var(--bcs-surface-border) !important;
+                        color: var(--bcs-text) !important;
+                        box-shadow: var(--bcs-shadow) !important;
+                    }
+
+                    .chat-suggestions-container.bcs-theme-dark {
+                        --bcs-surface: rgba(18, 18, 18, 0.78);
+                        --bcs-surface-border: rgba(255, 255, 255, 0.14);
+                        --bcs-text: rgba(255, 255, 255, 0.94);
+                        --bcs-muted: rgba(255, 255, 255, 0.65);
+                        --bcs-chip-bg: rgba(255, 255, 255, 0.06);
+                        --bcs-chip-border: rgba(255, 255, 255, 0.14);
+                        --bcs-chip-hover: rgba(255, 255, 255, 0.10);
+                        --bcs-shadow: 0 18px 46px rgba(0, 0, 0, 0.40);
+                    }
+
+                    .chat-suggestions-container.bcs-theme-light {
+                        --bcs-surface: rgba(255, 255, 255, 0.92);
+                        --bcs-surface-border: rgba(127, 127, 127, 0.25);
+                        --bcs-text: #111;
+                        --bcs-muted: rgba(17, 17, 17, 0.65);
+                        --bcs-chip-bg: rgba(17, 17, 17, 0.06);
+                        --bcs-chip-border: rgba(17, 17, 17, 0.14);
+                        --bcs-chip-hover: rgba(17, 17, 17, 0.10);
+                        --bcs-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+                    }
+
+                    .chat-suggestion-button,
+                    .chat-suggestions-personality-select {
+                        height: 36px;
+                        line-height: 36px;
+                        border-radius: 999px;
+                        border: 1px solid var(--bcs-chip-border);
+                        background: var(--bcs-chip-bg);
+                        color: var(--bcs-text);
+                        font-size: 13px;
+                        cursor: pointer;
+                        white-space: nowrap;
+                        transition: background 0.15s ease, border-color 0.15s ease, transform 0.06s ease;
+                        flex: 0 0 auto;
+                    }
+
+                    .chat-suggestion-button {
+                        padding: 0 12px;
+                    }
+
+                    .chat-suggestion-button:hover,
+                    .chat-suggestions-personality-select:hover {
+                        background: var(--bcs-chip-hover);
+                        border-color: rgba(127, 127, 127, 0.35);
+                    }
+
+                    .chat-suggestion-button:active {
+                        transform: translateY(1px);
+                    }
+
+                    .chat-suggestion-button:disabled {
+                        opacity: 0.6;
+                        cursor: not-allowed;
+                        transform: none;
+                    }
+
+                    .chat-suggestion-button--ai {
+                        border-color: rgba(127, 127, 127, 0.35);
+                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.15), rgba(125, 54, 255, 0.12));
+                    }
+
+                    .chat-suggestion-button--ai:hover {
+                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.22), rgba(125, 54, 255, 0.18));
+                    }
+
+                    .chat-suggestion-button--ai-suggestion {
+                        border-color: rgba(255, 68, 88, 0.35);
+                        background: rgba(255, 68, 88, 0.12);
+                    }
+
+                    .chat-suggestion-button--ai-suggestion:hover {
+                        background: rgba(255, 68, 88, 0.18);
+                    }
+
+                    .chat-suggestions-personality-select {
+                        padding: 0 28px 0 12px;
+                        width: 150px;
+                        max-width: 170px;
+                        appearance: none;
+                        -webkit-appearance: none;
+                        background-image:
+                            linear-gradient(45deg, transparent 50%, var(--bcs-muted) 50%),
+                            linear-gradient(135deg, var(--bcs-muted) 50%, transparent 50%);
+                        background-position:
+                            calc(100% - 14px) 16px,
+                            calc(100% - 9px) 16px;
+                        background-size: 5px 5px, 5px 5px;
+                        background-repeat: no-repeat;
+                    }
+
                     .chat-suggestions-container::-webkit-scrollbar {
-                        height: 4px;
+                        height: 6px;
                     }
                     .chat-suggestions-container::-webkit-scrollbar-track {
                         background: transparent;
                     }
                     .chat-suggestions-container::-webkit-scrollbar-thumb {
-                        background: #ccc;
-                        border-radius: 2px;
+                        background: rgba(127, 127, 127, 0.35);
+                        border-radius: 6px;
                     }
 
                     .bcs-modal-overlay {
@@ -261,6 +373,7 @@
                 this.attachDomObserver();
             }
             container.style.display = 'flex';
+            this.applyTheme(container);
             this.ensureGoodPlacement();
             console.info('[Chat Suggestions] UI montada', { inserted, inputSelector: this.inputSelector });
             return inserted;
@@ -375,6 +488,7 @@
                 }
 
                 this.ensureGoodPlacement();
+                this.applyTheme(container);
             });
 
             this.domObserver.observe(document.body, {
@@ -393,6 +507,24 @@
                 if (input) return input;
             }
             return null;
+        }
+
+        applyTheme(container) {
+            if (!container || !container.classList) return;
+            try {
+                const bg = window.getComputedStyle(document.body).backgroundColor || '';
+                const rgb = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+                if (!rgb) return;
+                const r = Number(rgb[1]) / 255;
+                const g = Number(rgb[2]) / 255;
+                const b = Number(rgb[3]) / 255;
+                const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                const isDark = luminance < 0.45;
+                container.classList.toggle('bcs-theme-dark', isDark);
+                container.classList.toggle('bcs-theme-light', !isDark);
+            } catch (e) {
+                // Ignora
+            }
         }
 
         ensureGoodPlacement() {
@@ -544,28 +676,6 @@
             button.type = 'button';
             button.className = 'chat-suggestion-button';
             button.textContent = text;
-            button.style.cssText = `
-                padding: 8px 16px;
-                border: 1px solid #d0d0d0;
-                border-radius: 20px;
-                background-color: white;
-                color: #333;
-                font-size: 14px;
-                cursor: pointer;
-                white-space: nowrap;
-                transition: all 0.2s;
-                flex-shrink: 0;
-            `;
-
-            button.addEventListener('mouseenter', () => {
-                button.style.backgroundColor = '#f0f0f0';
-                button.style.borderColor = '#b0b0b0';
-            });
-
-            button.addEventListener('mouseleave', () => {
-                button.style.backgroundColor = 'white';
-                button.style.borderColor = '#d0d0d0';
-            });
 
             button.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -582,28 +692,6 @@
             button.type = 'button';
             button.className = 'chat-suggestion-button chat-suggestion-button--ai-suggestion';
             button.textContent = text;
-            button.style.cssText = `
-                padding: 8px 16px;
-                border: 1px solid #333;
-                border-radius: 18px;
-                background-color: #111;
-                color: #fff;
-                font-size: 14px;
-                cursor: pointer;
-                white-space: nowrap;
-                transition: all 0.2s;
-                flex-shrink: 0;
-            `;
-
-            button.addEventListener('mouseenter', () => {
-                button.style.backgroundColor = '#000';
-                button.style.borderColor = '#222';
-            });
-
-            button.addEventListener('mouseleave', () => {
-                button.style.backgroundColor = '#111';
-                button.style.borderColor = '#333';
-            });
 
             button.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -621,28 +709,6 @@
             button.className = 'chat-suggestion-button chat-suggestion-button--ai';
             button.textContent = this.aiLoading ? 'IA (gerando...)' : '✨ IA';
             button.disabled = this.aiLoading;
-            button.style.cssText = `
-                padding: 8px 14px;
-                border: 1px solid #a0a0a0;
-                border-radius: 16px;
-                background-color: #333;
-                color: #fff;
-                font-size: 13px;
-                cursor: pointer;
-                white-space: nowrap;
-                transition: all 0.2s;
-                flex-shrink: 0;
-            `;
-
-            button.addEventListener('mouseenter', () => {
-                button.style.backgroundColor = '#111';
-                button.style.borderColor = '#888';
-            });
-
-            button.addEventListener('mouseleave', () => {
-                button.style.backgroundColor = '#333';
-                button.style.borderColor = '#a0a0a0';
-            });
 
             button.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -660,24 +726,6 @@
 
             const select = document.createElement('select');
             select.className = 'chat-suggestions-personality-select';
-            select.style.cssText = `
-                padding: 8px 10px;
-                border: 1px solid #d0d0d0;
-                border-radius: 16px;
-                background-color: #fff;
-                color: #333;
-                font-size: 13px;
-                cursor: pointer;
-                white-space: nowrap;
-                transition: all 0.2s;
-                flex-shrink: 0;
-                flex: 0 0 auto;
-                width: 140px;
-                max-width: 160px;
-                appearance: none;
-                -webkit-appearance: none;
-                height: 36px;
-            `;
 
             this.getPersonalityOptions().forEach(opt => {
                 const option = document.createElement('option');
@@ -707,28 +755,6 @@
             button.type = 'button';
             button.className = 'chat-suggestion-button chat-suggestion-button--copy-prompt';
             button.textContent = 'Copiar prompt';
-            button.style.cssText = `
-                padding: 8px 12px;
-                border: 1px solid #d0d0d0;
-                border-radius: 16px;
-                background-color: #fff;
-                color: #333;
-                font-size: 13px;
-                cursor: pointer;
-                white-space: nowrap;
-                transition: all 0.2s;
-                flex-shrink: 0;
-            `;
-
-            button.addEventListener('mouseenter', () => {
-                button.style.backgroundColor = '#f0f0f0';
-                button.style.borderColor = '#b0b0b0';
-            });
-
-            button.addEventListener('mouseleave', () => {
-                button.style.backgroundColor = '#fff';
-                button.style.borderColor = '#d0d0d0';
-            });
 
             button.addEventListener('click', async (e) => {
                 e.preventDefault();
@@ -835,28 +861,6 @@
             button.type = 'button';
             button.className = 'chat-suggestion-button chat-suggestion-button--toggle';
             button.textContent = this.suggestionsCollapsed ? 'Mostrar sugestões' : 'Ocultar sugestões';
-            button.style.cssText = `
-                padding: 8px 12px;
-                border: 1px solid #d0d0d0;
-                border-radius: 16px;
-                background-color: #fff;
-                color: #333;
-                font-size: 13px;
-                cursor: pointer;
-                white-space: nowrap;
-                transition: all 0.2s;
-                flex-shrink: 0;
-            `;
-
-            button.addEventListener('mouseenter', () => {
-                button.style.backgroundColor = '#f0f0f0';
-                button.style.borderColor = '#b0b0b0';
-            });
-
-            button.addEventListener('mouseleave', () => {
-                button.style.backgroundColor = '#fff';
-                button.style.borderColor = '#d0d0d0';
-            });
 
             button.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -874,28 +878,6 @@
             button.type = 'button';
             button.className = 'chat-suggestion-button chat-suggestion-button--library';
             button.textContent = 'Biblioteca';
-            button.style.cssText = `
-                padding: 8px 12px;
-                border: 1px solid #d0d0d0;
-                border-radius: 16px;
-                background-color: #fff;
-                color: #333;
-                font-size: 13px;
-                cursor: pointer;
-                white-space: nowrap;
-                transition: all 0.2s;
-                flex-shrink: 0;
-            `;
-
-            button.addEventListener('mouseenter', () => {
-                button.style.backgroundColor = '#f0f0f0';
-                button.style.borderColor = '#b0b0b0';
-            });
-
-            button.addEventListener('mouseleave', () => {
-                button.style.backgroundColor = '#fff';
-                button.style.borderColor = '#d0d0d0';
-            });
 
             button.addEventListener('click', (e) => {
                 e.preventDefault();
