@@ -5,6 +5,7 @@
             inputSelector = '#chat-composer-input-message',
             messageSelector = null,
             uiPlacement = 'inline',
+            profileContainerSelector = null,
             messageReader = null,
             aiClient = null,
             aiClientConfig = {},
@@ -14,6 +15,7 @@
             this.inputSelector = inputSelector;
             this.debug = debug;
             this.uiPlacement = uiPlacement;
+            this.profileContainerSelector = profileContainerSelector;
             this.messageReader = messageReader ||
                 window.BadooChatSuggestions.createDefaultMessageReader?.() ||
                 window.BadooChatSuggestions.createBadooMessageReader();
@@ -198,6 +200,40 @@
             return new window.BadooChatSuggestions.AIClient({ apiKey, model, profile, provider });
         }
 
+        extractProfileText() {
+            const selectors = [];
+            if (this.profileContainerSelector) selectors.push(this.profileContainerSelector);
+            selectors.push('#main-content [data-testid="profileCard"]');
+            selectors.push('#main-content [data-testid="profile"]');
+
+            let el = null;
+            for (const sel of selectors) {
+                try {
+                    el = document.querySelector(sel);
+                } catch (e) {
+                    // ignora seletor inválido
+                }
+                if (el) break;
+            }
+
+            if (!el) return '';
+
+            const raw = (el.innerText || el.textContent || '').trim();
+            if (!raw) return '';
+
+            const cleaned = raw
+                .split('\n')
+                .map(l => l.trim())
+                .filter(Boolean)
+                .join('\n')
+                .replace(/\s+\n/g, '\n')
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
+
+            const MAX = 900;
+            return cleaned.length > MAX ? `${cleaned.slice(0, MAX)}…` : cleaned;
+        }
+
         async generateAISuggestions() {
             if (this.aiLoading) return;
             if (!this.aiClient) {
@@ -211,8 +247,15 @@
                 this.ui.setAiLoading(true);
                 const context = this.contextExtractor.extract(this.chatContainer, { fullHistory: true });
                 const messages = context?.allMessages || context?.lastMessages || [];
-                const profile = (this.aiClientConfig && this.aiClientConfig.profile) ||
+                const configuredProfile = (this.aiClientConfig && this.aiClientConfig.profile) ||
                     (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
+                const pageProfile = this.extractProfileText();
+                const profile = [configuredProfile, pageProfile].filter(Boolean).join('\n\n');
+
+                if (this.debug && pageProfile) {
+                    console.info('[Chat Suggestions][AI] Contexto extraído da página', { chars: pageProfile.length });
+                }
+
                 const aiSuggestions = await this.aiClient.generateSuggestions({ messages, profile });
                 const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
                 this.ui.render(safe, { isAI: true });

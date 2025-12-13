@@ -38,6 +38,7 @@
 	            chatContainerSelector: '[id^="SC.chat_"], [role="log"], main [role="log"], [data-testid="chatMessageList"]',
 	            inputSelector: 'textarea, [role="textbox"], [contenteditable="true"], [data-testid="chatInput"]',
 	            uiPlacement: 'overlay',
+	            profileContainerSelector: '#main-content > div.H\\(100\\%\\) > div > div > div > div > div.BdStart.Bdc\\(\\$c-ds-divider-primary\\).Fxg\\(0\\).Fxs\\(0\\).Fxb\\(1\\/3\\).Miw\\(325px\\).Maw\\(640px\\).D\\(n\\)--m > div > div > div',
 	            messageReaderConfig: {
 	                messageSelector: '[data-testid="message"], [role="listitem"]',
 	                textSelector: '[data-testid="messageText"], span',
@@ -155,6 +156,7 @@
 	            inputSelector: config.inputSelector || '#chat-composer-input-message',
 	            messageSelector: config.messageReaderConfig?.messageSelector,
 	            uiPlacement: config.uiPlacement,
+	            profileContainerSelector: config.profileContainerSelector,
 	            messageReader,
 	            aiClientConfig,
 	            debug: window.badooChatSuggestionsDebug
