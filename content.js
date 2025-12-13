@@ -5,16 +5,18 @@
 (() => {
     'use strict';
 
-    if (window.badooChatSuggestionsInitialized) {
+    window.chatSuggestionsInitialized = window.chatSuggestionsInitialized || window.badooChatSuggestionsInitialized;
+    if (window.chatSuggestionsInitialized) {
         return;
     }
+    window.chatSuggestionsInitialized = true;
     window.badooChatSuggestionsInitialized = true;
 
     const defaultProvider = 'gemini';
     const defaultGeminiModel = 'gemini-2.0-flash-exp';
     const defaultOpenRouterModel = 'google/gemini-2.0-flash-exp:free';
 
-    const detectPlatform = () => {
+    const detectChatPlatform = () => {
         const host = (location.hostname || '').toLowerCase();
         if (host === 'tinder.com' || host.endsWith('.tinder.com')) return 'tinder';
         return 'badoo';
@@ -31,34 +33,35 @@
         }
     };
 
-    const getDefaultPlatformConfig = (platform) => {
-        if (platform === 'tinder') {
-            return {
-                chatContainerSelector: '[id^="SC.chat_"], [role="log"], main [role="log"], [data-testid="chatMessageList"]',
-                inputSelector: 'textarea, [role="textbox"], [contenteditable="true"], [data-testid="chatInput"]',
-                messageReaderConfig: {
-                    messageSelector: '[data-testid="message"], [role="listitem"]',
-                    textSelector: '[data-testid="messageText"], span',
-                    senderSelector: null,
-                    allowTextContentFallback: true,
-                    directionResolver: (node) => {
-                        try {
-                            const rect = node.getBoundingClientRect();
-                            const mid = rect.left + rect.width / 2;
-                            return mid > (window.innerWidth / 2) ? 'out' : 'in';
-                        } catch (e) {
-                            return '';
-                        }
+    const PLATFORM_DEFAULTS = {
+        tinder: {
+            chatContainerSelector: '[id^="SC.chat_"], [role="log"], main [role="log"], [data-testid="chatMessageList"]',
+            inputSelector: 'textarea, [role="textbox"], [contenteditable="true"], [data-testid="chatInput"]',
+            messageReaderConfig: {
+                messageSelector: '[data-testid="message"], [role="listitem"]',
+                textSelector: '[data-testid="messageText"], span',
+                senderSelector: null,
+                allowTextContentFallback: true,
+                directionResolver: (node) => {
+                    try {
+                        const rect = node.getBoundingClientRect();
+                        const mid = rect.left + rect.width / 2;
+                        return mid > (window.innerWidth / 2) ? 'out' : 'in';
+                    } catch (e) {
+                        return '';
                     }
                 }
-            };
-        }
-
-        return {
+            }
+        },
+        badoo: {
             chatContainerSelector: '.csms-chat-messages',
             inputSelector: '#chat-composer-input-message',
             messageReaderConfig: null
-        };
+        }
+    };
+
+    const getPlatformDefaults = (platform) => {
+        return PLATFORM_DEFAULTS[platform] || PLATFORM_DEFAULTS.badoo;
     };
 
     const loadConfig = () => {
@@ -106,12 +109,13 @@
     };
 
     const start = async () => {
-        if (window.badooChatSuggestionsInstance) {
+        window.chatSuggestionsInstance = window.chatSuggestionsInstance || window.badooChatSuggestionsInstance;
+        if (window.chatSuggestionsInstance) {
             return;
         }
 
-        const platform = detectPlatform();
-        const platformDefaults = getDefaultPlatformConfig(platform);
+        const platform = detectChatPlatform();
+        const platformDefaults = getPlatformDefaults(platform);
 
         const stored = await loadConfig();
         const envKeys = await loadEnvKey();
@@ -138,7 +142,7 @@
             profile: config.openRouterProfile
         };
 
-        console.info('[Badoo Chat Suggestions] Iniciando content script', {
+        console.info('[Chat Suggestions] Iniciando content script', {
             platform,
             chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
             inputSelector: config.inputSelector || '#chat-composer-input-message'
@@ -153,6 +157,7 @@
             debug: window.badooChatSuggestionsDebug
         });
 
+        window.chatSuggestionsInstance = controller;
         window.badooChatSuggestionsInstance = controller;
         controller.init();
     };
@@ -168,17 +173,20 @@
         const url = location.href;
         if (url !== lastUrl) {
             lastUrl = url;
-            const platform = detectPlatform();
+            const platform = detectChatPlatform();
             if (isMessagesUrlForPlatform(platform, url)) {
                 setTimeout(() => {
-                    if (window.badooChatSuggestionsInstance) {
-                        if (typeof window.badooChatSuggestionsInstance.cleanup === 'function') {
-                            window.badooChatSuggestionsInstance.cleanup();
+                    window.chatSuggestionsInstance = window.chatSuggestionsInstance || window.badooChatSuggestionsInstance;
+                    if (window.chatSuggestionsInstance) {
+                        if (typeof window.chatSuggestionsInstance.cleanup === 'function') {
+                            window.chatSuggestionsInstance.cleanup();
                         }
+                        window.chatSuggestionsInstance = null;
                         window.badooChatSuggestionsInstance = null;
                     }
+                    window.chatSuggestionsInitialized = false;
                     window.badooChatSuggestionsInitialized = false;
-                    console.info('[Badoo Chat Suggestions] URL de mensagens detectada, reinicializando...');
+                    console.info('[Chat Suggestions] URL de mensagens detectada, reinicializando...');
                     start();
                 }, 1000);
             }

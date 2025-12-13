@@ -12,7 +12,9 @@
             this.chatContainerSelector = chatContainerSelector;
             this.inputSelector = inputSelector;
             this.debug = debug;
-            this.messageReader = messageReader || window.BadooChatSuggestions.createBadooMessageReader();
+            this.messageReader = messageReader ||
+                window.BadooChatSuggestions.createDefaultMessageReader?.() ||
+                window.BadooChatSuggestions.createBadooMessageReader();
             this.messageSelector = messageSelector ||
                 (this.messageReader && this.messageReader.config && this.messageReader.config.messageSelector) ||
                 '[data-qa="chat-message"]';
@@ -38,7 +40,7 @@
 
             if (!this.chatContainer) {
                 if (this.debug) {
-                    console.warn('[Badoo Chat Suggestions] Container de chat não encontrado, tentando novamente...');
+                    console.warn('[Chat Suggestions] Container de chat não encontrado, tentando novamente...');
                 }
 
                 if (!this.initRetryTimeout) {
@@ -53,7 +55,7 @@
             this.info('Container de chat encontrado', { selector: this.chatContainerSelector });
 
             if (this.debug) {
-                console.log('[Badoo Chat Suggestions] Inicializando...');
+                console.log('[Chat Suggestions] Inicializando...');
             }
 
             this.contextExtractor = new window.BadooChatSuggestions.ContextExtractor({
@@ -76,7 +78,7 @@
             this.setupObservers();
 
             if (this.debug) {
-                console.log('[Badoo Chat Suggestions] Inicializado com sucesso!');
+                console.log('[Chat Suggestions] Inicializado com sucesso!');
             }
         }
 
@@ -91,7 +93,7 @@
                     this.lastMessageCount = currentCount;
                     this.updateSuggestions();
                     if (this.debug) {
-                        console.log(`[Badoo Chat Suggestions] Nova mensagem detectada! Total: ${currentCount}`);
+                        console.log(`[Chat Suggestions] Nova mensagem detectada! Total: ${currentCount}`);
                     }
                 }
             };
@@ -119,7 +121,7 @@
                         this.updateSuggestions();
                         this.lastMessageCount = this.chatContainer.querySelectorAll(this.messageSelector).length;
                         if (this.debug) {
-                            console.log('[Badoo Chat Suggestions] Sugestões atualizadas devido a nova mensagem');
+                            console.log('[Chat Suggestions] Sugestões atualizadas devido a nova mensagem');
                         }
                     }, 300);
                 } else {
@@ -213,7 +215,7 @@
                 this.ui.render(safe, { isAI: true });
                 this.info('Sugestões de IA geradas', { total: safe.length });
             } catch (error) {
-                console.error('[Badoo Chat Suggestions] Erro ao gerar via IA', error);
+                console.error('[Chat Suggestions] Erro ao gerar via IA', error);
                 alert(`Não foi possível gerar sugestões via IA.\n${error.message || ''}`);
             } finally {
                 this.aiLoading = false;
@@ -261,9 +263,9 @@
 
         info(message, data) {
             if (data) {
-                console.info(`[Badoo Chat Suggestions] ${message}`, data);
+                console.info(`[Chat Suggestions] ${message}`, data);
             } else {
-                console.info(`[Badoo Chat Suggestions] ${message}`);
+                console.info(`[Chat Suggestions] ${message}`);
             }
         }
     }

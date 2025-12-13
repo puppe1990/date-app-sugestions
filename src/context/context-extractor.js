@@ -2,12 +2,14 @@
     class ContextExtractor {
         constructor({ debug = false, messageReader } = {}) {
             this.debug = debug;
-            this.messageReader = messageReader || window.BadooChatSuggestions.createBadooMessageReader();
+            this.messageReader = messageReader ||
+                window.BadooChatSuggestions.createDefaultMessageReader?.() ||
+                window.BadooChatSuggestions.createBadooMessageReader();
         }
 
         extract(chatContainer, { fullHistory = false } = {}) {
             if (!chatContainer) {
-                console.error('[Badoo Chat Suggestions] Container de chat não encontrado');
+                console.error('[Chat Suggestions] Container de chat não encontrado');
                 return null;
             }
 
@@ -139,18 +141,18 @@
         logContext(context) {
             if (!this.debug) return;
 
-            console.log('[Badoo Chat Suggestions] === MENSAGENS ANALISADAS ===');
-            console.log(`[Badoo Chat Suggestions] Total de mensagens: ${context.conversationLength}`);
-            console.log(`[Badoo Chat Suggestions] Últimas ${context.lastMessages.length} mensagens:`);
+            console.log('[Chat Suggestions] === MENSAGENS ANALISADAS ===');
+            console.log(`[Chat Suggestions] Total de mensagens: ${context.conversationLength}`);
+            console.log(`[Chat Suggestions] Últimas ${context.lastMessages.length} mensagens:`);
             context.lastMessages.forEach((msg, index) => {
                 const direction = msg.direction === 'out' ? 'VOCÊ' : 'OUTRO';
-                console.log(`[Badoo Chat Suggestions] ${index + 1}. [${direction}] ${msg.sender}: "${msg.text}"`);
+                console.log(`[Chat Suggestions] ${index + 1}. [${direction}] ${msg.sender}: "${msg.text}"`);
             });
-            console.log('[Badoo Chat Suggestions] Tópicos detectados:', context.topics);
-            console.log('[Badoo Chat Suggestions] Lugares mencionados:', context.mentionedPlaces);
-            console.log('[Badoo Chat Suggestions] Profissões mencionadas:', context.mentionedJobs);
-            console.log('[Badoo Chat Suggestions] Hobbies mencionados:', context.mentionedHobbies);
-            console.log('[Badoo Chat Suggestions] ============================');
+            console.log('[Chat Suggestions] Tópicos detectados:', context.topics);
+            console.log('[Chat Suggestions] Lugares mencionados:', context.mentionedPlaces);
+            console.log('[Chat Suggestions] Profissões mencionadas:', context.mentionedJobs);
+            console.log('[Chat Suggestions] Hobbies mencionados:', context.mentionedHobbies);
+            console.log('[Chat Suggestions] ============================');
         }
     }
 

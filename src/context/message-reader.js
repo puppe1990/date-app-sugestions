@@ -105,11 +105,12 @@
         }
     }
 
-    function createBadooMessageReader() {
+    function createDefaultMessageReader() {
         return new MessageReader();
     }
 
     window.BadooChatSuggestions = window.BadooChatSuggestions || {};
     window.BadooChatSuggestions.MessageReader = MessageReader;
-    window.BadooChatSuggestions.createBadooMessageReader = createBadooMessageReader;
+    window.BadooChatSuggestions.createDefaultMessageReader = createDefaultMessageReader;
+    window.BadooChatSuggestions.createBadooMessageReader = createDefaultMessageReader;
 })();

@@ -23,9 +23,17 @@
                 return this.container;
             }
 
+            const existing = document.getElementById('chat-suggestions-container') ||
+                            document.getElementById('badoo-chat-suggestions-container');
+            if (existing) {
+                this.container = existing;
+                return existing;
+            }
+
             const container = document.createElement('div');
             container.className = 'chat-suggestions-container';
-            container.id = 'badoo-chat-suggestions-container';
+            container.id = 'chat-suggestions-container';
+            container.setAttribute('data-bcs-legacy-id', 'badoo-chat-suggestions-container');
             container.style.cssText = `
                 display: flex;
                 gap: 8px;
@@ -41,8 +49,9 @@
                 box-sizing: border-box;
             `;
 
-            const styleId = 'badoo-chat-suggestions-styles';
-            if (!document.getElementById(styleId)) {
+            const styleId = 'chat-suggestions-styles';
+            const legacyStyleId = 'badoo-chat-suggestions-styles';
+            if (!document.getElementById(styleId) && !document.getElementById(legacyStyleId)) {
                 const style = document.createElement('style');
                 style.id = styleId;
                 style.textContent = `
@@ -177,7 +186,7 @@
             }
             container.style.display = 'flex';
             this.ensureGoodPlacement();
-            console.info('[Badoo Chat Suggestions] UI montada', { inserted, inputSelector: this.inputSelector });
+            console.info('[Chat Suggestions] UI montada', { inserted, inputSelector: this.inputSelector });
             return inserted;
         }
 
@@ -196,7 +205,7 @@
                         container.parentElement.removeChild(container);
                     }
                     inputWrapper.parentElement.insertBefore(container, inputWrapper);
-                    console.info('[Badoo Chat Suggestions] Sugestões inseridas antes do wrapper do input');
+                    console.info('[Chat Suggestions] Sugestões inseridas antes do wrapper do input');
                     return true;
                 }
 
@@ -207,14 +216,14 @@
                             container.parentElement.removeChild(container);
                         }
                         parent.insertBefore(container, inputElement);
-                        console.info('[Badoo Chat Suggestions] Sugestões inseridas antes do input (fallback no parent imediato)');
+                        console.info('[Chat Suggestions] Sugestões inseridas antes do input (fallback no parent imediato)');
                         return true;
                     } else if (parent.parentElement) {
                         if (container.parentElement) {
                             container.parentElement.removeChild(container);
                         }
                         parent.parentElement.insertBefore(container, parent);
-                        console.info('[Badoo Chat Suggestions] Sugestões inseridas antes do container do input (parent)');
+                        console.info('[Chat Suggestions] Sugestões inseridas antes do container do input (parent)');
                         return true;
                     }
                 }
@@ -235,7 +244,7 @@
                         container.parentElement.removeChild(container);
                     }
                     element.parentElement.insertBefore(container, element);
-                    console.info('[Badoo Chat Suggestions] Sugestões inseridas via seletor alternativo', { selector });
+                    console.info('[Chat Suggestions] Sugestões inseridas via seletor alternativo', { selector });
                     return true;
                 }
             }
@@ -244,7 +253,7 @@
                 container.parentElement.removeChild(container);
             }
             document.body.appendChild(container);
-            console.info('[Badoo Chat Suggestions] Sugestões inseridas no body (fallback final)');
+            console.info('[Chat Suggestions] Sugestões inseridas no body (fallback final)');
             return false;
         }
 
@@ -345,7 +354,7 @@
                     }
                     parent.insertBefore(container, composerRow);
                     container.style.marginBottom = '8px';
-                    console.info('[Badoo Chat Suggestions] Ajuste de layout: movendo sugestões acima do composer (flex row detectado)');
+                    console.info('[Chat Suggestions] Ajuste de layout: movendo sugestões acima do composer (flex row detectado)');
                     return;
                 }
 
@@ -353,7 +362,7 @@
                 container.style.flexBasis = '100%';
                 container.style.order = '0';
                 form.style.order = '1';
-                console.info('[Badoo Chat Suggestions] Ajuste de layout: forçando wrap no composer (fallback)');
+                console.info('[Chat Suggestions] Ajuste de layout: forçando wrap no composer (fallback)');
             } catch (e) {
                 // Ignora
             }
@@ -452,7 +461,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 this.insertSuggestion(text);
-                console.info('[Badoo Chat Suggestions] Sugestão aplicada', { text });
+                console.info('[Chat Suggestions] Sugestão aplicada', { text });
             });
 
             return button;
@@ -490,7 +499,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 this.insertSuggestion(text);
-                console.info('[Badoo Chat Suggestions] Sugestão IA aplicada', { text });
+                console.info('[Chat Suggestions] Sugestão IA aplicada', { text });
             });
 
             return button;
@@ -787,7 +796,7 @@
             }
 
             if (!input) {
-                console.warn('[Badoo Chat Suggestions] Caixa de mensagem não encontrada. Texto sugerido:', text);
+                console.warn('[Chat Suggestions] Caixa de mensagem não encontrada. Texto sugerido:', text);
                 if (navigator.clipboard) {
                     navigator.clipboard.writeText(text).then(() => {
                         alert(`Sugestão copiada: "${text}"`);
@@ -879,7 +888,7 @@
 
                 input.focus();
             } catch (error) {
-                console.error('[Badoo Chat Suggestions] Erro ao inserir texto:', error);
+                console.error('[Chat Suggestions] Erro ao inserir texto:', error);
                 try {
                     if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
                         input.value = text;
@@ -889,7 +898,7 @@
                         input.focus();
                     }
                 } catch (e) {
-                    console.error('[Badoo Chat Suggestions] Erro no fallback:', e);
+                    console.error('[Chat Suggestions] Erro no fallback:', e);
                 }
             }
         }
