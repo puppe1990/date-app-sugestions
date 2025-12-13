@@ -40,7 +40,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        ".env"
+        ".env",
+        "suggestions-library-example.json"
       ],
       "matches": [
         "<all_urls>"

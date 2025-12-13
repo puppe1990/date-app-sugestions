@@ -150,7 +150,7 @@
         'input[placeholder*=\"message\" i]'
     ];
 
-    const SUGGESTION_LIBRARY = [
+    const DEFAULT_SUGGESTION_LIBRARY = [
         {
             title: 'Abertura',
             items: [
@@ -213,6 +213,64 @@
         }
     ];
 
+    const normalizeLibrary = (payload) => {
+        if (!payload) return null;
+
+        const sections = Array.isArray(payload) ? payload : payload.sections;
+        if (!Array.isArray(sections)) return null;
+
+        const normalizedSections = sections
+            .map(section => {
+                const title = String(section?.title || '').trim();
+                const items = Array.isArray(section?.items) ? section.items : [];
+                const normalizedItems = items
+                    .map(x => String(x || '').trim())
+                    .filter(Boolean);
+                if (!title || normalizedItems.length === 0) return null;
+                return { title, items: normalizedItems };
+            })
+            .filter(Boolean);
+
+        return normalizedSections.length ? normalizedSections : null;
+    };
+
+    const loadSuggestionLibraryJson = async () => {
+        const configUrl = window.badooChatSuggestionsConfig?.suggestionLibraryUrl ||
+            window.chatSuggestionsConfig?.suggestionLibraryUrl ||
+            window.BadooChatSuggestionsConfig?.suggestionLibraryUrl;
+
+        const candidates = [];
+        if (configUrl) candidates.push(configUrl);
+
+        try {
+            if (typeof chrome !== 'undefined' && chrome?.runtime?.getURL) {
+                candidates.push(chrome.runtime.getURL('suggestions-library.json'));
+                candidates.push(chrome.runtime.getURL('suggestions-library-example.json'));
+            }
+        } catch (e) {
+            // Ignora
+        }
+
+        candidates.push('suggestions-library.json');
+        candidates.push('suggestions-library-example.json');
+
+        for (const url of candidates) {
+            try {
+                const res = await fetch(url, { cache: 'no-cache' });
+                if (!res.ok) continue;
+                const json = await res.json();
+                const normalized = normalizeLibrary(json);
+                if (normalized) {
+                    window.BadooChatSuggestions.constants.SUGGESTION_LIBRARY = normalized;
+                    console.info('[Chat Suggestions] Biblioteca carregada', { url, sections: normalized.length });
+                    return;
+                }
+            } catch (e) {
+                // Ignora e tenta próxima URL
+            }
+        }
+    };
+
     window.BadooChatSuggestions = window.BadooChatSuggestions || {};
     window.BadooChatSuggestions.constants = {
         TOPIC_KEYWORDS,
@@ -222,6 +280,10 @@
         SPECIFIC_JOBS,
         HOBBY_KEYWORDS,
         INPUT_SELECTORS,
-        SUGGESTION_LIBRARY
+        SUGGESTION_LIBRARY: DEFAULT_SUGGESTION_LIBRARY
     };
+
+    loadSuggestionLibraryJson();
+
+    window.BadooChatSuggestions.loadSuggestionLibraryJson = loadSuggestionLibraryJson;
 })();
