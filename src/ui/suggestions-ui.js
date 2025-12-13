@@ -10,6 +10,7 @@
             this.aiButton = null;
             this.aiSuggestions = [];
             this.normalSuggestions = [];
+            this.suggestionsCollapsed = true;
             this.fixedPlacementEnabled = false;
             this.boundRecalcPlacement = null;
             this.libraryButton = null;
@@ -672,6 +673,19 @@
             container.appendChild(libraryButton);
             this.libraryButton = libraryButton;
 
+            const toggleButton = this.createSuggestionsToggleButton();
+            container.appendChild(toggleButton);
+
+            if (this.suggestionsCollapsed) {
+                if (container.style.display === 'none') {
+                    container.style.display = 'flex';
+                }
+                if (this.aiLoading) {
+                    this.setAiLoading(true);
+                }
+                return;
+            }
+
             if (this.aiSuggestions.length > 0) {
                 const aiLabel = this.createLabel('Sugestões IA');
                 container.appendChild(aiLabel);
@@ -691,6 +705,45 @@
             if (this.aiLoading) {
                 this.setAiLoading(true);
             }
+        }
+
+        createSuggestionsToggleButton() {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button chat-suggestion-button--toggle';
+            button.textContent = this.suggestionsCollapsed ? 'Mostrar sugestões' : 'Ocultar sugestões';
+            button.style.cssText = `
+                padding: 8px 12px;
+                border: 1px solid #d0d0d0;
+                border-radius: 16px;
+                background-color: #fff;
+                color: #333;
+                font-size: 13px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: all 0.2s;
+                flex-shrink: 0;
+            `;
+
+            button.addEventListener('mouseenter', () => {
+                button.style.backgroundColor = '#f0f0f0';
+                button.style.borderColor = '#b0b0b0';
+            });
+
+            button.addEventListener('mouseleave', () => {
+                button.style.backgroundColor = '#fff';
+                button.style.borderColor = '#d0d0d0';
+            });
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.suggestionsCollapsed = !this.suggestionsCollapsed;
+                this.renderSections();
+                this.ensureGoodPlacement();
+            });
+
+            return button;
         }
 
         createLibraryButton() {
