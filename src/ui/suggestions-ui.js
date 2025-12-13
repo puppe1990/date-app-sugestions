@@ -15,6 +15,12 @@
             this.selectedPersonality = 'default';
             this.fixedPlacementEnabled = false;
             this.boundRecalcPlacement = null;
+            this.dragEnabled = false;
+            this.dragging = false;
+            this.dragPointerId = null;
+            this.dragOffsetX = 0;
+            this.dragOffsetY = 0;
+            this.manualPosition = null; // { left, top, width }
             this.libraryButton = null;
             this.libraryOverlay = null;
             this.libraryDialog = null;
@@ -68,6 +74,9 @@
                 backdrop-filter: blur(10px);
                 -webkit-backdrop-filter: blur(10px);
                 box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+                font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+                font-size: 13px;
+                line-height: 1;
             `;
 
             const styleId = 'chat-suggestions-styles';
@@ -77,6 +86,7 @@
                 style.id = styleId;
                 style.textContent = `
                     :root {
+                        --bcs-control-height: 34px;
                         --bcs-surface: rgba(255, 255, 255, 0.92);
                         --bcs-surface-border: rgba(127, 127, 127, 0.25);
                         --bcs-text: #111;
@@ -92,6 +102,9 @@
                         border-color: var(--bcs-surface-border) !important;
                         color: var(--bcs-text) !important;
                         box-shadow: var(--bcs-shadow) !important;
+                        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif !important;
+                        font-size: 13px !important;
+                        line-height: 1 !important;
                     }
 
                     .chat-suggestions-container.bcs-theme-dark {
@@ -118,8 +131,8 @@
 
                     .chat-suggestion-button,
                     .chat-suggestions-personality-select {
-                        height: 36px;
-                        line-height: 36px;
+                        height: var(--bcs-control-height);
+                        line-height: var(--bcs-control-height);
                         border-radius: 999px;
                         border: 1px solid var(--bcs-chip-border);
                         background: var(--bcs-chip-bg);
@@ -151,6 +164,11 @@
                         transform: none;
                     }
 
+                    .chat-suggestion-button--active {
+                        background: rgba(255, 68, 88, 0.14);
+                        border-color: rgba(255, 68, 88, 0.35);
+                    }
+
                     .chat-suggestion-button--ai {
                         border-color: rgba(127, 127, 127, 0.35);
                         background: linear-gradient(135deg, rgba(255, 68, 88, 0.15), rgba(125, 54, 255, 0.12));
@@ -171,8 +189,8 @@
 
                     .chat-suggestions-personality-select {
                         padding: 0 28px 0 12px;
-                        width: 150px;
-                        max-width: 170px;
+                        width: 132px;
+                        max-width: 148px;
                         appearance: none;
                         -webkit-appearance: none;
                         background-image:
@@ -183,6 +201,29 @@
                             calc(100% - 9px) 16px;
                         background-size: 5px 5px, 5px 5px;
                         background-repeat: no-repeat;
+                    }
+
+                    .chat-suggestion-button--drag {
+                        border-color: rgba(127, 127, 127, 0.45);
+                    }
+
+                    .chat-suggestion-button--drag-handle {
+                        width: var(--bcs-control-height);
+                        min-width: var(--bcs-control-height);
+                        padding: 0;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        letter-spacing: -1px;
+                    }
+
+                    .chat-suggestions-container.bcs-drag-enabled {
+                        cursor: grab;
+                        user-select: none;
+                    }
+
+                    .chat-suggestions-container.bcs-dragging {
+                        cursor: grabbing;
                     }
 
                     .chat-suggestions-container::-webkit-scrollbar {
@@ -374,6 +415,8 @@
             }
             container.style.display = 'flex';
             this.applyTheme(container);
+            this.loadManualPosition();
+            this.applyManualPositionIfAny();
             this.ensureGoodPlacement();
             console.info('[Chat Suggestions] UI montada', { inserted, inputSelector: this.inputSelector });
             return inserted;
@@ -498,14 +541,63 @@
         }
 
         findInputElement() {
-            const allowGlobalFallback = !String(this.inputSelector || '').includes('#main footer');
+            const selectorText = String(this.inputSelector || '');
+            const looksLikeWhatsAppFooter = selectorText.includes('#main') && selectorText.includes('footer');
+            const allowGlobalFallback = !looksLikeWhatsAppFooter;
             const selectors = allowGlobalFallback
                 ? [this.inputSelector, ...(window.BadooChatSuggestions?.constants?.INPUT_SELECTORS || [])]
                 : [this.inputSelector];
+
+            const pickCandidate = (nodes) => {
+                if (!nodes || !nodes.length) return null;
+                if (!looksLikeWhatsAppFooter) return nodes[0];
+
+                const footerNodes = [];
+                for (const node of nodes) {
+                    if (!node) continue;
+                    if (node.closest && node.closest('#main footer')) {
+                        footerNodes.push(node);
+                    }
+                }
+                const pool = footerNodes.length ? footerNodes : Array.from(nodes);
+                let best = null;
+                let bestScore = -Infinity;
+                for (const node of pool) {
+                    try {
+                        const rect = node.getBoundingClientRect();
+                        if (!rect || !rect.width || !rect.height) continue;
+                        const score = rect.top + rect.height;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            best = node;
+                        }
+                    } catch (e) {
+                        // Ignora
+                    }
+                }
+                return best || pool[0] || null;
+            };
+
             for (const selector of selectors) {
-                const input = document.querySelector(selector);
-                if (input) return input;
+                try {
+                    const nodes = document.querySelectorAll(selector);
+                    const candidate = pickCandidate(nodes);
+                    if (candidate) return candidate;
+                } catch (e) {
+                    // Ignora seletor inválido
+                }
             }
+
+            if (looksLikeWhatsAppFooter) {
+                try {
+                    const fallback = document.querySelector('#main footer [contenteditable="true"]') ||
+                                    document.querySelector('#main footer [role="textbox"]');
+                    if (fallback) return fallback;
+                } catch (e) {
+                    // Ignora
+                }
+            }
+
             return null;
         }
 
@@ -527,6 +619,61 @@
             }
         }
 
+        getManualPositionStorageKey() {
+            const host = (location && location.host) ? location.host : 'unknown';
+            return `bcs:barPosition:${host}`;
+        }
+
+        loadManualPosition() {
+            try {
+                const raw = localStorage.getItem(this.getManualPositionStorageKey());
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed.left !== 'number' || typeof parsed.top !== 'number') return;
+                this.manualPosition = {
+                    left: parsed.left,
+                    top: parsed.top,
+                    width: typeof parsed.width === 'number' ? parsed.width : null
+                };
+            } catch (e) {
+                // Ignora
+            }
+        }
+
+        saveManualPosition() {
+            try {
+                const key = this.getManualPositionStorageKey();
+                if (!this.manualPosition) {
+                    localStorage.removeItem(key);
+                    return;
+                }
+                localStorage.setItem(key, JSON.stringify(this.manualPosition));
+            } catch (e) {
+                // Ignora
+            }
+        }
+
+        applyManualPositionIfAny() {
+            if (this.placement !== 'overlay') return false;
+            if (!this.manualPosition) return false;
+
+            const container = this.getContainer();
+            if (!container) return false;
+
+            container.style.position = 'fixed';
+            container.style.zIndex = '2147483647';
+            container.style.bottom = '';
+            container.style.right = 'auto';
+            container.style.left = `${Math.max(0, Math.round(this.manualPosition.left))}px`;
+            container.style.top = `${Math.max(0, Math.round(this.manualPosition.top))}px`;
+
+            const width = this.manualPosition.width;
+            if (typeof width === 'number' && width > 0) {
+                container.style.width = `${Math.max(240, Math.round(width))}px`;
+            }
+            return true;
+        }
+
         ensureGoodPlacement() {
             const container = this.getContainer();
             const input = this.findInputElement();
@@ -542,12 +689,13 @@
 
                 if (!inputRect.width || !inputRect.height) return;
 
-                const overlap = containerRect.bottom >= (inputRect.top - 4);
                 if (this.placement === 'overlay') {
+                    if (this.applyManualPositionIfAny()) return;
                     this.enableFixedPlacement(inputRect);
                     return;
                 }
 
+                const overlap = containerRect.bottom >= (inputRect.top - 4);
                 if (!overlap) {
                     if (this.fixedPlacementEnabled) {
                         this.disableFixedPlacement();
@@ -602,6 +750,7 @@
                     const input = this.findInputElement();
                     if (!input || !this.container) return;
                     try {
+                        if (this.manualPosition) return;
                         const rect = this.getFixedAnchorRect(input) || input.getBoundingClientRect();
                         const bottomOffset = Math.max(8, Math.round(window.innerHeight - rect.top + 8));
                         this.container.style.bottom = `${bottomOffset}px`;
@@ -618,13 +767,12 @@
             container.style.position = 'fixed';
             container.style.right = 'auto';
             container.style.zIndex = '2147483647';
-            container.style.borderTop = '1px solid #e0e0e0';
-            container.style.borderBottom = '1px solid #e0e0e0';
 
             const bottomOffset = Math.max(8, Math.round(window.innerHeight - inputRect.top + 8));
             container.style.bottom = `${bottomOffset}px`;
             container.style.left = `${Math.max(0, Math.round(inputRect.left))}px`;
             container.style.width = `${Math.max(240, Math.round(inputRect.width))}px`;
+            container.style.top = '';
 
             window.addEventListener('resize', this.boundRecalcPlacement, true);
             window.addEventListener('scroll', this.boundRecalcPlacement, true);
@@ -787,6 +935,171 @@
             return button;
         }
 
+        createDragToggleButton() {
+            if (this.placement !== 'overlay') return null;
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button chat-suggestion-button--drag';
+            button.textContent = 'Mover';
+            button.title = 'Ativar/desativar modo de mover a barra';
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.dragEnabled = !this.dragEnabled;
+
+                const container = this.getContainer();
+                container.classList.toggle('bcs-drag-enabled', this.dragEnabled);
+
+                if (this.dragEnabled) {
+                    this.attachDragHandlers(container);
+                    container.classList.add('bcs-drag-enabled');
+                } else {
+                    this.detachDragHandlers(container);
+                }
+
+                button.classList.toggle('chat-suggestion-button--active', this.dragEnabled);
+            });
+
+            return button;
+        }
+
+        createDragHandleButton() {
+            if (this.placement !== 'overlay') return null;
+            if (!this.dragEnabled) return null;
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button chat-suggestion-button--drag-handle';
+            button.setAttribute('data-bcs-drag-handle', 'true');
+            button.title = 'Arrastar barra';
+            button.textContent = '⋮⋮';
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+
+            return button;
+        }
+
+        createDragResetButton() {
+            if (this.placement !== 'overlay') return null;
+            if (!this.manualPosition) return null;
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button';
+            button.textContent = 'Reset posição';
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.manualPosition = null;
+                this.saveManualPosition();
+                this.ensureGoodPlacement();
+            });
+
+            return button;
+        }
+
+        attachDragHandlers(container) {
+            if (!container || container.dataset.bcsDragAttached === 'true') return;
+            container.dataset.bcsDragAttached = 'true';
+
+            const onPointerDown = (ev) => {
+                if (!this.dragEnabled) return;
+                if (ev.button !== 0) return;
+
+                const target = ev.target;
+                const isHandle = Boolean(target && target.closest?.('[data-bcs-drag-handle="true"]'));
+                if (!isHandle) {
+                    if (target && (target.closest?.('button') || target.closest?.('select') || target.closest?.('input') || target.closest?.('textarea'))) {
+                        return;
+                    }
+                }
+
+                try {
+                    const rect = container.getBoundingClientRect();
+                    this.dragging = true;
+                    this.dragPointerId = ev.pointerId;
+                    this.dragOffsetX = ev.clientX - rect.left;
+                    this.dragOffsetY = ev.clientY - rect.top;
+                    container.classList.add('bcs-dragging');
+                    container.setPointerCapture(ev.pointerId);
+
+                    this.manualPosition = {
+                        left: Math.round(rect.left),
+                        top: Math.round(rect.top),
+                        width: Math.round(rect.width)
+                    };
+                    this.applyManualPositionIfAny();
+                    this.saveManualPosition();
+                    ev.preventDefault();
+                } catch (e) {
+                    // Ignora
+                }
+            };
+
+            const onPointerMove = (ev) => {
+                if (!this.dragging) return;
+                if (this.dragPointerId != null && ev.pointerId !== this.dragPointerId) return;
+
+                const currentRect = container.getBoundingClientRect();
+                const width = Math.round(currentRect.width || (this.manualPosition?.width || 320));
+                const maxLeft = Math.max(0, window.innerWidth - width - 8);
+                const left = Math.min(maxLeft, Math.max(8, Math.round(ev.clientX - this.dragOffsetX)));
+                const top = Math.min(Math.max(8, Math.round(ev.clientY - this.dragOffsetY)), Math.max(8, window.innerHeight - 56));
+
+                this.manualPosition = { left, top, width };
+                this.applyManualPositionIfAny();
+                ev.preventDefault();
+            };
+
+            const onPointerUp = (ev) => {
+                if (!this.dragging) return;
+                if (this.dragPointerId != null && ev.pointerId !== this.dragPointerId) return;
+                this.dragging = false;
+                this.dragPointerId = null;
+                container.classList.remove('bcs-dragging');
+                this.saveManualPosition();
+                try {
+                    container.releasePointerCapture(ev.pointerId);
+                } catch (e) {
+                    // Ignora
+                }
+                ev.preventDefault();
+            };
+
+            container._bcsPointerDown = onPointerDown;
+            container._bcsPointerMove = onPointerMove;
+            container._bcsPointerUp = onPointerUp;
+
+            container.addEventListener('pointerdown', onPointerDown, { passive: false });
+            container.addEventListener('pointermove', onPointerMove, { passive: false });
+            container.addEventListener('pointerup', onPointerUp, { passive: false });
+            container.addEventListener('pointercancel', onPointerUp, { passive: false });
+        }
+
+        detachDragHandlers(container) {
+            if (!container || container.dataset.bcsDragAttached !== 'true') return;
+            container.dataset.bcsDragAttached = 'false';
+            try {
+                container.removeEventListener('pointerdown', container._bcsPointerDown);
+                container.removeEventListener('pointermove', container._bcsPointerMove);
+                container.removeEventListener('pointerup', container._bcsPointerUp);
+                container.removeEventListener('pointercancel', container._bcsPointerUp);
+            } catch (e) {
+                // Ignora
+            }
+            delete container._bcsPointerDown;
+            delete container._bcsPointerMove;
+            delete container._bcsPointerUp;
+            container.classList.remove('bcs-drag-enabled');
+            container.classList.remove('bcs-dragging');
+        }
+
         setAiLoading(isLoading) {
             this.aiLoading = Boolean(isLoading);
             if (this.aiButton) {
@@ -802,6 +1115,11 @@
 
             container.innerHTML = '';
 
+            const dragHandle = this.createDragHandleButton();
+            if (dragHandle) {
+                container.appendChild(dragHandle);
+            }
+
             if (typeof this.onAiGenerate === 'function') {
                 const aiButton = this.createAiButton();
                 container.appendChild(aiButton);
@@ -816,6 +1134,16 @@
             const copyPromptButton = this.createCopyPromptButton();
             if (copyPromptButton) {
                 container.appendChild(copyPromptButton);
+            }
+
+            const dragButton = this.createDragToggleButton();
+            if (dragButton) {
+                container.appendChild(dragButton);
+            }
+
+            const resetButton = this.createDragResetButton();
+            if (resetButton) {
+                container.appendChild(resetButton);
             }
 
             const libraryButton = this.createLibraryButton();
