@@ -1,16 +1,18 @@
 (() => {
     class SuggestionsUI {
-        constructor({ inputSelector, placement = 'inline', onAiGenerate } = {}) {
+        constructor({ inputSelector, placement = 'inline', onAiGenerate, onAiCopyPrompt } = {}) {
             this.inputSelector = inputSelector || '#chat-composer-input-message';
             this.placement = placement || 'inline';
             this.container = null;
             this.domObserver = null;
             this.onAiGenerate = onAiGenerate;
+            this.onAiCopyPrompt = onAiCopyPrompt;
             this.aiLoading = false;
             this.aiButton = null;
             this.aiSuggestions = [];
             this.normalSuggestions = [];
             this.suggestionsCollapsed = true;
+            this.selectedPersonality = 'default';
             this.fixedPlacementEnabled = false;
             this.boundRecalcPlacement = null;
             this.libraryButton = null;
@@ -641,7 +643,108 @@
                 e.preventDefault();
                 e.stopPropagation();
                 if (typeof this.onAiGenerate === 'function' && !this.aiLoading) {
-                    this.onAiGenerate();
+                    this.onAiGenerate({ personality: this.selectedPersonality });
+                }
+            });
+
+            return button;
+        }
+
+        createInlinePersonalitySelect() {
+            if (typeof this.onAiGenerate !== 'function') return null;
+
+            const select = document.createElement('select');
+            select.className = 'chat-suggestions-personality-select';
+            select.style.cssText = `
+                padding: 8px 10px;
+                border: 1px solid #d0d0d0;
+                border-radius: 16px;
+                background-color: #fff;
+                color: #333;
+                font-size: 13px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: all 0.2s;
+                flex-shrink: 0;
+                height: 36px;
+            `;
+
+            this.getPersonalityOptions().forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.label;
+                select.appendChild(option);
+            });
+            select.value = this.selectedPersonality || 'default';
+
+            select.addEventListener('change', () => {
+                this.selectedPersonality = select.value || 'default';
+                if (this.aiPromptOverlay && this.aiPromptOverlay.style.display === 'flex') {
+                    this.applyPersonalityToPrompts(this.selectedPersonality);
+                    if (this.aiPromptPersonalitySelect) {
+                        this.aiPromptPersonalitySelect.value = this.selectedPersonality;
+                    }
+                }
+            });
+
+            return select;
+        }
+
+        createCopyPromptButton() {
+            if (typeof this.onAiCopyPrompt !== 'function') return null;
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button chat-suggestion-button--copy-prompt';
+            button.textContent = 'Copiar prompt';
+            button.style.cssText = `
+                padding: 8px 12px;
+                border: 1px solid #d0d0d0;
+                border-radius: 16px;
+                background-color: #fff;
+                color: #333;
+                font-size: 13px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: all 0.2s;
+                flex-shrink: 0;
+            `;
+
+            button.addEventListener('mouseenter', () => {
+                button.style.backgroundColor = '#f0f0f0';
+                button.style.borderColor = '#b0b0b0';
+            });
+
+            button.addEventListener('mouseleave', () => {
+                button.style.backgroundColor = '#fff';
+                button.style.borderColor = '#d0d0d0';
+            });
+
+            button.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.aiLoading) return;
+
+                try {
+                    button.disabled = true;
+                    const { systemPrompt, userPrompt } = await this.onAiCopyPrompt({ personality: this.selectedPersonality });
+                    const systemWithPersonality = `${String(systemPrompt || '')}${this.buildPersonalityAddon(this.selectedPersonality)}`.trim();
+                    const joined = [
+                        '--- SYSTEM ---',
+                        systemWithPersonality,
+                        '',
+                        '--- USER ---',
+                        String(userPrompt || '').trim()
+                    ].join('\n');
+                    const ok = await this.copyToClipboard(joined);
+                    if (!ok) {
+                        alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
+                    }
+                } catch (err) {
+                    console.error('[Chat Suggestions] Erro ao copiar prompt', err);
+                    alert(`Não foi possível preparar/copiar o prompt.\n${err?.message || ''}`);
+                } finally {
+                    button.disabled = false;
                 }
             });
 
@@ -667,6 +770,16 @@
                 const aiButton = this.createAiButton();
                 container.appendChild(aiButton);
                 this.aiButton = aiButton;
+            }
+
+            const personalitySelect = this.createInlinePersonalitySelect();
+            if (personalitySelect) {
+                container.appendChild(personalitySelect);
+            }
+
+            const copyPromptButton = this.createCopyPromptButton();
+            if (copyPromptButton) {
+                container.appendChild(copyPromptButton);
             }
 
             const libraryButton = this.createLibraryButton();
@@ -924,10 +1037,11 @@
                 if (this.aiPromptDirty) {
                     const ok = confirm('Você editou o prompt. Trocar a personalidade vai redefinir o texto. Continuar?');
                     if (!ok) {
-                        personalitySelect.value = 'default';
+                        personalitySelect.value = this.selectedPersonality || 'default';
                         return;
                     }
                 }
+                this.selectedPersonality = value || 'default';
                 this.applyPersonalityToPrompts(value);
             });
             body.appendChild(personalitySelect);
@@ -1040,6 +1154,7 @@
             return [
                 { value: 'default', label: 'Padrão (atual)' },
                 { value: 'ousado', label: 'Ousado' },
+                { value: 'sedutor', label: 'Sedutor' },
                 { value: 'romantico', label: 'Romântico' },
                 { value: 'engracado', label: 'Engraçado' },
                 { value: 'fofo', label: 'Fofo' },
@@ -1054,6 +1169,12 @@
                     'Flert leve e confiante, com brincadeiras sutis.',
                     'Evite conteúdo sexual explícito, vulgaridade ou pressão.',
                     'Seja respeitoso(a) e mantenha consentimento implícito.'
+                ],
+                sedutor: [
+                    'Personalidade: sedutor(a).',
+                    'Flert elegante, provocação sutil e clima de química.',
+                    'Evite conteúdo sexual explícito, vulgaridade ou pressão.',
+                    'Use elogios específicos e convites leves (sem insistir).'
                 ],
                 romantico: [
                     'Personalidade: romântico(a).',
@@ -1131,9 +1252,9 @@
             this.aiPromptDirty = false;
 
             if (this.aiPromptPersonalitySelect) {
-                this.aiPromptPersonalitySelect.value = 'default';
+                this.aiPromptPersonalitySelect.value = this.selectedPersonality || 'default';
             }
-            this.applyPersonalityToPrompts('default');
+            this.applyPersonalityToPrompts(this.selectedPersonality || 'default');
 
             if (this.aiPromptOverlay) {
                 this.aiPromptOverlay.style.display = 'flex';

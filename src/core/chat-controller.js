@@ -76,7 +76,8 @@
             this.ui = new window.BadooChatSuggestions.SuggestionsUI({
                 inputSelector: this.inputSelector,
                 placement: this.uiPlacement,
-                onAiGenerate: () => this.openAIPromptModal()
+                onAiGenerate: (opts) => this.openAIPromptModal(opts),
+                onAiCopyPrompt: (opts) => this.buildAIPrompts(opts)
             });
 
             const mounted = this.ui.mount();
@@ -365,12 +366,12 @@
             }
         }
 
-        openAIPromptModal() {
+        buildAIPrompts({ personality } = {}) {
             if (this.aiLoading) return;
             if (!this.aiClient) {
                 this.info('IA não configurada; defina openRouterApiKey/geminiApiKey');
                 alert('IA não configurada. Configure a chave da API na extensão.');
-                return;
+                return { systemPrompt: '', userPrompt: '' };
             }
 
             const context = this.contextExtractor.extract(this.chatContainer, { fullHistory: true });
@@ -382,6 +383,13 @@
             const otherPersonName = this.extractOtherPersonName();
 
             const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({ messages, profile, otherPersonName });
+            return { systemPrompt, userPrompt, personality };
+        }
+
+        openAIPromptModal({ personality } = {}) {
+            const prompts = this.buildAIPrompts({ personality });
+            if (!prompts || !prompts.systemPrompt) return;
+            const { systemPrompt, userPrompt } = prompts;
 
             if (!this.ui || typeof this.ui.openAiPromptModal !== 'function') {
                 this.generateAISuggestions();
