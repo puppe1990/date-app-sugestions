@@ -1173,6 +1173,10 @@
                         alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
                     } else {
                         this.showToast('Prompt copiado!');
+                        if (this.placement === 'floating') {
+                            this.floatingOpen = false;
+                            this.updateFloatingVisibility();
+                        }
                     }
                 } catch (err) {
                     console.error('[Chat Suggestions] Erro ao copiar prompt', err);
