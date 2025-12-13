@@ -67,6 +67,16 @@
     <input id="apiKeyInput" type="password" placeholder="sk-..." autocomplete="off" />
   </div>
 
+  <div class="section">
+    <label for="uiPlacementSelect">Posição da barra:</label>
+    <select id="uiPlacementSelect">
+      <option value="auto">Automático (padrão do site)</option>
+      <option value="inline">Acima do campo (inline)</option>
+      <option value="overlay">Sobreposto ao chat (overlay)</option>
+      <option value="floating">Ícone flutuante à direita</option>
+    </select>
+  </div>
+
   <label for="profileInput">Contexto sobre você (perfil, estilo, limites):</label>
   <textarea id="profileInput" rows="4" placeholder="Ex.: Tenho 32 anos, moro em SP, gosto de treinar e café. Prefiro respostas curtas e respeitosas."></textarea>
   <button id="saveBtn">Salvar</button>

@@ -11,7 +11,7 @@
             this.aiButton = null;
             this.aiSuggestions = [];
             this.normalSuggestions = [];
-            this.suggestionsCollapsed = true;
+            this.suggestionsCollapsed = this.placement === 'floating' ? false : true;
             this.selectedPersonality = 'default';
             this.fixedPlacementEnabled = false;
             this.boundRecalcPlacement = null;
@@ -38,6 +38,10 @@
             this.aiPromptBaseSystemPrompt = '';
             this.aiPromptBaseUserPrompt = '';
             this.aiPromptDirty = false;
+            this.floatingOpen = false;
+            this.floatingLauncher = null;
+            this.boundFloatingKeydown = null;
+            this.boundFloatingDocPointerDown = null;
         }
 
         getContainer() {
@@ -185,6 +189,63 @@
 
                     .chat-suggestion-button--ai-suggestion:hover {
                         background: rgba(255, 68, 88, 0.18);
+                    }
+
+                    .chat-suggestions-container.bcs-floating-panel {
+                        position: fixed !important;
+                        z-index: 2147483647 !important;
+                        right: 72px !important;
+                        top: 50% !important;
+                        transform: translateY(-50%) !important;
+                        width: 340px !important;
+                        max-width: calc(100vw - 110px) !important;
+                        max-height: 70vh !important;
+                        overflow: auto !important;
+                        flex-wrap: wrap !important;
+                        overscroll-behavior: contain !important;
+                    }
+
+                    .bcs-floating-launcher {
+                        position: fixed;
+                        z-index: 2147483647;
+                        right: 14px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 48px;
+                        height: 48px;
+                        border-radius: 999px;
+                        border: 1px solid rgba(255, 255, 255, 0.30);
+                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.98), rgba(125, 54, 255, 0.98));
+                        box-shadow: 0 16px 46px rgba(0, 0, 0, 0.25), 0 0 0 6px rgba(255, 68, 88, 0.12);
+                        color: #fff;
+                        cursor: pointer;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        user-select: none;
+                        -webkit-user-select: none;
+                        font-size: 18px;
+                        line-height: 1;
+                    }
+
+                    .bcs-floating-launcher:hover {
+                        box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28), 0 0 0 7px rgba(125, 54, 255, 0.14);
+                    }
+
+                    .bcs-floating-launcher.bcs-theme-dark {
+                        border-color: rgba(255, 255, 255, 0.28);
+                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.92), rgba(125, 54, 255, 0.92));
+                        color: rgba(255, 255, 255, 0.96);
+                        box-shadow: 0 20px 62px rgba(0, 0, 0, 0.55), 0 0 0 6px rgba(255, 68, 88, 0.12);
+                    }
+
+                    .bcs-floating-launcher.bcs-theme-dark:hover {
+                        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62), 0 0 0 7px rgba(125, 54, 255, 0.14);
+                    }
+
+                    .bcs-floating-launcher.bcs-floating-launcher--active {
+                        border-color: rgba(255, 255, 255, 0.55);
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.30), 0 0 0 8px rgba(255, 68, 88, 0.18);
                     }
 
                     .chat-suggestions-personality-select {
@@ -413,7 +474,13 @@
             if (!this.domObserver) {
                 this.attachDomObserver();
             }
-            container.style.display = 'flex';
+            if (this.placement === 'floating') {
+                this.applyFloatingPlacement();
+                this.ensureFloatingLauncher();
+                this.updateFloatingVisibility();
+            } else {
+                container.style.display = 'flex';
+            }
             this.applyTheme(container);
             this.loadManualPosition();
             this.applyManualPositionIfAny();
@@ -423,7 +490,7 @@
         }
 
         tryInsert(container) {
-            if (this.placement === 'overlay') {
+            if (this.placement === 'overlay' || this.placement === 'floating') {
                 if (container.parentElement !== document.body) {
                     if (container.parentElement) {
                         container.parentElement.removeChild(container);
@@ -506,8 +573,30 @@
 
             this.domObserver = new MutationObserver(() => {
                 const container = this.getContainer();
+                if (!container) return;
+
+                if (this.placement === 'overlay' || this.placement === 'floating') {
+                    if (container.parentElement !== document.body) {
+                        if (container.parentElement) {
+                            container.parentElement.removeChild(container);
+                        }
+                        document.body.appendChild(container);
+                    }
+                    this.applyTheme(container);
+
+                    if (this.placement === 'floating') {
+                        this.applyFloatingPlacement();
+                        this.ensureFloatingLauncher();
+                        this.updateFloatingVisibility();
+                        return;
+                    }
+
+                    this.ensureGoodPlacement();
+                    return;
+                }
+
                 const inputElement = document.querySelector(this.inputSelector);
-                if (!inputElement || !container) return;
+                if (!inputElement) return;
 
                 const currentParent = container.parentElement;
                 const inputWrapper = inputElement.closest('.csms-chat-controls-base-input-message') ||
@@ -538,6 +627,104 @@
                 childList: true,
                 subtree: true
             });
+        }
+
+        ensureFloatingLauncher() {
+            if (this.placement !== 'floating') return null;
+
+            const existing = document.getElementById('bcs-floating-launcher');
+            if (existing) {
+                this.floatingLauncher = existing;
+                return existing;
+            }
+
+            const button = document.createElement('button');
+            button.id = 'bcs-floating-launcher';
+            button.type = 'button';
+            button.className = 'bcs-floating-launcher';
+            button.setAttribute('aria-label', 'Abrir sugestões');
+            button.title = 'Sugestões';
+            button.textContent = '💬';
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.floatingOpen = !this.floatingOpen;
+                this.updateFloatingVisibility();
+            });
+
+            document.body.appendChild(button);
+            this.floatingLauncher = button;
+
+            this.attachFloatingGlobalHandlers();
+            return button;
+        }
+
+        attachFloatingGlobalHandlers() {
+            if (this.boundFloatingKeydown) return;
+
+            this.boundFloatingKeydown = (e) => {
+                if (this.placement !== 'floating') return;
+                if (!this.floatingOpen) return;
+                if (e.key === 'Escape') {
+                    this.floatingOpen = false;
+                    this.updateFloatingVisibility();
+                }
+            };
+
+            this.boundFloatingDocPointerDown = (e) => {
+                if (this.placement !== 'floating') return;
+                if (!this.floatingOpen) return;
+
+                const container = this.getContainer();
+                const launcher = this.floatingLauncher;
+                const target = e.target;
+
+                if (launcher && (launcher === target || launcher.contains(target))) return;
+                if (container && (container === target || container.contains(target))) return;
+
+                this.floatingOpen = false;
+                this.updateFloatingVisibility();
+            };
+
+            document.addEventListener('keydown', this.boundFloatingKeydown, true);
+            document.addEventListener('pointerdown', this.boundFloatingDocPointerDown, true);
+        }
+
+        updateFloatingVisibility() {
+            if (this.placement !== 'floating') return;
+
+            const container = this.getContainer();
+            if (container) {
+                container.style.display = this.floatingOpen ? 'flex' : 'none';
+            }
+
+            if (this.floatingLauncher) {
+                this.floatingLauncher.classList.toggle('bcs-floating-launcher--active', this.floatingOpen);
+                this.floatingLauncher.setAttribute('aria-label', this.floatingOpen ? 'Fechar sugestões' : 'Abrir sugestões');
+                this.floatingLauncher.title = this.floatingOpen ? 'Fechar sugestões' : 'Sugestões';
+            }
+        }
+
+        applyFloatingPlacement() {
+            if (this.placement !== 'floating') return;
+
+            const container = this.getContainer();
+            if (!container) return;
+
+            container.classList.add('bcs-floating-panel');
+            container.style.position = 'fixed';
+            container.style.zIndex = '2147483647';
+            container.style.left = '';
+            container.style.bottom = '';
+            container.style.right = '72px';
+            container.style.top = '50%';
+            container.style.transform = 'translateY(-50%)';
+            container.style.width = '340px';
+            container.style.maxWidth = 'calc(100vw - 110px)';
+            container.style.maxHeight = '70vh';
+            container.style.overflow = 'auto';
+            container.style.flexWrap = 'wrap';
         }
 
         findInputElement() {
@@ -614,6 +801,11 @@
                 const isDark = luminance < 0.45;
                 container.classList.toggle('bcs-theme-dark', isDark);
                 container.classList.toggle('bcs-theme-light', !isDark);
+
+                if (this.placement === 'floating' && this.floatingLauncher && this.floatingLauncher.classList) {
+                    this.floatingLauncher.classList.toggle('bcs-theme-dark', isDark);
+                    this.floatingLauncher.classList.toggle('bcs-theme-light', !isDark);
+                }
             } catch (e) {
                 // Ignora
             }
@@ -675,6 +867,11 @@
         }
 
         ensureGoodPlacement() {
+            if (this.placement === 'floating') {
+                this.applyFloatingPlacement();
+                return;
+            }
+
             const container = this.getContainer();
             const input = this.findInputElement();
             if (!container || !input) return;
@@ -1154,7 +1351,7 @@
             container.appendChild(toggleButton);
 
             if (this.suggestionsCollapsed) {
-                if (container.style.display === 'none') {
+                if (container.style.display === 'none' && !(this.placement === 'floating' && !this.floatingOpen)) {
                     container.style.display = 'flex';
                 }
                 if (this.aiLoading) {
@@ -1175,7 +1372,7 @@
                 this.normalSuggestions.forEach(s => container.appendChild(this.createSuggestionButton(s)));
             }
 
-            if (container.style.display === 'none') {
+            if (container.style.display === 'none' && !(this.placement === 'floating' && !this.floatingOpen)) {
                 container.style.display = 'flex';
             }
 
@@ -1811,6 +2008,21 @@
             if (this.boundAiPromptKeydown) {
                 document.removeEventListener('keydown', this.boundAiPromptKeydown, true);
             }
+
+            if (this.boundFloatingKeydown) {
+                document.removeEventListener('keydown', this.boundFloatingKeydown, true);
+                this.boundFloatingKeydown = null;
+            }
+
+            if (this.boundFloatingDocPointerDown) {
+                document.removeEventListener('pointerdown', this.boundFloatingDocPointerDown, true);
+                this.boundFloatingDocPointerDown = null;
+            }
+
+            if (this.floatingLauncher && this.floatingLauncher.parentElement) {
+                this.floatingLauncher.parentElement.removeChild(this.floatingLauncher);
+            }
+            this.floatingLauncher = null;
 
             if (this.libraryOverlay && this.libraryOverlay.parentElement) {
                 this.libraryOverlay.parentElement.removeChild(this.libraryOverlay);

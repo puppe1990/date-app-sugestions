@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const openrouterSection = document.getElementById('openrouterSection');
   const geminiModelSelect = document.getElementById('geminiModelSelect');
   const geminiKeyInput = document.getElementById('geminiKeyInput');
+  const uiPlacementSelect = document.getElementById('uiPlacementSelect');
 
   OPENROUTER_MODELS.forEach((model, index) => {
     const option = document.createElement('option');
@@ -64,13 +65,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     geminiModelSelect.appendChild(option);
   });
 
-  chrome.storage.local.get(['openRouterModel', 'openRouterApiKey', 'openRouterProfile', 'llmProvider', 'geminiApiKey', 'geminiModel'], (result) => {
+  chrome.storage.local.get(['openRouterModel', 'openRouterApiKey', 'openRouterProfile', 'llmProvider', 'geminiApiKey', 'geminiModel', 'uiPlacementOverride'], (result) => {
     const storedModel = result.openRouterModel;
     const storedKey = result.openRouterApiKey;
     const storedProfile = result.openRouterProfile;
     const storedProvider = result.llmProvider || DEFAULT_PROVIDER;
     const storedGeminiKey = result.geminiApiKey;
     const storedGeminiModel = result.geminiModel;
+    const storedUiPlacementOverride = result.uiPlacementOverride || 'auto';
 
     providerSelect.value = storedProvider;
 
@@ -94,6 +96,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       profileInput.value = storedProfile;
     }
 
+    if (uiPlacementSelect) {
+      uiPlacementSelect.value = storedUiPlacementOverride;
+    }
+
     toggleSections(storedProvider);
   });
 
@@ -104,13 +110,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const geminiApiKey = geminiKeyInput.value.trim();
     const geminiModel = geminiModelSelect.value || DEFAULT_GEMINI_MODEL;
     const profile = profileInput.value.trim();
+    const uiPlacementOverride = uiPlacementSelect ? (uiPlacementSelect.value || 'auto') : 'auto';
     chrome.storage.local.set({
       llmProvider: provider,
       openRouterModel: chosen,
       openRouterApiKey: apiKey,
       openRouterProfile: profile,
       geminiApiKey,
-      geminiModel
+      geminiModel,
+      uiPlacementOverride
     }, () => {
       saveBtn.textContent = 'Salvo!';
       setTimeout(() => (saveBtn.textContent = 'Salvar'), 1200);

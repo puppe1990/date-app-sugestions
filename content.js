@@ -135,7 +135,8 @@
                 'openRouterApiKey',
                 'openRouterProfile',
                 'geminiApiKey',
-                'geminiModel'
+                'geminiModel',
+                'uiPlacementOverride'
             ], (result) => {
                 resolve({
                     llmProvider: result.llmProvider || defaultProvider,
@@ -143,7 +144,8 @@
                     openRouterApiKey: result.openRouterApiKey,
                     openRouterProfile: result.openRouterProfile,
                     geminiApiKey: result.geminiApiKey,
-                    geminiModel: result.geminiModel || defaultGeminiModel
+                    geminiModel: result.geminiModel || defaultGeminiModel,
+                    uiPlacementOverride: result.uiPlacementOverride || 'auto'
                 });
             });
         });
@@ -201,6 +203,11 @@
             profile: config.openRouterProfile
         };
 
+        let effectiveUiPlacement = config.uiPlacement;
+        if (config.uiPlacementOverride && config.uiPlacementOverride !== 'auto') {
+            effectiveUiPlacement = config.uiPlacementOverride;
+        }
+
         console.info('[Chat Suggestions] Iniciando content script', {
             platform,
             chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
@@ -211,7 +218,7 @@
 	            chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
 	            inputSelector: config.inputSelector || '#chat-composer-input-message',
 	            messageSelector: config.messageReaderConfig?.messageSelector,
-	            uiPlacement: config.uiPlacement,
+	            uiPlacement: effectiveUiPlacement,
 	            profileContainerSelector: config.profileContainerSelector,
 	            otherPersonNameSelector: config.otherPersonNameSelector,
 	            platform,
