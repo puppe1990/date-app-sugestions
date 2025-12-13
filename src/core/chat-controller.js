@@ -6,6 +6,7 @@
             messageSelector = null,
             uiPlacement = 'inline',
             profileContainerSelector = null,
+            otherPersonNameSelector = null,
             messageReader = null,
             aiClient = null,
             aiClientConfig = {},
@@ -16,6 +17,7 @@
             this.debug = debug;
             this.uiPlacement = uiPlacement;
             this.profileContainerSelector = profileContainerSelector;
+            this.otherPersonNameSelector = otherPersonNameSelector;
             this.messageReader = messageReader ||
                 window.BadooChatSuggestions.createDefaultMessageReader?.() ||
                 window.BadooChatSuggestions.createBadooMessageReader();
@@ -236,13 +238,14 @@
 
         extractOtherPersonName() {
             const selectors = [
+                this.otherPersonNameSelector,
                 '.navigation-profile .csms-profile-info__name-inner',
                 '.navigation-profile .csms-a11y-visually-hidden',
                 '[data-qa="profile-info__name"] .csms-profile-info__name-inner',
                 '.csms-profile-info__name-inner',
                 '[data-qa="profile-info__name"]',
                 '[data-qa="mini-profile-user-info__heading"] [data-qa="profile-info__name"]'
-            ];
+            ].filter(Boolean);
 
             for (const selector of selectors) {
                 try {

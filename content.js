@@ -39,6 +39,7 @@
 	            inputSelector: 'textarea, [role="textbox"], [contenteditable="true"], [data-testid="chatInput"]',
 	            uiPlacement: 'overlay',
 	            profileContainerSelector: '#main-content > div.H\\(100\\%\\) > div > div > div > div > div.BdStart.Bdc\\(\\$c-ds-divider-primary\\).Fxg\\(0\\).Fxs\\(0\\).Fxb\\(1\\/3\\).Miw\\(325px\\).Maw\\(640px\\).D\\(n\\)--m > div > div > div',
+	            otherPersonNameSelector: '#main-content > div.H\\(100\\%\\) > div > div > div > div > div.BdStart.Bdc\\(\\$c-ds-divider-primary\\).Fxg\\(0\\).Fxs\\(0\\).Fxb\\(1\\/3\\).Miw\\(325px\\).Maw\\(640px\\).D\\(n\\)--m > div > div > div > div.D\\(f\\).Ai\\(c\\).M\\(16px\\) > div > div.Ov\\(h\\).Ws\\(nw\\).Ell > h1 > span.Pend\\(8px\\)',
 	            messageReaderConfig: {
 	                messageSelector: '[role="article"]',
 	                textSelector: 'span.text',
@@ -171,6 +172,7 @@
 	            messageSelector: config.messageReaderConfig?.messageSelector,
 	            uiPlacement: config.uiPlacement,
 	            profileContainerSelector: config.profileContainerSelector,
+	            otherPersonNameSelector: config.otherPersonNameSelector,
 	            messageReader,
 	            aiClientConfig,
 	            debug: window.badooChatSuggestionsDebug
