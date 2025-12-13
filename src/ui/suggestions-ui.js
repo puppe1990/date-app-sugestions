@@ -17,6 +17,14 @@
             this.libraryDialog = null;
             this.librarySearchInput = null;
             this.boundLibraryKeydown = null;
+            this.aiPromptOverlay = null;
+            this.aiPromptDialog = null;
+            this.aiPromptSystemTextarea = null;
+            this.aiPromptUserTextarea = null;
+            this.aiPromptSendButton = null;
+            this.aiPromptCancelButton = null;
+            this.boundAiPromptKeydown = null;
+            this.aiPromptOnSend = null;
         }
 
         getContainer() {
@@ -170,6 +178,51 @@
 
                     .bcs-modal__item:hover {
                         background: rgba(255, 255, 255, 0.10);
+                    }
+
+                    .bcs-modal__textarea {
+                        width: 100%;
+                        box-sizing: border-box;
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                        background: rgba(255, 255, 255, 0.06);
+                        color: #fff;
+                        border-radius: 10px;
+                        padding: 10px 12px;
+                        outline: none;
+                        font-size: 13px;
+                        line-height: 1.25;
+                        min-height: 110px;
+                        resize: vertical;
+                    }
+
+                    .bcs-modal__row {
+                        display: flex;
+                        gap: 10px;
+                        flex-wrap: wrap;
+                        align-items: center;
+                        justify-content: flex-end;
+                        margin-top: 12px;
+                    }
+
+                    .bcs-modal__btn {
+                        background: rgba(255, 255, 255, 0.06);
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                        color: #fff;
+                        border-radius: 10px;
+                        padding: 10px 12px;
+                        cursor: pointer;
+                        font-size: 13px;
+                    }
+
+                    .bcs-modal__btn--primary {
+                        background: #ff4458;
+                        border-color: #ff4458;
+                        color: #fff;
+                    }
+
+                    .bcs-modal__btn:disabled {
+                        opacity: 0.6;
+                        cursor: not-allowed;
                     }
                 `;
                 document.head.appendChild(style);
@@ -751,6 +804,150 @@
             document.removeEventListener('keydown', this.boundLibraryKeydown, true);
         }
 
+        ensureAiPromptModal() {
+            if (this.aiPromptOverlay && this.aiPromptDialog) return;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'bcs-modal-overlay';
+            overlay.style.display = 'none';
+
+            const dialog = document.createElement('div');
+            dialog.className = 'bcs-modal';
+            dialog.setAttribute('role', 'dialog');
+            dialog.setAttribute('aria-modal', 'true');
+
+            const header = document.createElement('div');
+            header.className = 'bcs-modal__header';
+
+            const title = document.createElement('h2');
+            title.className = 'bcs-modal__title';
+            title.textContent = 'Prompt da IA (editável)';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'bcs-modal__close';
+            closeBtn.textContent = 'Fechar';
+            closeBtn.addEventListener('click', () => this.closeAiPromptModal());
+
+            header.appendChild(title);
+            header.appendChild(closeBtn);
+
+            const body = document.createElement('div');
+            body.className = 'bcs-modal__body';
+
+            const systemLabel = this.createLabel('System');
+            systemLabel.style.color = 'rgba(255, 255, 255, 0.72)';
+            systemLabel.style.marginRight = '0';
+            body.appendChild(systemLabel);
+
+            const systemTextarea = document.createElement('textarea');
+            systemTextarea.className = 'bcs-modal__textarea';
+            systemTextarea.placeholder = 'System prompt...';
+            body.appendChild(systemTextarea);
+
+            const userLabel = this.createLabel('User');
+            userLabel.style.color = 'rgba(255, 255, 255, 0.72)';
+            userLabel.style.marginRight = '0';
+            userLabel.style.marginTop = '12px';
+            body.appendChild(userLabel);
+
+            const userTextarea = document.createElement('textarea');
+            userTextarea.className = 'bcs-modal__textarea';
+            userTextarea.placeholder = 'User prompt...';
+            userTextarea.style.minHeight = '150px';
+            body.appendChild(userTextarea);
+
+            const row = document.createElement('div');
+            row.className = 'bcs-modal__row';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'bcs-modal__btn';
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.addEventListener('click', () => this.closeAiPromptModal());
+
+            const sendBtn = document.createElement('button');
+            sendBtn.type = 'button';
+            sendBtn.className = 'bcs-modal__btn bcs-modal__btn--primary';
+            sendBtn.textContent = 'Enviar para IA';
+            sendBtn.addEventListener('click', async () => {
+                if (typeof this.aiPromptOnSend !== 'function') return;
+                const systemPrompt = (systemTextarea.value || '').trim();
+                const userPrompt = (userTextarea.value || '').trim();
+                if (!systemPrompt || !userPrompt) return;
+                await this.aiPromptOnSend({ systemPrompt, userPrompt });
+            });
+
+            row.appendChild(cancelBtn);
+            row.appendChild(sendBtn);
+            body.appendChild(row);
+
+            dialog.appendChild(header);
+            dialog.appendChild(body);
+            overlay.appendChild(dialog);
+
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    this.closeAiPromptModal();
+                }
+            });
+
+            this.boundAiPromptKeydown = (e) => {
+                if (e.key === 'Escape') {
+                    this.closeAiPromptModal();
+                }
+            };
+
+            document.body.appendChild(overlay);
+
+            this.aiPromptOverlay = overlay;
+            this.aiPromptDialog = dialog;
+            this.aiPromptSystemTextarea = systemTextarea;
+            this.aiPromptUserTextarea = userTextarea;
+            this.aiPromptSendButton = sendBtn;
+            this.aiPromptCancelButton = cancelBtn;
+        }
+
+        openAiPromptModal({ systemPrompt, userPrompt, onSend }) {
+            this.ensureAiPromptModal();
+            this.aiPromptOnSend = onSend;
+
+            if (this.aiPromptSystemTextarea) this.aiPromptSystemTextarea.value = systemPrompt || '';
+            if (this.aiPromptUserTextarea) this.aiPromptUserTextarea.value = userPrompt || '';
+
+            if (this.aiPromptOverlay) {
+                this.aiPromptOverlay.style.display = 'flex';
+            }
+            document.addEventListener('keydown', this.boundAiPromptKeydown, true);
+
+            setTimeout(() => {
+                if (this.aiPromptUserTextarea) {
+                    this.aiPromptUserTextarea.focus();
+                    this.aiPromptUserTextarea.selectionStart = this.aiPromptUserTextarea.value.length;
+                    this.aiPromptUserTextarea.selectionEnd = this.aiPromptUserTextarea.value.length;
+                }
+            }, 0);
+        }
+
+        closeAiPromptModal() {
+            if (this.aiPromptOverlay) {
+                this.aiPromptOverlay.style.display = 'none';
+            }
+            document.removeEventListener('keydown', this.boundAiPromptKeydown, true);
+            this.aiPromptOnSend = null;
+        }
+
+        setAiPromptSending(isSending) {
+            const sending = Boolean(isSending);
+            if (this.aiPromptSendButton) {
+                this.aiPromptSendButton.disabled = sending;
+                this.aiPromptSendButton.textContent = sending ? 'Enviando...' : 'Enviar para IA';
+            }
+            if (this.aiPromptCancelButton) {
+                this.aiPromptCancelButton.disabled = sending;
+            }
+        }
+
         renderLibraryModalList() {
             if (!this.libraryDialog) return;
             const body = this.libraryDialog.querySelector('.bcs-modal__body');
@@ -950,8 +1147,16 @@
                 document.removeEventListener('keydown', this.boundLibraryKeydown, true);
             }
 
+            if (this.boundAiPromptKeydown) {
+                document.removeEventListener('keydown', this.boundAiPromptKeydown, true);
+            }
+
             if (this.libraryOverlay && this.libraryOverlay.parentElement) {
                 this.libraryOverlay.parentElement.removeChild(this.libraryOverlay);
+            }
+
+            if (this.aiPromptOverlay && this.aiPromptOverlay.parentElement) {
+                this.aiPromptOverlay.parentElement.removeChild(this.aiPromptOverlay);
             }
 
             if (this.container && this.container.parentElement) {
@@ -960,6 +1165,7 @@
 
             this.container = null;
             this.libraryOverlay = null;
+            this.aiPromptOverlay = null;
         }
     }
 

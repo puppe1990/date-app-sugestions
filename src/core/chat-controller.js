@@ -71,7 +71,7 @@
             this.ui = new window.BadooChatSuggestions.SuggestionsUI({
                 inputSelector: this.inputSelector,
                 placement: this.uiPlacement,
-                onAiGenerate: () => this.generateAISuggestions()
+                onAiGenerate: () => this.openAIPromptModal()
             });
 
             const mounted = this.ui.mount();
@@ -267,6 +267,57 @@
                 this.aiLoading = false;
                 this.ui.setAiLoading(false);
             }
+        }
+
+        openAIPromptModal() {
+            if (this.aiLoading) return;
+            if (!this.aiClient) {
+                this.info('IA não configurada; defina openRouterApiKey/geminiApiKey');
+                alert('IA não configurada. Configure a chave da API na extensão.');
+                return;
+            }
+
+            const context = this.contextExtractor.extract(this.chatContainer, { fullHistory: true });
+            const messages = context?.allMessages || context?.lastMessages || [];
+            const configuredProfile = (this.aiClientConfig && this.aiClientConfig.profile) ||
+                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
+            const pageProfile = this.extractProfileText();
+            const profile = [configuredProfile, pageProfile].filter(Boolean).join('\n\n');
+
+            const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({ messages, profile });
+
+            if (!this.ui || typeof this.ui.openAiPromptModal !== 'function') {
+                this.generateAISuggestions();
+                return;
+            }
+
+            this.ui.openAiPromptModal({
+                systemPrompt,
+                userPrompt,
+                onSend: async ({ systemPrompt: editedSystem, userPrompt: editedUser }) => {
+                    if (this.aiLoading) return;
+                    try {
+                        this.aiLoading = true;
+                        this.ui.setAiLoading(true);
+                        this.ui.setAiPromptSending(true);
+                        const aiSuggestions = await this.aiClient.generateSuggestionsWithPrompts({
+                            systemPrompt: editedSystem,
+                            userPrompt: editedUser
+                        });
+                        const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
+                        this.ui.render(safe, { isAI: true });
+                        this.info('Sugestões de IA geradas', { total: safe.length });
+                        this.ui.closeAiPromptModal();
+                    } catch (error) {
+                        console.error('[Chat Suggestions] Erro ao gerar via IA', error);
+                        alert(`Não foi possível gerar sugestões via IA.\n${error.message || ''}`);
+                    } finally {
+                        this.aiLoading = false;
+                        this.ui.setAiLoading(false);
+                        this.ui.setAiPromptSending(false);
+                    }
+                }
+            });
         }
 
         cleanup() {

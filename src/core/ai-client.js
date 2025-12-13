@@ -14,25 +14,41 @@
             this.profile = profile;
         }
 
-        async generateSuggestions({ messages, profile }) {
-            if (!this.apiKey) {
-                throw new Error('API key não configurada');
-            }
-
-            const userPrompt = this.buildUserPrompt(messages, profile);
+        buildSystemPrompt(profile) {
             this.profile = this.profile || profile;
             const profileLine = this.profile ? `\nContexto sobre o usuário:\n${this.profile}` : '';
-            const systemPrompt = [
+            return [
                 'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil.',
                 'Responda em frases curtas (máx 80 caracteres), em primeira pessoa, tom leve.',
                 'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
                 'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.',
                 profileLine
             ].filter(Boolean).join('\n');
+        }
+
+        buildPrompts({ messages, profile }) {
+            const userPrompt = this.buildUserPrompt(messages, profile);
+            const systemPrompt = this.buildSystemPrompt(profile);
+            return { systemPrompt, userPrompt };
+        }
+
+        async generateSuggestions({ messages, profile }) {
+            if (!this.apiKey) {
+                throw new Error('API key não configurada');
+            }
+
+            const { systemPrompt, userPrompt } = this.buildPrompts({ messages, profile });
+            return this.generateSuggestionsWithPrompts({ systemPrompt, userPrompt });
+        }
+
+        async generateSuggestionsWithPrompts({ systemPrompt, userPrompt }) {
+            if (!this.apiKey) {
+                throw new Error('API key não configurada');
+            }
 
             if (this.provider === 'gemini') {
                 if (typeof window !== 'undefined' && window.badooChatSuggestionsDebug) {
-                    console.info('[Badoo Chat Suggestions][AI] Prompt enviado para IA (Gemini):', { model: this.model, prompt: `${systemPrompt}\n\n${userPrompt}` });
+                    console.info('[Chat Suggestions][AI] Prompt enviado para IA (Gemini):', { model: this.model, prompt: `${systemPrompt}\n\n${userPrompt}` });
                 }
                 return this.callGemini({ prompt: `${systemPrompt}\n\n${userPrompt}` });
             }
@@ -57,7 +73,7 @@
             };
 
             if (typeof window !== 'undefined' && window.badooChatSuggestionsDebug) {
-                console.info('[Badoo Chat Suggestions][AI] Prompt enviado para IA (OpenRouter):', { model: this.model, payload });
+                console.info('[Chat Suggestions][AI] Prompt enviado para IA (OpenRouter):', { model: this.model, payload });
             }
 
             const response = await fetch(this.endpoint, {
