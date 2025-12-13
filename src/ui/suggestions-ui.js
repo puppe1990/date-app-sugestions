@@ -866,6 +866,33 @@
             cancelBtn.textContent = 'Cancelar';
             cancelBtn.addEventListener('click', () => this.closeAiPromptModal());
 
+            const copyBtn = document.createElement('button');
+            copyBtn.type = 'button';
+            copyBtn.className = 'bcs-modal__btn';
+            copyBtn.textContent = 'Copiar prompt';
+            copyBtn.addEventListener('click', async () => {
+                const systemPrompt = (systemTextarea.value || '').trim();
+                const userPrompt = (userTextarea.value || '').trim();
+                const joined = [
+                    '--- SYSTEM ---',
+                    systemPrompt,
+                    '',
+                    '--- USER ---',
+                    userPrompt
+                ].join('\n');
+
+                const ok = await this.copyToClipboard(joined);
+                if (ok) {
+                    const prev = copyBtn.textContent;
+                    copyBtn.textContent = 'Copiado!';
+                    setTimeout(() => {
+                        copyBtn.textContent = prev;
+                    }, 1200);
+                } else {
+                    alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
+                }
+            });
+
             const sendBtn = document.createElement('button');
             sendBtn.type = 'button';
             sendBtn.className = 'bcs-modal__btn bcs-modal__btn--primary';
@@ -879,6 +906,7 @@
             });
 
             row.appendChild(cancelBtn);
+            row.appendChild(copyBtn);
             row.appendChild(sendBtn);
             body.appendChild(row);
 
@@ -906,6 +934,34 @@
             this.aiPromptUserTextarea = userTextarea;
             this.aiPromptSendButton = sendBtn;
             this.aiPromptCancelButton = cancelBtn;
+        }
+
+        async copyToClipboard(text) {
+            try {
+                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+            } catch (e) {
+                // Ignora e tenta fallback
+            }
+
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.setAttribute('readonly', 'true');
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                textarea.style.top = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                return Boolean(ok);
+            } catch (e) {
+                return false;
+            }
         }
 
         openAiPromptModal({ systemPrompt, userPrompt, onSend }) {
