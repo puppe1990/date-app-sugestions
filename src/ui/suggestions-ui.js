@@ -986,11 +986,7 @@
 
                 const ok = await this.copyToClipboard(joined);
                 if (ok) {
-                    const prev = copyBtn.textContent;
-                    copyBtn.textContent = 'Copiado!';
-                    setTimeout(() => {
-                        copyBtn.textContent = prev;
-                    }, 1200);
+                    this.closeAiPromptModal();
                 } else {
                     alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
                 }
