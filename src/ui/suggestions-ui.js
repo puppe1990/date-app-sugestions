@@ -11,6 +11,11 @@
             this.normalSuggestions = [];
             this.fixedPlacementEnabled = false;
             this.boundRecalcPlacement = null;
+            this.libraryButton = null;
+            this.libraryOverlay = null;
+            this.libraryDialog = null;
+            this.librarySearchInput = null;
+            this.boundLibraryKeydown = null;
         }
 
         getContainer() {
@@ -50,6 +55,111 @@
                     .chat-suggestions-container::-webkit-scrollbar-thumb {
                         background: #ccc;
                         border-radius: 2px;
+                    }
+
+                    .bcs-modal-overlay {
+                        position: fixed;
+                        inset: 0;
+                        background: rgba(0, 0, 0, 0.55);
+                        z-index: 2147483647;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 16px;
+                        box-sizing: border-box;
+                    }
+
+                    .bcs-modal {
+                        width: min(720px, 100%);
+                        max-height: 80vh;
+                        overflow: hidden;
+                        background: #111;
+                        color: #fff;
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        border-radius: 12px;
+                        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+                        display: flex;
+                        flex-direction: column;
+                    }
+
+                    .bcs-modal__header {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 14px 16px;
+                        border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+                        gap: 12px;
+                    }
+
+                    .bcs-modal__title {
+                        font-size: 14px;
+                        font-weight: 700;
+                        color: #fff;
+                        margin: 0;
+                    }
+
+                    .bcs-modal__close {
+                        background: transparent;
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                        color: #fff;
+                        border-radius: 10px;
+                        padding: 8px 10px;
+                        cursor: pointer;
+                    }
+
+                    .bcs-modal__body {
+                        padding: 12px 16px 16px;
+                        overflow: auto;
+                    }
+
+                    .bcs-modal__search {
+                        width: 100%;
+                        box-sizing: border-box;
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                        background: rgba(255, 255, 255, 0.06);
+                        color: #fff;
+                        border-radius: 10px;
+                        padding: 10px 12px;
+                        outline: none;
+                        margin-bottom: 12px;
+                        font-size: 14px;
+                    }
+
+                    .bcs-modal__section-title {
+                        font-size: 12px;
+                        font-weight: 700;
+                        color: rgba(255, 255, 255, 0.72);
+                        margin: 14px 0 8px;
+                        letter-spacing: 0.02em;
+                        text-transform: uppercase;
+                    }
+
+                    .bcs-modal__grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, minmax(0, 1fr));
+                        gap: 10px;
+                    }
+
+                    @media (max-width: 560px) {
+                        .bcs-modal__grid {
+                            grid-template-columns: 1fr;
+                        }
+                    }
+
+                    .bcs-modal__item {
+                        background: rgba(255, 255, 255, 0.06);
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        color: #fff;
+                        border-radius: 12px;
+                        padding: 10px 12px;
+                        text-align: left;
+                        cursor: pointer;
+                        font-size: 14px;
+                        line-height: 1.25;
+                    }
+
+                    .bcs-modal__item:hover {
+                        background: rgba(255, 255, 255, 0.10);
                     }
                 `;
                 document.head.appendChild(style);
@@ -447,6 +557,10 @@
                 this.aiButton = aiButton;
             }
 
+            const libraryButton = this.createLibraryButton();
+            container.appendChild(libraryButton);
+            this.libraryButton = libraryButton;
+
             if (this.aiSuggestions.length > 0) {
                 const aiLabel = this.createLabel('Sugestões IA');
                 container.appendChild(aiLabel);
@@ -465,6 +579,188 @@
 
             if (this.aiLoading) {
                 this.setAiLoading(true);
+            }
+        }
+
+        createLibraryButton() {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button chat-suggestion-button--library';
+            button.textContent = 'Biblioteca';
+            button.style.cssText = `
+                padding: 8px 12px;
+                border: 1px solid #d0d0d0;
+                border-radius: 16px;
+                background-color: #fff;
+                color: #333;
+                font-size: 13px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition: all 0.2s;
+                flex-shrink: 0;
+            `;
+
+            button.addEventListener('mouseenter', () => {
+                button.style.backgroundColor = '#f0f0f0';
+                button.style.borderColor = '#b0b0b0';
+            });
+
+            button.addEventListener('mouseleave', () => {
+                button.style.backgroundColor = '#fff';
+                button.style.borderColor = '#d0d0d0';
+            });
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.openLibraryModal();
+            });
+
+            return button;
+        }
+
+        getLibraryData() {
+            const lib = window.BadooChatSuggestions?.constants?.SUGGESTION_LIBRARY;
+            if (Array.isArray(lib) && lib.length) return lib;
+            return [];
+        }
+
+        ensureLibraryModal() {
+            if (this.libraryOverlay && this.libraryDialog) return;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'bcs-modal-overlay';
+            overlay.style.display = 'none';
+
+            const dialog = document.createElement('div');
+            dialog.className = 'bcs-modal';
+            dialog.setAttribute('role', 'dialog');
+            dialog.setAttribute('aria-modal', 'true');
+
+            const header = document.createElement('div');
+            header.className = 'bcs-modal__header';
+
+            const title = document.createElement('h2');
+            title.className = 'bcs-modal__title';
+            title.textContent = 'Biblioteca de sugestões';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'bcs-modal__close';
+            closeBtn.textContent = 'Fechar';
+            closeBtn.addEventListener('click', () => this.closeLibraryModal());
+
+            header.appendChild(title);
+            header.appendChild(closeBtn);
+
+            const body = document.createElement('div');
+            body.className = 'bcs-modal__body';
+
+            const search = document.createElement('input');
+            search.type = 'text';
+            search.className = 'bcs-modal__search';
+            search.placeholder = 'Buscar sugestões...';
+            search.autocomplete = 'off';
+            search.addEventListener('input', () => this.renderLibraryModalList());
+
+            body.appendChild(search);
+
+            dialog.appendChild(header);
+            dialog.appendChild(body);
+            overlay.appendChild(dialog);
+
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    this.closeLibraryModal();
+                }
+            });
+
+            this.boundLibraryKeydown = (e) => {
+                if (e.key === 'Escape') {
+                    this.closeLibraryModal();
+                }
+            };
+
+            document.body.appendChild(overlay);
+
+            this.libraryOverlay = overlay;
+            this.libraryDialog = dialog;
+            this.librarySearchInput = search;
+        }
+
+        openLibraryModal() {
+            this.ensureLibraryModal();
+            if (!this.libraryOverlay) return;
+
+            this.libraryOverlay.style.display = 'flex';
+            document.addEventListener('keydown', this.boundLibraryKeydown, true);
+            this.renderLibraryModalList();
+
+            setTimeout(() => {
+                if (this.librarySearchInput) {
+                    this.librarySearchInput.value = '';
+                    this.librarySearchInput.focus();
+                }
+            }, 0);
+        }
+
+        closeLibraryModal() {
+            if (!this.libraryOverlay) return;
+            this.libraryOverlay.style.display = 'none';
+            document.removeEventListener('keydown', this.boundLibraryKeydown, true);
+        }
+
+        renderLibraryModalList() {
+            if (!this.libraryDialog) return;
+            const body = this.libraryDialog.querySelector('.bcs-modal__body');
+            if (!body) return;
+
+            const existing = body.querySelectorAll('.bcs-modal__section-title, .bcs-modal__grid');
+            existing.forEach(el => el.remove());
+
+            const query = (this.librarySearchInput?.value || '').toLowerCase().trim();
+            const library = this.getLibraryData();
+
+            const normalizedQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const matchesQuery = (text) => {
+                if (!normalizedQuery) return true;
+                const normalizedText = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                return normalizedText.includes(normalizedQuery);
+            };
+
+            let any = false;
+            library.forEach(section => {
+                const items = Array.isArray(section.items) ? section.items.filter(matchesQuery) : [];
+                if (!items.length) return;
+
+                any = true;
+                const title = document.createElement('div');
+                title.className = 'bcs-modal__section-title';
+                title.textContent = section.title || 'Sugestões';
+
+                const grid = document.createElement('div');
+                grid.className = 'bcs-modal__grid';
+                items.forEach(text => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'bcs-modal__item';
+                    btn.textContent = text;
+                    btn.addEventListener('click', () => {
+                        this.insertSuggestion(text);
+                        this.closeLibraryModal();
+                    });
+                    grid.appendChild(btn);
+                });
+
+                body.appendChild(title);
+                body.appendChild(grid);
+            });
+
+            if (!any) {
+                const emptyTitle = document.createElement('div');
+                emptyTitle.className = 'bcs-modal__section-title';
+                emptyTitle.textContent = 'Nenhum resultado';
+                body.appendChild(emptyTitle);
             }
         }
 
@@ -609,11 +905,20 @@
                 window.removeEventListener('scroll', this.boundRecalcPlacement, true);
             }
 
+            if (this.boundLibraryKeydown) {
+                document.removeEventListener('keydown', this.boundLibraryKeydown, true);
+            }
+
+            if (this.libraryOverlay && this.libraryOverlay.parentElement) {
+                this.libraryOverlay.parentElement.removeChild(this.libraryOverlay);
+            }
+
             if (this.container && this.container.parentElement) {
                 this.container.parentElement.removeChild(this.container);
             }
 
             this.container = null;
+            this.libraryOverlay = null;
         }
     }
 

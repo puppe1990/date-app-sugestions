@@ -150,6 +150,69 @@
         'input[placeholder*=\"message\" i]'
     ];
 
+    const SUGGESTION_LIBRARY = [
+        {
+            title: 'Abertura',
+            items: [
+                'Oi! Tudo bem? 🙂',
+                'Oi! Como está seu dia?',
+                'E aí! Como foi seu dia até agora?',
+                'Qual foi a melhor parte do seu dia?',
+                'Bora conversar um pouco?'
+            ]
+        },
+        {
+            title: 'Conhecer Melhor',
+            items: [
+                'O que você gosta de fazer no tempo livre?',
+                'Você é mais de praia ou de montanha?',
+                'Qual música você tem ouvido ultimamente?',
+                'Você curte mais filme ou série?',
+                'Tem algum hobby que você ama?'
+            ]
+        },
+        {
+            title: 'Elogios',
+            items: [
+                'Adorei seu sorriso 🙂',
+                'Você tem uma vibe muito boa!',
+                'Seu estilo é bem legal',
+                'Você parece ser bem interessante',
+                'Gostei muito das suas fotos'
+            ]
+        },
+        {
+            title: 'Flert',
+            items: [
+                'Você sempre foi assim charmosa(o) ou é só hoje?',
+                'Confesso que eu queria te conhecer melhor 😉',
+                'Você é perigosa(o): faz a gente sorrir fácil',
+                'Se a conversa continuar assim, vou me apegar 😅',
+                'Me diz uma coisa: você prefere rolê tranquilo ou algo mais animado?'
+            ]
+        },
+        {
+            title: 'Encontro',
+            items: [
+                'Que tal um café qualquer dia desses?',
+                'Bora marcar algo no fim de semana?',
+                'Você curte barzinho ou restaurante?',
+                'Qual dia da semana costuma ser mais tranquilo pra você?',
+                'Se a gente fosse sair, o que você escolheria fazer?'
+            ]
+        },
+        {
+            title: 'Respostas Curtas',
+            items: [
+                'Hahaha, adorei 😄',
+                'Faz sentido!',
+                'Entendi! E você?',
+                'Boa! 😄',
+                'Amei!'
+            ]
+        }
+    ];
+
     window.BadooChatSuggestions = window.BadooChatSuggestions || {};
     window.BadooChatSuggestions.constants = {
         TOPIC_KEYWORDS,
@@ -158,6 +221,7 @@
         JOB_PATTERNS,
         SPECIFIC_JOBS,
         HOBBY_KEYWORDS,
-        INPUT_SELECTORS
+        INPUT_SELECTORS,
+        SUGGESTION_LIBRARY
     };
 })();
