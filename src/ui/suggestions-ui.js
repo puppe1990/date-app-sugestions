@@ -42,6 +42,8 @@
             this.floatingLauncher = null;
             this.boundFloatingKeydown = null;
             this.boundFloatingDocPointerDown = null;
+            this.toastRoot = null;
+            this.toastTimeouts = [];
         }
 
         getContainer() {
@@ -246,6 +248,54 @@
                     .bcs-floating-launcher.bcs-floating-launcher--active {
                         border-color: rgba(255, 255, 255, 0.55);
                         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.30), 0 0 0 8px rgba(255, 68, 88, 0.18);
+                    }
+
+                    .bcs-toast-root {
+                        position: fixed;
+                        right: 14px;
+                        bottom: 14px;
+                        z-index: 2147483647;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8px;
+                        pointer-events: none;
+                        align-items: flex-end;
+                    }
+
+                    .bcs-toast {
+                        pointer-events: none;
+                        min-width: 180px;
+                        max-width: 320px;
+                        padding: 10px 12px;
+                        border-radius: 14px;
+                        border: 1px solid rgba(255, 255, 255, 0.28);
+                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.98), rgba(125, 54, 255, 0.98));
+                        box-shadow: 0 16px 46px rgba(0, 0, 0, 0.25);
+                        color: #fff;
+                        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+                        font-size: 13px;
+                        line-height: 1.25;
+                        opacity: 0;
+                        transform: translateY(8px);
+                        animation: bcsToastIn 180ms ease forwards;
+                    }
+
+                    .bcs-toast--error {
+                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.98), rgba(255, 124, 44, 0.98));
+                    }
+
+                    .bcs-toast--hide {
+                        animation: bcsToastOut 220ms ease forwards;
+                    }
+
+                    @keyframes bcsToastIn {
+                        from { opacity: 0; transform: translateY(10px); }
+                        to { opacity: 1; transform: translateY(0); }
+                    }
+
+                    @keyframes bcsToastOut {
+                        from { opacity: 1; transform: translateY(0); }
+                        to { opacity: 0; transform: translateY(10px); }
                     }
 
                     .chat-suggestions-personality-select {
@@ -1119,10 +1169,14 @@
                     ].join('\n');
                     const ok = await this.copyToClipboard(joined);
                     if (!ok) {
+                        this.showToast('Não foi possível copiar o prompt', { type: 'error' });
                         alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
+                    } else {
+                        this.showToast('Prompt copiado!');
                     }
                 } catch (err) {
                     console.error('[Chat Suggestions] Erro ao copiar prompt', err);
+                    this.showToast('Erro ao copiar o prompt', { type: 'error' });
                     alert(`Não foi possível preparar/copiar o prompt.\n${err?.message || ''}`);
                 } finally {
                     button.disabled = false;
@@ -1617,8 +1671,10 @@
 
                 const ok = await this.copyToClipboard(joined);
                 if (ok) {
+                    this.showToast('Prompt copiado!');
                     this.closeAiPromptModal();
                 } else {
+                    this.showToast('Não foi possível copiar o prompt', { type: 'error' });
                     alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
                 }
             });
@@ -1718,6 +1774,49 @@
             const lines = map[personality] || [];
             if (!lines.length) return '';
             return `\n\nRegras de estilo (personalidade):\n- ${lines.join('\n- ')}`;
+        }
+
+        ensureToastRoot() {
+            const existing = document.getElementById('bcs-toast-root');
+            if (existing) {
+                this.toastRoot = existing;
+                return existing;
+            }
+
+            const root = document.createElement('div');
+            root.id = 'bcs-toast-root';
+            root.className = 'bcs-toast-root';
+            document.body.appendChild(root);
+            this.toastRoot = root;
+            return root;
+        }
+
+        showToast(message, { type = 'success', durationMs = 2200 } = {}) {
+            try {
+                const text = String(message || '').trim();
+                if (!text) return;
+
+                const root = this.ensureToastRoot();
+                const toast = document.createElement('div');
+                toast.className = `bcs-toast${type === 'error' ? ' bcs-toast--error' : ''}`;
+                toast.textContent = text;
+
+                root.appendChild(toast);
+
+                const hideTimeout = setTimeout(() => {
+                    toast.classList.add('bcs-toast--hide');
+                }, Math.max(800, Number(durationMs) || 2200));
+
+                const removeTimeout = setTimeout(() => {
+                    if (toast && toast.parentElement) {
+                        toast.parentElement.removeChild(toast);
+                    }
+                }, Math.max(800, Number(durationMs) || 2200) + 260);
+
+                this.toastTimeouts.push(hideTimeout, removeTimeout);
+            } catch (e) {
+                // Ignora
+            }
         }
 
         applyPersonalityToPrompts(personality) {
@@ -2023,6 +2122,17 @@
                 this.floatingLauncher.parentElement.removeChild(this.floatingLauncher);
             }
             this.floatingLauncher = null;
+
+            if (this.toastTimeouts && this.toastTimeouts.length) {
+                this.toastTimeouts.forEach(id => clearTimeout(id));
+                this.toastTimeouts = [];
+            }
+
+            const toastRoot = this.toastRoot || document.getElementById('bcs-toast-root');
+            if (toastRoot && toastRoot.parentElement) {
+                toastRoot.parentElement.removeChild(toastRoot);
+            }
+            this.toastRoot = null;
 
             if (this.libraryOverlay && this.libraryOverlay.parentElement) {
                 this.libraryOverlay.parentElement.removeChild(this.libraryOverlay);
