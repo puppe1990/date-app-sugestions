@@ -13,6 +13,7 @@
             this.endpoint = endpoint;
             this.provider = provider || 'gemini';
             this.profile = profile;
+            this.otherPersonProfile = null;
             this.responseLength = responseLength || 'short';
         }
 
@@ -41,28 +42,31 @@
         buildSystemPrompt(profile, responseLength) {
             this.profile = this.profile || profile;
             const profileLine = this.profile ? `\nContexto sobre o usuário:\n${this.profile}` : '';
+            const otherPersonProfileLine = this.otherPersonProfile ? `\nContexto sobre a outra pessoa (perfil):\n${this.otherPersonProfile}` : '';
             const cfg = this.getResponseLengthConfig(responseLength);
             return [
                 'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil.',
                 `Gere sugestões em primeira pessoa, tom leve, tamanho ${cfg.label} (máx ${cfg.maxChars} caracteres por sugestão).`,
                 'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
                 'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.',
-                profileLine
+                profileLine,
+                otherPersonProfileLine
             ].filter(Boolean).join('\n');
         }
 
-        buildPrompts({ messages, profile, otherPersonName, responseLength } = {}) {
-            const userPrompt = this.buildUserPrompt(messages, profile, otherPersonName, responseLength);
+        buildPrompts({ messages, profile, otherPersonName, responseLength, otherPersonProfile } = {}) {
+            this.otherPersonProfile = otherPersonProfile || this.otherPersonProfile || null;
+            const userPrompt = this.buildUserPrompt(messages, profile, otherPersonName, responseLength, otherPersonProfile);
             const systemPrompt = this.buildSystemPrompt(profile, responseLength);
             return { systemPrompt, userPrompt };
         }
 
-        async generateSuggestions({ messages, profile, otherPersonName, responseLength } = {}) {
+        async generateSuggestions({ messages, profile, otherPersonName, responseLength, otherPersonProfile } = {}) {
             if (!this.apiKey) {
                 throw new Error('API key não configurada');
             }
 
-            const { systemPrompt, userPrompt } = this.buildPrompts({ messages, profile, otherPersonName, responseLength });
+            const { systemPrompt, userPrompt } = this.buildPrompts({ messages, profile, otherPersonName, responseLength, otherPersonProfile });
             return this.generateSuggestionsWithPrompts({ systemPrompt, userPrompt });
         }
 
@@ -177,7 +181,7 @@
             return this.extractSuggestions(text);
         }
 
-        buildUserPrompt(messages = [], profile, otherPersonName, responseLength) {
+        buildUserPrompt(messages = [], profile, otherPersonName, responseLength, otherPersonProfile) {
             const cfg = this.getResponseLengthConfig(responseLength);
             const lastMessages = messages.slice(-25);
             const mapped = lastMessages.map((msg, idx) => {
@@ -192,6 +196,7 @@
             const lastMyMessage = [...lastMessages].reverse().find(m => m.direction === 'out');
 
             const profileLine = profile ? `\nContexto sobre mim:\n${profile}` : '';
+            const otherPersonProfileLine = otherPersonProfile ? `\nPerfil da outra pessoa:\n${otherPersonProfile}` : '';
             const otherPersonLine = otherPersonName ? `\nNome da outra pessoa: ${otherPersonName}` : '';
             const focusLine = pendingMessage
                 ? `\nMensagem pendente da outra pessoa: "${pendingMessage.text}". Responda a isso diretamente, sem cumprimentar.`
@@ -204,6 +209,7 @@
                 'Não cumprimente de novo se já houve cumprimento. Não repita perguntas já feitas. Evite respostas genéricas.',
                 'Responda APENAS com JSON válido: {"suggestions":["resposta1","resposta2",...]} sem texto extra, sem markdown, sem texto antes/depois. Não inclua saudações a menos que a última mensagem peça. Assim que fechar o JSON, pare.',
                 profileLine,
+                otherPersonProfileLine,
                 otherPersonLine,
                 focusLine,
                 myLastLine,

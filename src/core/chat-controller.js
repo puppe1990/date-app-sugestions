@@ -42,6 +42,11 @@ class ChatSuggestionsController {
             this.platformObserver = null;
             this.initRetryTimeout = null;
             this.aiLoading = false;
+            this.profilePortalObserver = null;
+            this.profileClickHandler = null;
+            this.cachedOtherPersonProfileText = '';
+            this.cachedOtherPersonProfileUpdatedAt = 0;
+            this.cachedOtherPersonProfileName = '';
         }
 
         init() {
@@ -90,10 +95,227 @@ class ChatSuggestionsController {
 
             this.setupObservers();
             this.setupPlatformObservers();
+            this.setupProfileCapture();
 
             if (this.debug) {
                 console.log('[Chat Suggestions] Inicializado com sucesso!');
             }
+        }
+
+        setupProfileCapture() {
+            if (this.profilePortalObserver || this.profileClickHandler) return;
+            if (this.platform && this.platform !== 'badoo') return;
+
+            const triggerSelectors = [
+                '#page-container .mini-profile__user-info',
+                '.mini-profile__user-info',
+                '[data-qa="mini-profile-user-info"]',
+                '[data-qa="mini-profile"] .mini-profile__user-info'
+            ];
+
+            this.profileClickHandler = (event) => {
+                try {
+                    const target = event && event.target;
+                    if (!target || !target.closest) return;
+                    const trigger = triggerSelectors.map(sel => target.closest(sel)).find(Boolean);
+                    if (!trigger) return;
+                    if (this.debug) {
+                        console.info('[Chat Suggestions][Badoo] Clique detectado para abrir perfil; iniciando monitoramento do portal');
+                    }
+                    this.waitForBadooProfilePortalAndCache({ timeoutMs: 7000 });
+                } catch (e) {
+                    // Ignora
+                }
+            };
+
+            document.addEventListener('click', this.profileClickHandler, true);
+            if (this.debug) {
+                console.info('[Chat Suggestions][Badoo] Listener de clique para capturar perfil registrado');
+            }
+        }
+
+        waitForBadooProfilePortalAndCache({ timeoutMs = 7000 } = {}) {
+            const tryCapture = () => {
+                const text = this.extractBadooProfileTextFromPortal();
+                if (text) {
+                    const changed = text !== this.cachedOtherPersonProfileText;
+                    this.cachedOtherPersonProfileText = text;
+                    this.cachedOtherPersonProfileUpdatedAt = Date.now();
+                    const name = this.extractOtherPersonName();
+                    if (name) this.cachedOtherPersonProfileName = name;
+                    if (changed) {
+                        this.info('Perfil atualizado (Badoo)', { chars: text.length });
+                    }
+                    return true;
+                }
+                return false;
+            };
+
+            if (tryCapture()) return;
+
+            if (this.profilePortalObserver) {
+                if (this.debug) {
+                    console.info('[Chat Suggestions][Badoo] Observer do portal já ativo; aguardando atualização do perfil');
+                }
+                return;
+            }
+
+            const startedAt = Date.now();
+            let lastChangeAt = startedAt;
+            if (this.debug) {
+                console.info('[Chat Suggestions][Badoo] Iniciando observer do portal do perfil', { timeoutMs });
+            }
+            this.profilePortalObserver = new MutationObserver(() => {
+                const before = this.cachedOtherPersonProfileText;
+                const ok = tryCapture();
+                if (ok && this.cachedOtherPersonProfileText && this.cachedOtherPersonProfileText !== before) {
+                    lastChangeAt = Date.now();
+                }
+
+                const elapsed = Date.now() - startedAt;
+                const settledFor = Date.now() - lastChangeAt;
+                const hasBio = (this.cachedOtherPersonProfileText || '').includes('Sobre mim:');
+
+                if (elapsed > timeoutMs || (this.cachedOtherPersonProfileText && settledFor > 800 && (hasBio || elapsed > 1500))) {
+                    if (this.debug) {
+                        console.info('[Chat Suggestions][Badoo] Encerrando observer do portal do perfil', {
+                            elapsedMs: elapsed,
+                            settledForMs: settledFor,
+                            hasBio,
+                            cachedChars: this.cachedOtherPersonProfileText ? this.cachedOtherPersonProfileText.length : 0
+                        });
+                    }
+                    this.profilePortalObserver.disconnect();
+                    this.profilePortalObserver = null;
+                }
+            });
+
+            const root = document.body || document.documentElement;
+            if (!root) return;
+            this.profilePortalObserver.observe(root, { childList: true, subtree: true });
+        }
+
+        extractBadooProfileTextFromPortal() {
+            const portal = document.querySelector('[data-qa="profile-portal-content-container_wrapper"], .profile-portal-container');
+            if (this.debug) {
+                console.info('[Chat Suggestions][Badoo] Portal do perfil', { found: Boolean(portal) });
+            }
+            if (!portal) return '';
+
+            const extractBlockByTitle = (titleText) => {
+                try {
+                    const normalized = String(titleText || '').toLowerCase();
+                    const headers = Array.from(portal.querySelectorAll('.csms-view-profile-block__header-title, .csms-view-profile-block__header-title *'));
+                    const header = headers.find(el => {
+                        const txt = (el && (el.textContent || el.innerText)) ? (el.textContent || el.innerText).trim().toLowerCase() : '';
+                        return txt && txt.includes(normalized);
+                    });
+                    if (!header) return null;
+                    return header.closest('.csms-view-profile-block');
+                } catch (e) {
+                    return null;
+                }
+            };
+
+            const pickText = (selector) => {
+                try {
+                    const el = portal.querySelector(selector);
+                    const txt = (el && (el.textContent || el.innerText)) ? (el.textContent || el.innerText).trim() : '';
+                    return txt.replace(/\s+/g, ' ').trim();
+                } catch (e) {
+                    return '';
+                }
+            };
+
+            const name = pickText('[data-qa="profile-info__name"]');
+            const age = pickText('[data-qa="profile-info__age"]');
+            const aboutMe = (() => {
+                try {
+                    const section = portal.querySelector('.user-section[data-qa="about-me"]') || extractBlockByTitle('Sobre mim');
+                    if (!section) return '';
+                    const content = section.querySelector('.csms-view-profile-block__content');
+                    const txt = (content && (content.textContent || content.innerText)) ? (content.textContent || content.innerText).trim() : '';
+                    return txt.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+                } catch (e) {
+                    return '';
+                }
+            })();
+
+            const location = (() => {
+                try {
+                    const section = portal.querySelector('.user-section[data-qa="location"]') || extractBlockByTitle('Localização');
+                    if (!section) return '';
+                    const el = section.querySelector('.csms-view-profile-block__header-text');
+                    const txt = (el && (el.textContent || el.innerText)) ? (el.textContent || el.innerText).trim() : '';
+                    return txt.replace(/\s+/g, ' ').trim();
+                } catch (e) {
+                    return '';
+                }
+            })();
+
+            const infoBadges = (() => {
+                try {
+                    const section = portal.querySelector('.user-section[data-qa="about-me-badges"]') || extractBlockByTitle('Informações');
+                    if (!section) return [];
+                    const badges = Array.from(section.querySelectorAll('.profile-badges__item .csms-badge__text'));
+                    return badges.map(b => (b.textContent || b.innerText || '').trim()).filter(Boolean);
+                } catch (e) {
+                    return [];
+                }
+            })();
+
+            const interests = (() => {
+                try {
+                    const section = portal.querySelector('.user-section[data-qa="interests"]') || extractBlockByTitle('Interesses');
+                    if (!section) return [];
+                    const badges = Array.from(section.querySelectorAll('.profile-badges__item [data-qa=\"badge\"] .csms-badge__text'));
+                    return badges.map(b => (b.textContent || b.innerText || '').trim()).filter(Boolean);
+                } catch (e) {
+                    return [];
+                }
+            })();
+
+            const questions = (() => {
+                try {
+                    const sections = Array.from(portal.querySelectorAll('.user-section[data-qa^="profile-question-"]'));
+                    return sections.map(section => {
+                        const q = (() => {
+                            const qBtn = section.querySelector('[data-qa="overlay-action"]');
+                            const raw = (qBtn && (qBtn.textContent || qBtn.innerText)) ? (qBtn.textContent || qBtn.innerText).trim() : '';
+                            return raw.replace(/\s+/g, ' ').trim();
+                        })();
+                        const a = (() => {
+                            const aEl = section.querySelector('.csms-view-profile-block__header-text');
+                            const raw = (aEl && (aEl.textContent || aEl.innerText)) ? (aEl.textContent || aEl.innerText).trim() : '';
+                            return raw.replace(/\s+/g, ' ').trim();
+                        })();
+                        if (!q && !a) return null;
+                        return { q, a };
+                    }).filter(Boolean);
+                } catch (e) {
+                    return [];
+                }
+            })();
+
+            const lines = [];
+            const title = [name, age ? `${age} anos` : ''].filter(Boolean).join(', ');
+            if (title) lines.push(`Perfil: ${title}`);
+            if (aboutMe) lines.push(`Sobre mim: ${aboutMe}`);
+            if (location) lines.push(`Localização: ${location}`);
+            if (infoBadges.length) lines.push(`Informações: ${infoBadges.slice(0, 20).join('; ')}`);
+            if (interests.length) lines.push(`Interesses: ${interests.slice(0, 20).join('; ')}`);
+            if (questions.length) {
+                const qa = questions.slice(0, 10)
+                    .map(item => item.a ? `${item.q}: ${item.a}` : item.q)
+                    .filter(Boolean)
+                    .join(' | ');
+                if (qa) lines.push(`Perguntas: ${qa}`);
+            }
+
+            const text = lines.join('\n').trim();
+            if (!text) return '';
+            const MAX = 900;
+            return text.length > MAX ? `${text.slice(0, MAX)}…` : text;
         }
 
         setupPlatformObservers() {
@@ -153,6 +375,9 @@ class ChatSuggestionsController {
 
             this.lastMessageCount = 0;
             this.updateSuggestions();
+            this.cachedOtherPersonProfileText = '';
+            this.cachedOtherPersonProfileUpdatedAt = 0;
+            this.cachedOtherPersonProfileName = '';
             this.info('Conversa alterada; sugestões atualizadas');
         }
 
@@ -312,6 +537,26 @@ class ChatSuggestionsController {
         }
 
         extractProfileText() {
+            const badooText = this.extractBadooProfileTextFromPortal();
+            if (badooText) {
+                this.cachedOtherPersonProfileText = badooText;
+                this.cachedOtherPersonProfileUpdatedAt = Date.now();
+                const name = this.extractOtherPersonName();
+                if (name) this.cachedOtherPersonProfileName = name;
+                return badooText;
+            }
+
+            if (this.cachedOtherPersonProfileText) {
+                const currentName = this.extractOtherPersonName();
+                if (currentName && this.cachedOtherPersonProfileName && currentName !== this.cachedOtherPersonProfileName) {
+                    this.cachedOtherPersonProfileText = '';
+                    this.cachedOtherPersonProfileUpdatedAt = 0;
+                    this.cachedOtherPersonProfileName = '';
+                    return '';
+                }
+                return this.cachedOtherPersonProfileText;
+            }
+
             const selectors = [];
             if (this.profileContainerSelector) selectors.push(this.profileContainerSelector);
             selectors.push('#main-content [data-testid="profileCard"]');
@@ -389,15 +634,15 @@ class ChatSuggestionsController {
                 const messages = context?.allMessages || context?.lastMessages || [];
                 const configuredProfile = (this.aiClientConfig && this.aiClientConfig.profile) ||
                     (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
-                const pageProfile = this.extractProfileText();
-                const profile = [configuredProfile, pageProfile].filter(Boolean).join('\n\n');
+                const profile = [configuredProfile].filter(Boolean).join('\n\n');
+                const otherPersonProfile = this.extractProfileText();
                 const otherPersonName = this.extractOtherPersonName();
 
-                if (this.debug && pageProfile) {
-                    console.info('[Chat Suggestions][AI] Contexto extraído da página', { chars: pageProfile.length });
+                if (this.debug && otherPersonProfile) {
+                    console.info('[Chat Suggestions][AI] Perfil da outra pessoa extraído da página', { chars: otherPersonProfile.length });
                 }
 
-                const aiSuggestions = await this.aiClient.generateSuggestions({ messages, profile, otherPersonName });
+                const aiSuggestions = await this.aiClient.generateSuggestions({ messages, profile, otherPersonName, otherPersonProfile });
                 const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
                 this.ui.render(safe, { isAI: true });
                 this.info('Sugestões de IA geradas', { total: safe.length });
@@ -422,11 +667,18 @@ class ChatSuggestionsController {
             const messages = context?.allMessages || context?.lastMessages || [];
             const configuredProfile = (this.aiClientConfig && this.aiClientConfig.profile) ||
                 (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
-            const pageProfile = this.extractProfileText();
-            const profile = [configuredProfile, pageProfile].filter(Boolean).join('\n\n');
+            const profile = [configuredProfile].filter(Boolean).join('\n\n');
+            const otherPersonProfile = this.extractProfileText();
             const otherPersonName = this.extractOtherPersonName();
 
-            const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({ messages, profile, otherPersonName });
+            if (this.debug) {
+                console.info('[Chat Suggestions][AI] Contexto do perfil (outra pessoa)', {
+                    hasProfile: Boolean(otherPersonProfile),
+                    chars: otherPersonProfile ? otherPersonProfile.length : 0
+                });
+            }
+
+            const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({ messages, profile, otherPersonName, otherPersonProfile });
             return { systemPrompt, userPrompt, personality };
         }
 
@@ -479,6 +731,16 @@ class ChatSuggestionsController {
             if (this.platformObserver) {
                 this.platformObserver.disconnect();
                 this.platformObserver = null;
+            }
+
+            if (this.profilePortalObserver) {
+                this.profilePortalObserver.disconnect();
+                this.profilePortalObserver = null;
+            }
+
+            if (this.profileClickHandler) {
+                document.removeEventListener('click', this.profileClickHandler, true);
+                this.profileClickHandler = null;
             }
 
             if (this.messageCheckInterval) {
