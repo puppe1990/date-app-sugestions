@@ -462,10 +462,12 @@ class ChatSuggestionsController {
                 console.table(conversationLog);
             }
             this.ui.render(safeSuggestions);
-            this.info('Sugestões atualizadas', {
-                total: safeSuggestions.length,
-                topics: context?.topics || []
-            });
+            if (this.debug) {
+                console.info('[Chat Suggestions] Sugestões atualizadas', {
+                    total: safeSuggestions.length,
+                    topics: context?.topics || []
+                });
+            }
             this.lastMessageCount = this.chatContainer.querySelectorAll(this.messageSelector).length;
         }
 
