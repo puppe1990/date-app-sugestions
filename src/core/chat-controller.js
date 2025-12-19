@@ -92,7 +92,10 @@ class ChatSuggestionsController {
                 onResponseLengthChange: ({ responseLength }) => this.setAIResponseLength(responseLength),
                 getContactContextMeta: () => this.getContactContextMeta(),
                 onContactContextSave: ({ contextText }) => this.saveContactContext(contextText),
-                onContactContextClear: () => this.clearContactContext()
+                onContactContextClear: () => this.clearContactContext(),
+                onCopyOtherPersonProfile: (this.platform === 'badoo' || this.platform === 'tinder')
+                    ? () => this.copyOtherPersonProfileToClipboard()
+                    : null
             });
 
             const mounted = this.ui.mount();
@@ -587,6 +590,35 @@ class ChatSuggestionsController {
             const text = this.trimContactContext(this.currentContactContextText || '');
             const MAX = 1200;
             return text.length > MAX ? `${text.slice(0, MAX)}…` : text;
+        }
+
+        async copyOtherPersonProfileToClipboard() {
+            try {
+                const profileText = this.extractProfileText();
+                if (!profileText) {
+                    if (this.platform === 'badoo') {
+                        this.waitForBadooProfilePortalAndCache({ timeoutMs: 2500 });
+                    }
+                    return {
+                        ok: false,
+                        message: this.platform === 'badoo'
+                            ? 'Abra o perfil da pessoa e tente novamente'
+                            : 'Perfil não encontrado na página'
+                    };
+                }
+
+                const ok = this.ui && typeof this.ui.copyToClipboard === 'function'
+                    ? await this.ui.copyToClipboard(profileText)
+                    : false;
+
+                if (!ok) {
+                    return { ok: false, message: 'Não foi possível copiar' };
+                }
+
+                return { ok: true, message: 'Perfil copiado!' };
+            } catch (e) {
+                return { ok: false, message: 'Não foi possível copiar' };
+            }
         }
 
         createAIClient() {

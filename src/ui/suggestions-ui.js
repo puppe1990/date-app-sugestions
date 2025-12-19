@@ -9,7 +9,8 @@
             onResponseLengthChange,
             getContactContextMeta,
             onContactContextSave,
-            onContactContextClear
+            onContactContextClear,
+            onCopyOtherPersonProfile
         } = {}) {
             this.inputSelector = inputSelector || '#chat-composer-input-message';
             this.placement = placement || 'inline';
@@ -20,6 +21,7 @@
             this.getContactContextMeta = getContactContextMeta;
             this.onContactContextSave = onContactContextSave;
             this.onContactContextClear = onContactContextClear;
+            this.onCopyOtherPersonProfile = onCopyOtherPersonProfile;
             this.aiLoading = false;
             this.aiButton = null;
             this.aiSuggestions = [];
@@ -66,6 +68,7 @@
             this.contactContextNameEl = null;
             this.boundContactContextKeydown = null;
             this.contactContextHasValue = false;
+            this.copyProfileButton = null;
         }
 
         getContainer() {
@@ -1515,6 +1518,12 @@
                 this.contactContextButton = contactContextButton;
             }
 
+            const copyProfileButton = this.createCopyOtherPersonProfileButton();
+            if (copyProfileButton) {
+                container.appendChild(copyProfileButton);
+                this.copyProfileButton = copyProfileButton;
+            }
+
             const libraryButton = this.createLibraryButton();
             container.appendChild(libraryButton);
             this.libraryButton = libraryButton;
@@ -1565,6 +1574,43 @@
                 e.preventDefault();
                 e.stopPropagation();
                 this.openContactContextModal();
+            });
+
+            return button;
+        }
+
+        createCopyOtherPersonProfileButton() {
+            if (typeof this.onCopyOtherPersonProfile !== 'function') return null;
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button chat-suggestion-button--copy-profile';
+            button.textContent = 'Copiar perfil';
+
+            button.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (button.disabled) return;
+
+                const prevText = button.textContent;
+                button.disabled = true;
+                button.textContent = 'Copiando...';
+
+                try {
+                    const res = await this.onCopyOtherPersonProfile();
+                    const ok = res === true || res?.ok === true;
+                    const message = typeof res?.message === 'string' ? res.message : '';
+                    if (!ok) {
+                        this.showToast(message || 'Não foi possível copiar o perfil', { type: 'error' });
+                    } else {
+                        this.showToast(message || 'Perfil copiado!');
+                    }
+                } catch (err) {
+                    this.showToast('Não foi possível copiar o perfil', { type: 'error' });
+                } finally {
+                    button.disabled = false;
+                    button.textContent = prevText;
+                }
             });
 
             return button;
