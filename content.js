@@ -35,6 +35,91 @@
         }
     };
 
+    const waitForTinderMessageList = ({ timeoutMs = 10000, intervalMs = 300 } = {}) => {
+        const startAt = Date.now();
+        return new Promise(resolve => {
+            const check = () => {
+                const list = document.querySelector('.messageList');
+                if (list) {
+                    resolve(list);
+                    return;
+                }
+                if (Date.now() - startAt >= timeoutMs) {
+                    resolve(null);
+                    return;
+                }
+                setTimeout(check, intervalMs);
+            };
+            check();
+        });
+    };
+
+    const initTinderRealtimeSearch = async () => {
+        console.info('[Chat Suggestions] Tinder search init start', {
+            href: location.href
+        });
+        if (document.getElementById('tinder-search-input')) return;
+
+        const list = await waitForTinderMessageList();
+        if (!list) {
+            console.warn('[Chat Suggestions] Lista de mensagens nao encontrada apos aguardar.', {
+                selectorTried: '.messageList'
+            });
+            return;
+        }
+
+        console.info('[Chat Suggestions] Lista de mensagens encontrada', {
+            tag: list.tagName,
+            className: list.className
+        });
+
+        const input = document.createElement('input');
+        input.id = 'tinder-search-input';
+        input.type = 'text';
+        input.placeholder = 'Filtrar conversas pelo nome...';
+        input.autocomplete = 'off';
+        input.style.cssText = `
+            width: 100%;
+            box-sizing: border-box;
+            padding: 8px 12px;
+            margin: 8px 0 4px;
+            border-radius: 999px;
+            border: 1px solid #555;
+            background: #111;
+            color: #fff;
+            outline: none;
+            font-size: 14px;
+        `;
+
+        const parent = list.parentElement;
+        if (!parent) {
+            console.warn('[Chat Suggestions] Parent da lista nao encontrado.');
+            return;
+        }
+        parent.insertBefore(input, list);
+        console.info('[Chat Suggestions] Input de busca inserido');
+
+        function filterList(value) {
+            const termo = value.toLowerCase();
+            const items = document.querySelectorAll('.messageListItem');
+            console.info('[Chat Suggestions] Filtrando lista', {
+                termo,
+                items: items.length
+            });
+
+            items.forEach(item => {
+                const nameEl = item.querySelector('.messageListItem__name');
+                const name = (nameEl?.textContent || '').trim().toLowerCase();
+
+                item.style.display = name.includes(termo) ? '' : 'none';
+            });
+        }
+
+        input.addEventListener('input', (e) => {
+            filterList(e.target.value);
+        });
+    };
+
 	    const PLATFORM_DEFAULTS = {
 	        whatsapp: {
 	            chatContainerSelector: '#main',
@@ -178,6 +263,10 @@
         }
 
         const platform = detectChatPlatform();
+        console.info('[Chat Suggestions] Platform detectada', {
+            platform,
+            href: location.href
+        });
         const platformDefaults = getPlatformDefaults(platform);
 
         const stored = await loadConfig();
@@ -233,6 +322,12 @@
         window.chatSuggestionsInstance = controller;
         window.badooChatSuggestionsInstance = controller;
         controller.init();
+        if (platform === 'tinder' && isMessagesUrlForPlatform(platform, location.href)) {
+            setTimeout(() => {
+                console.info('[Chat Suggestions] Tentando iniciar busca Tinder apos init');
+                initTinderRealtimeSearch();
+            }, 1000);
+        }
     };
 
     if (document.readyState === 'loading') {
@@ -247,6 +342,10 @@
         if (url !== lastUrl) {
             lastUrl = url;
             const platform = detectChatPlatform();
+            console.info('[Chat Suggestions] URL mudou', {
+                platform,
+                url
+            });
             if (isMessagesUrlForPlatform(platform, url)) {
                 setTimeout(() => {
                     window.chatSuggestionsInstance = window.chatSuggestionsInstance || window.badooChatSuggestionsInstance;
@@ -261,6 +360,9 @@
                     window.badooChatSuggestionsInitialized = false;
                     console.info('[Chat Suggestions] URL de mensagens detectada, reinicializando...');
                     start();
+                    if (platform === 'tinder') {
+                        initTinderRealtimeSearch();
+                    }
                 }, 1000);
             }
         }
