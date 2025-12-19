@@ -1,4 +1,45 @@
 (() => {
+    const OPENROUTER_MODELS = [
+        'google/gemini-2.0-flash-exp:free',
+        'openai/gpt-oss-120b:free',
+        'qwen/qwen3-235b-a22b:free',
+        'tngtech/deepseek-r1t2-chimera:free',
+        'kwaipilot/kat-coder-pro:free',
+        'nousresearch/hermes-3-llama-3.1-405b:free',
+        'z-ai/glm-4.5-air:free',
+        'qwen/qwen3-coder:free',
+        'moonshotai/kimi-k2:free',
+        'meta-llama/llama-3.3-70b-instruct:free',
+        'amazon/nova-2-lite-v1:free',
+        'allenai/olmo-3-32b-think:free',
+        'tngtech/deepseek-r1t-chimera:free',
+        'tngtech/tng-r1t-chimera:free',
+        'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
+        'mistralai/mistral-small-3.1-24b-instruct:free',
+        'mistralai/mistral-7b-instruct:free',
+        'google/gemma-3-27b-it:free',
+        'google/gemma-3-12b-it:free',
+        'zgoogle/gemma-3-4b-it:free',
+        'google/gemma-3n-e4b-it:free',
+        'google/gemma-3n-e2b-it:free',
+        'qwen/qwen3-4b:free',
+        'meta-llama/llama-3.2-3b-instruct:free',
+        'meituan/longcat-flash-chat:free',
+        'arcee-ai/trinity-mini:free',
+        'nvidia/nemotron-nano-12b-v2-vl:free',
+        'nvidia/nemotron-nano-9b-v2:free'
+    ];
+
+    const GEMINI_MODELS = [
+        'gemini-2.5-flash',
+        'gemini-2.0-flash-exp',
+        'gemini-2.0-flash'
+    ];
+
+    const DEFAULT_PROVIDER = 'gemini';
+    const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
+    const DEFAULT_OPENROUTER_MODEL = OPENROUTER_MODELS[0];
+
     class SuggestionsUI {
         constructor({
             inputSelector,
@@ -57,6 +98,8 @@
             this.aiPromptDirty = false;
             this.floatingOpen = false;
             this.floatingLauncher = null;
+            this.floatingLauncherWrap = null;
+            this.floatingConfigButton = null;
             this.boundFloatingKeydown = null;
             this.boundFloatingDocPointerDown = null;
             this.toastRoot = null;
@@ -69,6 +112,19 @@
             this.boundContactContextKeydown = null;
             this.contactContextHasValue = false;
             this.copyProfileButton = null;
+            this.configOverlay = null;
+            this.configDialog = null;
+            this.boundConfigKeydown = null;
+            this.configProviderSelect = null;
+            this.configGeminiSection = null;
+            this.configOpenRouterSection = null;
+            this.configGeminiModelSelect = null;
+            this.configGeminiKeyInput = null;
+            this.configOpenRouterModelSelect = null;
+            this.configOpenRouterKeyInput = null;
+            this.configProfileTextarea = null;
+            this.configPlacementSelect = null;
+            this.configResponseLengthSelect = null;
         }
 
         getContainer() {
@@ -250,11 +306,9 @@
                     }
 
                     .bcs-floating-launcher {
-                        position: fixed;
-                        z-index: 2147483647;
-                        right: 14px;
-                        top: 50%;
-                        transform: translateY(-50%);
+                        position: absolute;
+                        right: 0;
+                        bottom: 0;
                         width: 48px;
                         height: 48px;
                         border-radius: 999px;
@@ -268,8 +322,20 @@
                         justify-content: center;
                         user-select: none;
                         -webkit-user-select: none;
+                        pointer-events: auto;
                         font-size: 18px;
                         line-height: 1;
+                    }
+
+                    .bcs-floating-launcher-wrap {
+                        position: fixed;
+                        z-index: 2147483647;
+                        right: 14px;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 56px;
+                        height: 56px;
+                        pointer-events: none;
                     }
 
                     .bcs-floating-launcher:hover {
@@ -290,6 +356,35 @@
                     .bcs-floating-launcher.bcs-floating-launcher--active {
                         border-color: rgba(255, 255, 255, 0.55);
                         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.30), 0 0 0 8px rgba(255, 68, 88, 0.18);
+                    }
+
+                    .bcs-floating-config {
+                        position: absolute;
+                        right: -2px;
+                        top: -2px;
+                        width: 22px;
+                        height: 22px;
+                        border-radius: 999px;
+                        border: 1px solid rgba(255, 255, 255, 0.45);
+                        background: rgba(17, 17, 17, 0.85);
+                        color: #fff;
+                        font-size: 12px;
+                        line-height: 1;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        pointer-events: auto;
+                        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+                    }
+
+                    .bcs-floating-config:hover {
+                        transform: scale(1.04);
+                    }
+
+                    .bcs-floating-config.bcs-theme-light {
+                        background: rgba(17, 17, 17, 0.92);
+                        color: #fff;
                     }
 
                     .bcs-toast-root {
@@ -568,6 +663,40 @@
                         font-size: 13px;
                         margin-bottom: 12px;
                     }
+
+                    .bcs-modal__input {
+                        width: 100%;
+                        box-sizing: border-box;
+                        border: 1px solid rgba(255, 255, 255, 0.18);
+                        background: rgba(255, 255, 255, 0.06);
+                        color: #fff;
+                        border-radius: 10px;
+                        padding: 10px 12px;
+                        outline: none;
+                        font-size: 13px;
+                        margin-bottom: 12px;
+                    }
+
+                    .bcs-modal__label {
+                        display: block;
+                        font-size: 12px;
+                        color: rgba(255, 255, 255, 0.7);
+                        margin-bottom: 6px;
+                    }
+
+                    .bcs-modal__note {
+                        font-size: 11px;
+                        color: rgba(255, 255, 255, 0.6);
+                        margin-top: 8px;
+                        padding: 8px 10px;
+                        border-radius: 10px;
+                        border: 1px dashed rgba(255, 255, 255, 0.25);
+                        background: rgba(255, 255, 255, 0.04);
+                    }
+
+                    .bcs-hidden {
+                        display: none;
+                    }
                 `;
                 document.head.appendChild(style);
             }
@@ -740,11 +869,22 @@
         ensureFloatingLauncher() {
             if (this.placement !== 'floating') return null;
 
-            const existing = document.getElementById('bcs-floating-launcher');
-            if (existing) {
-                this.floatingLauncher = existing;
-                return existing;
+            const existingWrap = document.getElementById('bcs-floating-launcher-wrap');
+            if (existingWrap) {
+                this.floatingLauncherWrap = existingWrap;
+                this.floatingLauncher = existingWrap.querySelector('#bcs-floating-launcher');
+                this.floatingConfigButton = existingWrap.querySelector('#bcs-floating-config');
+                return this.floatingLauncher;
             }
+
+            const legacy = document.getElementById('bcs-floating-launcher');
+            if (legacy && legacy.parentElement) {
+                legacy.parentElement.removeChild(legacy);
+            }
+
+            const wrap = document.createElement('div');
+            wrap.id = 'bcs-floating-launcher-wrap';
+            wrap.className = 'bcs-floating-launcher-wrap';
 
             const button = document.createElement('button');
             button.id = 'bcs-floating-launcher';
@@ -754,6 +894,14 @@
             button.title = 'Sugestões';
             button.textContent = '💬';
 
+            const configButton = document.createElement('button');
+            configButton.id = 'bcs-floating-config';
+            configButton.type = 'button';
+            configButton.className = 'bcs-floating-config';
+            configButton.setAttribute('aria-label', 'Configurar sugestões');
+            configButton.title = 'Configurações';
+            configButton.textContent = '⚙';
+
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -761,8 +909,19 @@
                 this.updateFloatingVisibility();
             });
 
-            document.body.appendChild(button);
+            configButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.openConfigModal();
+            });
+
+            wrap.appendChild(button);
+            wrap.appendChild(configButton);
+
+            document.body.appendChild(wrap);
             this.floatingLauncher = button;
+            this.floatingLauncherWrap = wrap;
+            this.floatingConfigButton = configButton;
 
             this.attachFloatingGlobalHandlers();
             return button;
@@ -785,7 +944,7 @@
                 if (!this.floatingOpen) return;
 
                 const container = this.getContainer();
-                const launcher = this.floatingLauncher;
+                const launcher = this.floatingLauncherWrap || this.floatingLauncher;
                 const target = e.target;
 
                 if (launcher && (launcher === target || launcher.contains(target))) return;
@@ -913,6 +1072,10 @@
                 if (this.placement === 'floating' && this.floatingLauncher && this.floatingLauncher.classList) {
                     this.floatingLauncher.classList.toggle('bcs-theme-dark', isDark);
                     this.floatingLauncher.classList.toggle('bcs-theme-light', !isDark);
+                }
+                if (this.placement === 'floating' && this.floatingConfigButton && this.floatingConfigButton.classList) {
+                    this.floatingConfigButton.classList.toggle('bcs-theme-dark', isDark);
+                    this.floatingConfigButton.classList.toggle('bcs-theme-light', !isDark);
                 }
             } catch (e) {
                 // Ignora
@@ -1666,6 +1829,408 @@
             });
 
             return button;
+        }
+
+        ensureConfigModal() {
+            if (this.configOverlay && this.configDialog) return;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'bcs-modal-overlay';
+            overlay.style.display = 'none';
+
+            const dialog = document.createElement('div');
+            dialog.className = 'bcs-modal';
+            dialog.setAttribute('role', 'dialog');
+            dialog.setAttribute('aria-modal', 'true');
+
+            const header = document.createElement('div');
+            header.className = 'bcs-modal__header';
+
+            const title = document.createElement('h2');
+            title.className = 'bcs-modal__title';
+            title.textContent = 'Configurações da IA';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'bcs-modal__close';
+            closeBtn.textContent = 'Fechar';
+            closeBtn.addEventListener('click', () => this.closeConfigModal());
+
+            header.appendChild(title);
+            header.appendChild(closeBtn);
+
+            const body = document.createElement('div');
+            body.className = 'bcs-modal__body';
+
+            const providerLabel = document.createElement('label');
+            providerLabel.className = 'bcs-modal__label';
+            providerLabel.textContent = 'Provedor';
+            body.appendChild(providerLabel);
+
+            const providerSelect = document.createElement('select');
+            providerSelect.className = 'bcs-modal__select';
+            [
+                { value: 'gemini', label: 'Gemini (Google)' },
+                { value: 'openrouter', label: 'OpenRouter' }
+            ].forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.label;
+                providerSelect.appendChild(option);
+            });
+            body.appendChild(providerSelect);
+
+            const geminiSection = document.createElement('div');
+            geminiSection.className = 'bcs-config-section';
+
+            const geminiModelLabel = document.createElement('label');
+            geminiModelLabel.className = 'bcs-modal__label';
+            geminiModelLabel.textContent = 'Modelo Gemini';
+            geminiSection.appendChild(geminiModelLabel);
+
+            const geminiModelSelect = document.createElement('select');
+            geminiModelSelect.className = 'bcs-modal__select';
+            GEMINI_MODELS.forEach((model, index) => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = `${index + 1}. ${model}`;
+                geminiModelSelect.appendChild(option);
+            });
+            geminiSection.appendChild(geminiModelSelect);
+
+            const geminiKeyLabel = document.createElement('label');
+            geminiKeyLabel.className = 'bcs-modal__label';
+            geminiKeyLabel.textContent = 'Gemini API Key';
+            geminiSection.appendChild(geminiKeyLabel);
+
+            const geminiKeyInput = document.createElement('input');
+            geminiKeyInput.className = 'bcs-modal__input';
+            geminiKeyInput.type = 'password';
+            geminiKeyInput.placeholder = 'GEMINI_API_KEY';
+            geminiKeyInput.autocomplete = 'off';
+            geminiSection.appendChild(geminiKeyInput);
+
+            const openRouterSection = document.createElement('div');
+            openRouterSection.className = 'bcs-config-section';
+
+            const openRouterModelLabel = document.createElement('label');
+            openRouterModelLabel.className = 'bcs-modal__label';
+            openRouterModelLabel.textContent = 'Modelo OpenRouter';
+            openRouterSection.appendChild(openRouterModelLabel);
+
+            const openRouterModelSelect = document.createElement('select');
+            openRouterModelSelect.className = 'bcs-modal__select';
+            OPENROUTER_MODELS.forEach((model, index) => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = `${index + 1}. ${model}`;
+                openRouterModelSelect.appendChild(option);
+            });
+            openRouterSection.appendChild(openRouterModelSelect);
+
+            const openRouterKeyLabel = document.createElement('label');
+            openRouterKeyLabel.className = 'bcs-modal__label';
+            openRouterKeyLabel.textContent = 'OpenRouter API Key';
+            openRouterSection.appendChild(openRouterKeyLabel);
+
+            const openRouterKeyInput = document.createElement('input');
+            openRouterKeyInput.className = 'bcs-modal__input';
+            openRouterKeyInput.type = 'password';
+            openRouterKeyInput.placeholder = 'sk-...';
+            openRouterKeyInput.autocomplete = 'off';
+            openRouterSection.appendChild(openRouterKeyInput);
+
+            body.appendChild(geminiSection);
+            body.appendChild(openRouterSection);
+
+            const placementLabel = document.createElement('label');
+            placementLabel.className = 'bcs-modal__label';
+            placementLabel.textContent = 'Posição da barra';
+            body.appendChild(placementLabel);
+
+            const placementSelect = document.createElement('select');
+            placementSelect.className = 'bcs-modal__select';
+            [
+                { value: 'auto', label: 'Automático (padrão do site)' },
+                { value: 'inline', label: 'Acima do campo (inline)' },
+                { value: 'overlay', label: 'Sobreposto ao chat (overlay)' },
+                { value: 'floating', label: 'Ícone flutuante à direita' }
+            ].forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.label;
+                placementSelect.appendChild(option);
+            });
+            body.appendChild(placementSelect);
+
+            const responseLabel = document.createElement('label');
+            responseLabel.className = 'bcs-modal__label';
+            responseLabel.textContent = 'Tamanho das respostas';
+            body.appendChild(responseLabel);
+
+            const responseSelect = document.createElement('select');
+            responseSelect.className = 'bcs-modal__select';
+            this.getResponseLengthOptions().forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.label;
+                responseSelect.appendChild(option);
+            });
+            body.appendChild(responseSelect);
+
+            const profileLabel = document.createElement('label');
+            profileLabel.className = 'bcs-modal__label';
+            profileLabel.textContent = 'Contexto sobre você (perfil, estilo, limites)';
+            body.appendChild(profileLabel);
+
+            const profileTextarea = document.createElement('textarea');
+            profileTextarea.className = 'bcs-modal__textarea';
+            profileTextarea.placeholder = 'Ex.: Tenho 32 anos, moro em SP, gosto de treinar e café. Prefiro respostas curtas e respeitosas.';
+            body.appendChild(profileTextarea);
+
+            const note = document.createElement('div');
+            note.className = 'bcs-modal__note';
+            note.textContent = 'As chaves ficam salvas localmente (chrome.storage).';
+            body.appendChild(note);
+
+            const row = document.createElement('div');
+            row.className = 'bcs-modal__row';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.type = 'button';
+            cancelBtn.className = 'bcs-modal__btn';
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.addEventListener('click', () => this.closeConfigModal());
+
+            const saveBtn = document.createElement('button');
+            saveBtn.type = 'button';
+            saveBtn.className = 'bcs-modal__btn bcs-modal__btn--primary';
+            saveBtn.textContent = 'Salvar';
+            saveBtn.addEventListener('click', () => this.saveConfigModal());
+
+            row.appendChild(cancelBtn);
+            row.appendChild(saveBtn);
+            body.appendChild(row);
+
+            dialog.appendChild(header);
+            dialog.appendChild(body);
+            overlay.appendChild(dialog);
+
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    this.closeConfigModal();
+                }
+            });
+
+            providerSelect.addEventListener('change', () => {
+                this.toggleConfigSections(providerSelect.value);
+            });
+
+            this.boundConfigKeydown = (e) => {
+                if (e.key === 'Escape') {
+                    this.closeConfigModal();
+                }
+            };
+
+            document.body.appendChild(overlay);
+
+            this.configOverlay = overlay;
+            this.configDialog = dialog;
+            this.configProviderSelect = providerSelect;
+            this.configGeminiSection = geminiSection;
+            this.configOpenRouterSection = openRouterSection;
+            this.configGeminiModelSelect = geminiModelSelect;
+            this.configGeminiKeyInput = geminiKeyInput;
+            this.configOpenRouterModelSelect = openRouterModelSelect;
+            this.configOpenRouterKeyInput = openRouterKeyInput;
+            this.configProfileTextarea = profileTextarea;
+            this.configPlacementSelect = placementSelect;
+            this.configResponseLengthSelect = responseSelect;
+        }
+
+        toggleConfigSections(provider) {
+            const useGemini = provider === 'gemini';
+            if (this.configGeminiSection) {
+                this.configGeminiSection.classList.toggle('bcs-hidden', !useGemini);
+            }
+            if (this.configOpenRouterSection) {
+                this.configOpenRouterSection.classList.toggle('bcs-hidden', useGemini);
+            }
+        }
+
+        async loadStoredConfig() {
+            const fallback = {
+                llmProvider: DEFAULT_PROVIDER,
+                openRouterModel: DEFAULT_OPENROUTER_MODEL,
+                openRouterApiKey: '',
+                openRouterProfile: '',
+                geminiApiKey: '',
+                geminiModel: DEFAULT_GEMINI_MODEL,
+                uiPlacementOverride: 'auto',
+                aiResponseLength: this.selectedResponseLength || 'short'
+            };
+
+            if (!chrome?.storage?.local) {
+                return fallback;
+            }
+
+            return new Promise(resolve => {
+                chrome.storage.local.get([
+                    'llmProvider',
+                    'openRouterModel',
+                    'openRouterApiKey',
+                    'openRouterProfile',
+                    'geminiApiKey',
+                    'geminiModel',
+                    'uiPlacementOverride',
+                    'aiResponseLength'
+                ], (result) => {
+                    resolve({
+                        llmProvider: result.llmProvider || fallback.llmProvider,
+                        openRouterModel: result.openRouterModel || fallback.openRouterModel,
+                        openRouterApiKey: result.openRouterApiKey || fallback.openRouterApiKey,
+                        openRouterProfile: result.openRouterProfile || fallback.openRouterProfile,
+                        geminiApiKey: result.geminiApiKey || fallback.geminiApiKey,
+                        geminiModel: result.geminiModel || fallback.geminiModel,
+                        uiPlacementOverride: result.uiPlacementOverride || fallback.uiPlacementOverride,
+                        aiResponseLength: result.aiResponseLength || fallback.aiResponseLength
+                    });
+                });
+            });
+        }
+
+        applyConfigToModal(config) {
+            const provider = config.llmProvider || DEFAULT_PROVIDER;
+            const openRouterModel = OPENROUTER_MODELS.includes(config.openRouterModel)
+                ? config.openRouterModel
+                : DEFAULT_OPENROUTER_MODEL;
+            const geminiModel = GEMINI_MODELS.includes(config.geminiModel)
+                ? config.geminiModel
+                : DEFAULT_GEMINI_MODEL;
+
+            if (this.configProviderSelect) {
+                this.configProviderSelect.value = provider;
+            }
+            if (this.configOpenRouterModelSelect) {
+                this.configOpenRouterModelSelect.value = openRouterModel;
+            }
+            if (this.configGeminiModelSelect) {
+                this.configGeminiModelSelect.value = geminiModel;
+            }
+            if (this.configOpenRouterKeyInput) {
+                this.configOpenRouterKeyInput.value = config.openRouterApiKey || '';
+            }
+            if (this.configGeminiKeyInput) {
+                this.configGeminiKeyInput.value = config.geminiApiKey || '';
+            }
+            if (this.configProfileTextarea) {
+                this.configProfileTextarea.value = config.openRouterProfile || '';
+            }
+            if (this.configPlacementSelect) {
+                this.configPlacementSelect.value = config.uiPlacementOverride || 'auto';
+            }
+            if (this.configResponseLengthSelect) {
+                this.configResponseLengthSelect.value = config.aiResponseLength || 'short';
+            }
+            this.toggleConfigSections(provider);
+        }
+
+        async openConfigModal() {
+            this.ensureConfigModal();
+            if (!this.configOverlay) return;
+
+            const config = await this.loadStoredConfig();
+            this.applyConfigToModal(config);
+
+            this.configOverlay.style.display = 'flex';
+            document.addEventListener('keydown', this.boundConfigKeydown, true);
+
+            setTimeout(() => {
+                if (this.configProviderSelect) {
+                    this.configProviderSelect.focus();
+                }
+            }, 0);
+        }
+
+        closeConfigModal() {
+            if (this.configOverlay) {
+                this.configOverlay.style.display = 'none';
+            }
+            document.removeEventListener('keydown', this.boundConfigKeydown, true);
+        }
+
+        saveConfigModal() {
+            if (!this.configProviderSelect) return;
+
+            const provider = this.configProviderSelect.value || DEFAULT_PROVIDER;
+            const openRouterModel = this.configOpenRouterModelSelect
+                ? (this.configOpenRouterModelSelect.value || DEFAULT_OPENROUTER_MODEL)
+                : DEFAULT_OPENROUTER_MODEL;
+            const openRouterApiKey = this.configOpenRouterKeyInput
+                ? String(this.configOpenRouterKeyInput.value || '').trim()
+                : '';
+            const geminiApiKey = this.configGeminiKeyInput
+                ? String(this.configGeminiKeyInput.value || '').trim()
+                : '';
+            const geminiModel = this.configGeminiModelSelect
+                ? (this.configGeminiModelSelect.value || DEFAULT_GEMINI_MODEL)
+                : DEFAULT_GEMINI_MODEL;
+            const profile = this.configProfileTextarea
+                ? String(this.configProfileTextarea.value || '').trim()
+                : '';
+            const uiPlacementOverride = this.configPlacementSelect
+                ? (this.configPlacementSelect.value || 'auto')
+                : 'auto';
+            const aiResponseLength = this.configResponseLengthSelect
+                ? (this.configResponseLengthSelect.value || 'short')
+                : 'short';
+
+            const payload = {
+                llmProvider: provider,
+                openRouterModel,
+                openRouterApiKey,
+                openRouterProfile: profile,
+                geminiApiKey,
+                geminiModel,
+                uiPlacementOverride,
+                aiResponseLength
+            };
+
+            try {
+                window.badooChatSuggestionsConfig = window.badooChatSuggestionsConfig || {};
+                Object.assign(window.badooChatSuggestionsConfig, payload);
+            } catch (e) {
+                // Ignora
+            }
+
+            if (typeof this.onResponseLengthChange === 'function') {
+                this.selectedResponseLength = aiResponseLength;
+                this.onResponseLengthChange({ responseLength: aiResponseLength });
+            } else {
+                this.selectedResponseLength = aiResponseLength;
+            }
+
+            if (this.container) {
+                const inlineSelect = this.container.querySelector('.chat-suggestions-response-length-select');
+                if (inlineSelect) {
+                    inlineSelect.value = aiResponseLength;
+                }
+            }
+
+            if (chrome?.storage?.local) {
+                chrome.storage.local.set(payload, () => {
+                    this.showToast('Configurações salvas. Recarregue a página para aplicar modelo/posição.');
+                    this.closeConfigModal();
+                });
+            } else {
+                try {
+                    localStorage.setItem('bcs:config', JSON.stringify(payload));
+                } catch (e) {
+                    // Ignora
+                }
+                this.showToast('Configurações salvas. Recarregue a página para aplicar modelo/posição.');
+                this.closeConfigModal();
+            }
         }
 
         ensureContactContextModal() {
@@ -2485,6 +3050,10 @@
                 document.removeEventListener('keydown', this.boundContactContextKeydown, true);
             }
 
+            if (this.boundConfigKeydown) {
+                document.removeEventListener('keydown', this.boundConfigKeydown, true);
+            }
+
             if (this.boundFloatingKeydown) {
                 document.removeEventListener('keydown', this.boundFloatingKeydown, true);
                 this.boundFloatingKeydown = null;
@@ -2495,10 +3064,12 @@
                 this.boundFloatingDocPointerDown = null;
             }
 
-            if (this.floatingLauncher && this.floatingLauncher.parentElement) {
-                this.floatingLauncher.parentElement.removeChild(this.floatingLauncher);
+            if (this.floatingLauncherWrap && this.floatingLauncherWrap.parentElement) {
+                this.floatingLauncherWrap.parentElement.removeChild(this.floatingLauncherWrap);
             }
             this.floatingLauncher = null;
+            this.floatingLauncherWrap = null;
+            this.floatingConfigButton = null;
 
             if (this.toastTimeouts && this.toastTimeouts.length) {
                 this.toastTimeouts.forEach(id => clearTimeout(id));
@@ -2521,6 +3092,10 @@
 
             if (this.contactContextOverlay && this.contactContextOverlay.parentElement) {
                 this.contactContextOverlay.parentElement.removeChild(this.contactContextOverlay);
+            }
+
+            if (this.configOverlay && this.configOverlay.parentElement) {
+                this.configOverlay.parentElement.removeChild(this.configOverlay);
             }
 
             if (this.container && this.container.parentElement) {
