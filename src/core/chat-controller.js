@@ -521,10 +521,46 @@ class ChatSuggestionsController {
             }
         }
 
+        extractWhatsAppContactKey() {
+            try {
+                const selected = document.querySelector('#pane-side [role="row"][aria-selected="true"], #pane-side [aria-selected="true"][role="listitem"], #pane-side [aria-selected="true"]');
+                if (!selected) return '';
+
+                const dataId = String(
+                    selected.getAttribute('data-id') ||
+                    (selected.dataset ? selected.dataset.id : '') ||
+                    ''
+                ).trim();
+                if (dataId) return this.normalizeContactKey(`whatsapp:chat:${dataId}`);
+
+                const nestedWithId = selected.querySelector && selected.querySelector('[data-id]');
+                const nestedId = nestedWithId ? String(nestedWithId.getAttribute('data-id') || '').trim() : '';
+                if (nestedId) return this.normalizeContactKey(`whatsapp:chat:${nestedId}`);
+
+                const nameEl = selected.querySelector('span[title]');
+                const name = (nameEl && nameEl.getAttribute) ? String(nameEl.getAttribute('title') || '').trim() : '';
+                if (name) {
+                    return this.normalizeContactKey(`whatsapp:name:${name}`);
+                }
+
+                return '';
+            } catch (e) {
+                return '';
+            }
+        }
+
+        extractContactKey() {
+            const platform = String(this.platform || '').trim();
+            if (platform === 'whatsapp') {
+                return this.extractWhatsAppContactKey() || this.extractContactKeyFromUrl();
+            }
+            return this.extractContactKeyFromUrl();
+        }
+
         refreshContactContext({ force = false } = {}) {
             if (!this.contextStore) return;
 
-            const key = this.extractContactKeyFromUrl();
+            const key = this.extractContactKey();
             if (!key) return;
             if (!force && key === this.currentContactKey) return;
 
@@ -536,6 +572,14 @@ class ChatSuggestionsController {
 
             if (this.ui && typeof this.ui.setContactContextState === 'function') {
                 this.ui.setContactContextState({ hasContext: Boolean(this.currentContactContextText && this.currentContactContextText.trim()) });
+            }
+
+            if (this.debug) {
+                console.info('[Chat Suggestions][Context] Conversa atual', {
+                    contactKey: this.currentContactKey,
+                    contactName: this.currentContactName,
+                    hasContext: Boolean(this.currentContactContextText && this.currentContactContextText.trim())
+                });
             }
         }
 
