@@ -29,6 +29,7 @@
         "src/constants/keywords.js",
         "src/context/message-reader.js",
         "src/context/context-extractor.js",
+        "src/storage/context-store.js",
         "src/core/ai-client.js",
         "src/suggestions/suggestion-engine.js",
         "src/ui/suggestions-ui.js",

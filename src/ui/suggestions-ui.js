@@ -1,12 +1,25 @@
 (() => {
     class SuggestionsUI {
-        constructor({ inputSelector, placement = 'inline', onAiGenerate, onAiCopyPrompt, responseLength = 'short', onResponseLengthChange } = {}) {
+        constructor({
+            inputSelector,
+            placement = 'inline',
+            onAiGenerate,
+            onAiCopyPrompt,
+            responseLength = 'short',
+            onResponseLengthChange,
+            getContactContextMeta,
+            onContactContextSave,
+            onContactContextClear
+        } = {}) {
             this.inputSelector = inputSelector || '#chat-composer-input-message';
             this.placement = placement || 'inline';
             this.container = null;
             this.domObserver = null;
             this.onAiGenerate = onAiGenerate;
             this.onAiCopyPrompt = onAiCopyPrompt;
+            this.getContactContextMeta = getContactContextMeta;
+            this.onContactContextSave = onContactContextSave;
+            this.onContactContextClear = onContactContextClear;
             this.aiLoading = false;
             this.aiButton = null;
             this.aiSuggestions = [];
@@ -46,6 +59,13 @@
             this.boundFloatingDocPointerDown = null;
             this.toastRoot = null;
             this.toastTimeouts = [];
+            this.contactContextButton = null;
+            this.contactContextOverlay = null;
+            this.contactContextDialog = null;
+            this.contactContextTextarea = null;
+            this.contactContextNameEl = null;
+            this.boundContactContextKeydown = null;
+            this.contactContextHasValue = false;
         }
 
         getContainer() {
@@ -1434,6 +1454,14 @@
             }
         }
 
+        setContactContextState({ hasContext } = {}) {
+            const next = Boolean(hasContext);
+            this.contactContextHasValue = next;
+            if (this.contactContextButton) {
+                this.contactContextButton.textContent = next ? 'Contexto ✓' : 'Contexto';
+            }
+        }
+
         renderSections() {
             const container = this.getContainer();
             if (!container) return;
@@ -1481,6 +1509,12 @@
                 container.appendChild(resetButton);
             }
 
+            const contactContextButton = this.createContactContextButton();
+            if (contactContextButton) {
+                container.appendChild(contactContextButton);
+                this.contactContextButton = contactContextButton;
+            }
+
             const libraryButton = this.createLibraryButton();
             container.appendChild(libraryButton);
             this.libraryButton = libraryButton;
@@ -1517,6 +1551,23 @@
             if (this.aiLoading) {
                 this.setAiLoading(true);
             }
+        }
+
+        createContactContextButton() {
+            if (typeof this.getContactContextMeta !== 'function') return null;
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'chat-suggestion-button chat-suggestion-button--context';
+            button.textContent = this.contactContextHasValue ? 'Contexto ✓' : 'Contexto';
+
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.openContactContextModal();
+            });
+
+            return button;
         }
 
         createFloatingCloseButton() {
@@ -1569,6 +1620,178 @@
             });
 
             return button;
+        }
+
+        ensureContactContextModal() {
+            if (this.contactContextOverlay && this.contactContextDialog) return;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'bcs-modal-overlay';
+            overlay.style.display = 'none';
+
+            const dialog = document.createElement('div');
+            dialog.className = 'bcs-modal';
+            dialog.setAttribute('role', 'dialog');
+            dialog.setAttribute('aria-modal', 'true');
+
+            const header = document.createElement('div');
+            header.className = 'bcs-modal__header';
+
+            const title = document.createElement('h2');
+            title.className = 'bcs-modal__title';
+            title.textContent = 'Contexto do contato';
+
+            const closeBtn = document.createElement('button');
+            closeBtn.type = 'button';
+            closeBtn.className = 'bcs-modal__close';
+            closeBtn.textContent = 'Fechar';
+            closeBtn.addEventListener('click', () => this.closeContactContextModal());
+
+            header.appendChild(title);
+            header.appendChild(closeBtn);
+
+            const body = document.createElement('div');
+            body.className = 'bcs-modal__body';
+
+            const contactLabel = this.createLabel('Contato');
+            contactLabel.style.color = 'rgba(255, 255, 255, 0.72)';
+            contactLabel.style.marginRight = '0';
+            body.appendChild(contactLabel);
+
+            const contactName = document.createElement('div');
+            contactName.className = 'bcs-modal__section-title';
+            contactName.style.marginTop = '6px';
+            contactName.style.textTransform = 'none';
+            contactName.style.letterSpacing = '0';
+            contactName.textContent = '-';
+            body.appendChild(contactName);
+
+            const contextLabel = this.createLabel('Notas (usadas no prompt da IA)');
+            contextLabel.style.color = 'rgba(255, 255, 255, 0.72)';
+            contextLabel.style.marginRight = '0';
+            contextLabel.style.marginTop = '14px';
+            body.appendChild(contextLabel);
+
+            const textarea = document.createElement('textarea');
+            textarea.className = 'bcs-modal__textarea';
+            textarea.placeholder = 'Ex.: interesses, tom de conversa, limites, detalhes importantes...';
+            textarea.maxLength = 2000;
+            body.appendChild(textarea);
+
+            const row = document.createElement('div');
+            row.className = 'bcs-modal__row';
+
+            const clearBtn = document.createElement('button');
+            clearBtn.type = 'button';
+            clearBtn.className = 'bcs-modal__btn';
+            clearBtn.textContent = 'Limpar';
+            clearBtn.addEventListener('click', () => {
+                const ok = confirm('Remover o contexto salvo para este contato?');
+                if (!ok) return;
+                try {
+                    if (typeof this.onContactContextClear === 'function') {
+                        this.onContactContextClear();
+                    }
+                } catch (e) {
+                    // Ignora
+                }
+                if (this.contactContextTextarea) {
+                    this.contactContextTextarea.value = '';
+                }
+                this.setContactContextState({ hasContext: false });
+                this.showToast('Contexto removido');
+            });
+
+            const saveBtn = document.createElement('button');
+            saveBtn.type = 'button';
+            saveBtn.className = 'bcs-modal__btn bcs-modal__btn--primary';
+            saveBtn.textContent = 'Salvar';
+            saveBtn.addEventListener('click', () => {
+                const text = this.contactContextTextarea ? String(this.contactContextTextarea.value || '') : '';
+                try {
+                    if (typeof this.onContactContextSave === 'function') {
+                        const ok = this.onContactContextSave({ contextText: text });
+                        if (ok === false) {
+                            this.showToast('Não foi possível salvar', { type: 'error' });
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    this.showToast('Não foi possível salvar', { type: 'error' });
+                    return;
+                }
+                this.setContactContextState({ hasContext: Boolean(text.trim()) });
+                this.showToast('Contexto salvo');
+                this.closeContactContextModal();
+            });
+
+            row.appendChild(clearBtn);
+            row.appendChild(saveBtn);
+            body.appendChild(row);
+
+            dialog.appendChild(header);
+            dialog.appendChild(body);
+            overlay.appendChild(dialog);
+
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    this.closeContactContextModal();
+                }
+            });
+
+            this.boundContactContextKeydown = (e) => {
+                if (e.key === 'Escape') {
+                    this.closeContactContextModal();
+                }
+            };
+
+            document.body.appendChild(overlay);
+
+            this.contactContextOverlay = overlay;
+            this.contactContextDialog = dialog;
+            this.contactContextTextarea = textarea;
+            this.contactContextNameEl = contactName;
+        }
+
+        openContactContextModal() {
+            this.ensureContactContextModal();
+            if (!this.contactContextOverlay) return;
+
+            let meta = null;
+            try {
+                meta = typeof this.getContactContextMeta === 'function' ? this.getContactContextMeta() : null;
+            } catch (e) {
+                meta = null;
+            }
+
+            const name = String(meta?.contactName || meta?.name || '').trim() || 'Contato';
+            const contextText = String(meta?.contextText || meta?.context || '').trim();
+
+            if (this.contactContextNameEl) {
+                this.contactContextNameEl.textContent = name;
+            }
+            if (this.contactContextTextarea) {
+                this.contactContextTextarea.value = contextText;
+            }
+            this.setContactContextState({ hasContext: Boolean(contextText) });
+
+            this.contactContextOverlay.style.display = 'flex';
+            document.addEventListener('keydown', this.boundContactContextKeydown, true);
+
+            setTimeout(() => {
+                if (this.contactContextTextarea) {
+                    this.contactContextTextarea.focus();
+                    this.contactContextTextarea.selectionStart = this.contactContextTextarea.value.length;
+                    this.contactContextTextarea.selectionEnd = this.contactContextTextarea.value.length;
+                }
+            }, 0);
+        }
+
+        closeContactContextModal() {
+            if (this.contactContextOverlay) {
+                this.contactContextOverlay.style.display = 'none';
+            }
+            document.removeEventListener('keydown', this.boundContactContextKeydown, true);
         }
 
         getLibraryData() {
@@ -2212,6 +2435,10 @@
                 document.removeEventListener('keydown', this.boundAiPromptKeydown, true);
             }
 
+            if (this.boundContactContextKeydown) {
+                document.removeEventListener('keydown', this.boundContactContextKeydown, true);
+            }
+
             if (this.boundFloatingKeydown) {
                 document.removeEventListener('keydown', this.boundFloatingKeydown, true);
                 this.boundFloatingKeydown = null;
@@ -2246,6 +2473,10 @@
                 this.aiPromptOverlay.parentElement.removeChild(this.aiPromptOverlay);
             }
 
+            if (this.contactContextOverlay && this.contactContextOverlay.parentElement) {
+                this.contactContextOverlay.parentElement.removeChild(this.contactContextOverlay);
+            }
+
             if (this.container && this.container.parentElement) {
                 this.container.parentElement.removeChild(this.container);
             }
@@ -2253,6 +2484,7 @@
             this.container = null;
             this.libraryOverlay = null;
             this.aiPromptOverlay = null;
+            this.contactContextOverlay = null;
         }
     }
 

@@ -47,6 +47,10 @@ class ChatSuggestionsController {
             this.cachedOtherPersonProfileText = '';
             this.cachedOtherPersonProfileUpdatedAt = 0;
             this.cachedOtherPersonProfileName = '';
+            this.contextStore = null;
+            this.currentContactKey = '';
+            this.currentContactName = '';
+            this.currentContactContextText = '';
         }
 
         init() {
@@ -76,6 +80,7 @@ class ChatSuggestionsController {
                 debug: this.debug,
                 messageReader: this.messageReader
             });
+            this.contextStore = new window.BadooChatSuggestions.ContextStore({ debug: this.debug });
             this.aiClient = this.aiClient || this.createAIClient();
             this.suggestionEngine = new window.BadooChatSuggestions.SuggestionEngine({ debug: this.debug });
             this.ui = new window.BadooChatSuggestions.SuggestionsUI({
@@ -84,12 +89,16 @@ class ChatSuggestionsController {
                 responseLength: this.aiClientConfig?.responseLength || 'short',
                 onAiGenerate: (opts) => this.openAIPromptModal(opts),
                 onAiCopyPrompt: (opts) => this.buildAIPrompts(opts),
-                onResponseLengthChange: ({ responseLength }) => this.setAIResponseLength(responseLength)
+                onResponseLengthChange: ({ responseLength }) => this.setAIResponseLength(responseLength),
+                getContactContextMeta: () => this.getContactContextMeta(),
+                onContactContextSave: ({ contextText }) => this.saveContactContext(contextText),
+                onContactContextClear: () => this.clearContactContext()
             });
 
             const mounted = this.ui.mount();
             this.info('Container de sugestões montado', { mounted, inputSelector: this.inputSelector });
 
+            this.refreshContactContext({ force: true });
             this.lastMessageCount = 0;
             this.updateSuggestions();
 
@@ -374,6 +383,7 @@ class ChatSuggestionsController {
             }
 
             this.lastMessageCount = 0;
+            this.refreshContactContext({ force: true });
             this.updateSuggestions();
             this.cachedOtherPersonProfileText = '';
             this.cachedOtherPersonProfileUpdatedAt = 0;
@@ -449,6 +459,7 @@ class ChatSuggestionsController {
                 return;
             }
 
+            this.refreshContactContext();
             const context = this.contextExtractor.extract(this.chatContainer);
             const suggestions = this.suggestionEngine.generate(context);
             const safeSuggestions = suggestions.length > 0 ? suggestions : this.suggestionEngine.getDefaultSuggestions();
@@ -469,6 +480,113 @@ class ChatSuggestionsController {
                 });
             }
             this.lastMessageCount = this.chatContainer.querySelectorAll(this.messageSelector).length;
+        }
+
+        normalizeContactKey(value) {
+            const raw = String(value || '').trim();
+            if (!raw) return '';
+            const safe = raw.replace(/[^a-zA-Z0-9:_-]/g, '_');
+            return safe.length > 160 ? safe.slice(0, 160) : safe;
+        }
+
+        extractContactKeyFromUrl() {
+            try {
+                const url = new URL(location.href);
+                const path = String(url.pathname || '');
+                const platform = String(this.platform || '').trim() || 'chat';
+
+                const patterns = [
+                    /\/messages\/([^/?#]+)/i,
+                    /\/app\/messages\/([^/?#]+)/i
+                ];
+
+                for (const pattern of patterns) {
+                    const match = path.match(pattern);
+                    if (match && match[1]) {
+                        return this.normalizeContactKey(`${platform}:${match[1]}`);
+                    }
+                }
+
+                const hash = String(url.hash || '').replace(/^#/, '').trim();
+                if (hash) {
+                    return this.normalizeContactKey(`${platform}:hash:${hash}`);
+                }
+
+                return this.normalizeContactKey(`${platform}:${path}`);
+            } catch (e) {
+                return '';
+            }
+        }
+
+        refreshContactContext({ force = false } = {}) {
+            if (!this.contextStore) return;
+
+            const key = this.extractContactKeyFromUrl();
+            if (!key) return;
+            if (!force && key === this.currentContactKey) return;
+
+            this.currentContactKey = key;
+            this.currentContactName = this.extractOtherPersonName();
+
+            const stored = this.contextStore.get(key);
+            this.currentContactContextText = stored && stored.context ? stored.context : '';
+
+            if (this.ui && typeof this.ui.setContactContextState === 'function') {
+                this.ui.setContactContextState({ hasContext: Boolean(this.currentContactContextText && this.currentContactContextText.trim()) });
+            }
+        }
+
+        getContactContextMeta() {
+            this.refreshContactContext();
+            return {
+                contactKey: this.currentContactKey,
+                contactName: this.currentContactName || this.extractOtherPersonName(),
+                contextText: this.currentContactContextText || ''
+            };
+        }
+
+        trimContactContext(text) {
+            const raw = String(text || '').trim();
+            const MAX = 2000;
+            return raw.length > MAX ? raw.slice(0, MAX) : raw;
+        }
+
+        saveContactContext(contextText) {
+            this.refreshContactContext({ force: true });
+            if (!this.contextStore || !this.currentContactKey) return false;
+
+            const trimmed = this.trimContactContext(contextText);
+            const ok = this.contextStore.set(this.currentContactKey, {
+                name: this.currentContactName || this.extractOtherPersonName(),
+                context: trimmed
+            });
+            if (ok) {
+                this.currentContactContextText = trimmed;
+                if (this.ui && typeof this.ui.setContactContextState === 'function') {
+                    this.ui.setContactContextState({ hasContext: Boolean(trimmed) });
+                }
+            }
+            return ok;
+        }
+
+        clearContactContext() {
+            this.refreshContactContext({ force: true });
+            if (!this.contextStore || !this.currentContactKey) return false;
+            const ok = this.contextStore.clear(this.currentContactKey);
+            if (ok) {
+                this.currentContactContextText = '';
+                if (this.ui && typeof this.ui.setContactContextState === 'function') {
+                    this.ui.setContactContextState({ hasContext: false });
+                }
+            }
+            return ok;
+        }
+
+        getCurrentContactContextForPrompt() {
+            this.refreshContactContext();
+            const text = this.trimContactContext(this.currentContactContextText || '');
+            const MAX = 1200;
+            return text.length > MAX ? `${text.slice(0, MAX)}…` : text;
         }
 
         createAIClient() {
@@ -639,12 +757,13 @@ class ChatSuggestionsController {
                 const profile = [configuredProfile].filter(Boolean).join('\n\n');
                 const otherPersonProfile = this.extractProfileText();
                 const otherPersonName = this.extractOtherPersonName();
+                const otherPersonContextNote = this.getCurrentContactContextForPrompt();
 
                 if (this.debug && otherPersonProfile) {
                     console.info('[Chat Suggestions][AI] Perfil da outra pessoa extraído da página', { chars: otherPersonProfile.length });
                 }
 
-                const aiSuggestions = await this.aiClient.generateSuggestions({ messages, profile, otherPersonName, otherPersonProfile });
+                const aiSuggestions = await this.aiClient.generateSuggestions({ messages, profile, otherPersonName, otherPersonProfile, otherPersonContextNote });
                 const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
                 this.ui.render(safe, { isAI: true });
                 this.info('Sugestões de IA geradas', { total: safe.length });
@@ -672,6 +791,7 @@ class ChatSuggestionsController {
             const profile = [configuredProfile].filter(Boolean).join('\n\n');
             const otherPersonProfile = this.extractProfileText();
             const otherPersonName = this.extractOtherPersonName();
+            const otherPersonContextNote = this.getCurrentContactContextForPrompt();
 
             if (this.debug) {
                 console.info('[Chat Suggestions][AI] Contexto do perfil (outra pessoa)', {
@@ -680,7 +800,7 @@ class ChatSuggestionsController {
                 });
             }
 
-            const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({ messages, profile, otherPersonName, otherPersonProfile });
+            const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({ messages, profile, otherPersonName, otherPersonProfile, otherPersonContextNote });
             return { systemPrompt, userPrompt, personality };
         }
 

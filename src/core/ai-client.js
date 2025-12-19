@@ -54,19 +54,29 @@
             ].filter(Boolean).join('\n');
         }
 
-        buildPrompts({ messages, profile, otherPersonName, responseLength, otherPersonProfile } = {}) {
+        buildSystemPromptWithOtherPersonContext(profile, responseLength, otherPersonContextNote) {
+            const base = this.buildSystemPrompt(profile, responseLength);
+            const note = String(otherPersonContextNote || '').trim();
+            if (!note) return base;
+            return [
+                base,
+                `\nContexto adicional sobre a outra pessoa (anotações do usuário):\n${note}`
+            ].filter(Boolean).join('\n');
+        }
+
+        buildPrompts({ messages, profile, otherPersonName, responseLength, otherPersonProfile, otherPersonContextNote } = {}) {
             this.otherPersonProfile = otherPersonProfile || this.otherPersonProfile || null;
-            const userPrompt = this.buildUserPrompt(messages, profile, otherPersonName, responseLength, otherPersonProfile);
-            const systemPrompt = this.buildSystemPrompt(profile, responseLength);
+            const userPrompt = this.buildUserPrompt(messages, profile, otherPersonName, responseLength, otherPersonProfile, otherPersonContextNote);
+            const systemPrompt = this.buildSystemPromptWithOtherPersonContext(profile, responseLength, otherPersonContextNote);
             return { systemPrompt, userPrompt };
         }
 
-        async generateSuggestions({ messages, profile, otherPersonName, responseLength, otherPersonProfile } = {}) {
+        async generateSuggestions({ messages, profile, otherPersonName, responseLength, otherPersonProfile, otherPersonContextNote } = {}) {
             if (!this.apiKey) {
                 throw new Error('API key não configurada');
             }
 
-            const { systemPrompt, userPrompt } = this.buildPrompts({ messages, profile, otherPersonName, responseLength, otherPersonProfile });
+            const { systemPrompt, userPrompt } = this.buildPrompts({ messages, profile, otherPersonName, responseLength, otherPersonProfile, otherPersonContextNote });
             return this.generateSuggestionsWithPrompts({ systemPrompt, userPrompt });
         }
 
@@ -181,7 +191,7 @@
             return this.extractSuggestions(text);
         }
 
-        buildUserPrompt(messages = [], profile, otherPersonName, responseLength, otherPersonProfile) {
+        buildUserPrompt(messages = [], profile, otherPersonName, responseLength, otherPersonProfile, otherPersonContextNote) {
             const cfg = this.getResponseLengthConfig(responseLength);
             const lastMessages = messages.slice(-25);
             const mapped = lastMessages.map((msg, idx) => {
@@ -197,6 +207,7 @@
 
             const profileLine = profile ? `\nContexto sobre mim:\n${profile}` : '';
             const otherPersonProfileLine = otherPersonProfile ? `\nPerfil da outra pessoa:\n${otherPersonProfile}` : '';
+            const otherPersonContextLine = otherPersonContextNote ? `\nContexto adicional (anotações):\n${otherPersonContextNote}` : '';
             const otherPersonLine = otherPersonName ? `\nNome da outra pessoa: ${otherPersonName}` : '';
             const focusLine = pendingMessage
                 ? `\nMensagem pendente da outra pessoa: "${pendingMessage.text}". Responda a isso diretamente, sem cumprimentar.`
@@ -210,6 +221,7 @@
                 'Responda APENAS com JSON válido: {"suggestions":["resposta1","resposta2",...]} sem texto extra, sem markdown, sem texto antes/depois. Não inclua saudações a menos que a última mensagem peça. Assim que fechar o JSON, pare.',
                 profileLine,
                 otherPersonProfileLine,
+                otherPersonContextLine,
                 otherPersonLine,
                 focusLine,
                 myLastLine,
