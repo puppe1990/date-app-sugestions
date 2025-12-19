@@ -4,93 +4,206 @@
   <meta charset="UTF-8">
   <title>Chat Suggestions - IA</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 12px;
-      width: 280px;
-      color: #111;
+    :root {
+      --bcs-bg: #fff8f2;
+      --bcs-bg-alt: #eef7f5;
+      --bcs-surface: #ffffff;
+      --bcs-border: rgba(17, 17, 17, 0.10);
+      --bcs-muted: rgba(17, 17, 17, 0.58);
+      --bcs-text: #111111;
+      --bcs-accent: #ff4a5f;
+      --bcs-accent-strong: #ff7a3d;
+      --bcs-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+      --bcs-radius: 14px;
     }
-    h1 {
-      font-size: 16px;
-      margin: 0 0 8px;
-    }
-    label {
-      font-size: 13px;
-      display: block;
-      margin-bottom: 4px;
-    }
-    select, button, input, textarea {
-      width: 100%;
+
+    * {
       box-sizing: border-box;
-      padding: 8px;
-      margin-bottom: 10px;
-      font-size: 13px;
     }
-    .note {
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      font-family: "Trebuchet MS", "Segoe UI", Verdana, sans-serif;
+      color: var(--bcs-text);
+      background: radial-gradient(circle at top, var(--bcs-bg), #ffffff 56%), linear-gradient(140deg, var(--bcs-bg) 0%, var(--bcs-bg-alt) 100%);
+    }
+
+    .app {
+      padding: 14px;
+    }
+
+    .app-header {
+      padding: 12px 14px;
+      background: linear-gradient(135deg, rgba(255, 74, 95, 0.12), rgba(255, 122, 61, 0.12));
+      border-radius: var(--bcs-radius);
+      border: 1px solid rgba(255, 122, 61, 0.25);
+      margin-bottom: 12px;
+      box-shadow: var(--bcs-shadow);
+    }
+
+    .app-title {
+      font-size: 17px;
+      letter-spacing: 0.2px;
+      font-weight: 700;
+    }
+
+    .app-subtitle {
+      margin-top: 4px;
       font-size: 12px;
-      color: #555;
+      color: var(--bcs-muted);
+    }
+
+    .card {
+      background: var(--bcs-surface);
+      border-radius: var(--bcs-radius);
+      padding: 12px;
+      border: 1px solid var(--bcs-border);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+      margin-bottom: 12px;
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--bcs-muted);
+      margin-bottom: 8px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 6px;
+      color: var(--bcs-muted);
+    }
+
+    select,
+    button,
+    input,
+    textarea {
+      width: 100%;
+      padding: 9px 10px;
+      font-size: 13px;
+      border-radius: 12px;
+      border: 1px solid rgba(17, 17, 17, 0.16);
+      background: #ffffff;
+      color: var(--bcs-text);
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.05s ease;
+    }
+
+    select:focus,
+    input:focus,
+    textarea:focus {
+      border-color: rgba(255, 74, 95, 0.45);
+      box-shadow: 0 0 0 3px rgba(255, 74, 95, 0.12);
+    }
+
+    select,
+    input,
+    textarea {
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 78px;
+    }
+
+    button {
+      border: none;
+      font-weight: 700;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--bcs-accent), var(--bcs-accent-strong));
+      box-shadow: 0 8px 20px rgba(255, 74, 95, 0.25);
+      cursor: pointer;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 24px rgba(255, 74, 95, 0.28);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .note {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--bcs-muted);
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(17, 17, 17, 0.04);
+      border: 1px dashed rgba(17, 17, 17, 0.16);
       line-height: 1.4;
     }
-    .section {
-      margin-bottom: 12px;
-      padding: 8px;
-      border: 1px solid #eee;
-      border-radius: 6px;
-    }
+
     .hidden {
       display: none;
     }
   </style>
 </head>
 <body>
-  <h1>Modelo IA</h1>
+  <div class="app">
+    <header class="app-header">
+      <div class="app-title">Chat Suggestions</div>
+      <div class="app-subtitle">Configurações rápidas de IA para suas sugestões</div>
+    </header>
 
-  <div class="section">
-    <label for="providerSelect">Provedor (default: Gemini):</label>
-    <select id="providerSelect">
-      <option value="gemini">Gemini (Google)</option>
-      <option value="openrouter">OpenRouter</option>
-    </select>
-  </div>
+    <div class="card">
+      <div class="card-title">Provedor</div>
+      <label for="providerSelect">Provedor padrão:</label>
+      <select id="providerSelect">
+        <option value="gemini">Gemini (Google)</option>
+        <option value="openrouter">OpenRouter</option>
+      </select>
+    </div>
 
-  <div class="section" id="geminiSection">
-    <label for="geminiModelSelect">Modelo Gemini:</label>
-    <select id="geminiModelSelect"></select>
-    <label for="geminiKeyInput">Gemini API Key:</label>
-    <input id="geminiKeyInput" type="password" placeholder="GEMINI_API_KEY" autocomplete="off" />
-  </div>
+    <div class="card" id="geminiSection">
+      <div class="card-title">Gemini</div>
+      <label for="geminiModelSelect">Modelo Gemini:</label>
+      <select id="geminiModelSelect"></select>
+      <label for="geminiKeyInput">Gemini API Key:</label>
+      <input id="geminiKeyInput" type="password" placeholder="GEMINI_API_KEY" autocomplete="off" />
+    </div>
 
-  <div class="section" id="openrouterSection">
-    <label for="modelSelect">Modelo OpenRouter:</label>
-    <select id="modelSelect"></select>
-    <label for="apiKeyInput">OpenRouter API Key:</label>
-    <input id="apiKeyInput" type="password" placeholder="sk-..." autocomplete="off" />
-  </div>
+    <div class="card" id="openrouterSection">
+      <div class="card-title">OpenRouter</div>
+      <label for="modelSelect">Modelo OpenRouter:</label>
+      <select id="modelSelect"></select>
+      <label for="apiKeyInput">OpenRouter API Key:</label>
+      <input id="apiKeyInput" type="password" placeholder="sk-..." autocomplete="off" />
+    </div>
 
-  <div class="section">
-    <label for="uiPlacementSelect">Posição da barra:</label>
-    <select id="uiPlacementSelect">
-      <option value="auto">Automático (padrão do site)</option>
-      <option value="inline">Acima do campo (inline)</option>
-      <option value="overlay">Sobreposto ao chat (overlay)</option>
-      <option value="floating">Ícone flutuante à direita</option>
-    </select>
-  </div>
+    <div class="card">
+      <div class="card-title">Interface</div>
+      <label for="uiPlacementSelect">Posição da barra:</label>
+      <select id="uiPlacementSelect">
+        <option value="auto">Automático (padrão do site)</option>
+        <option value="inline">Acima do campo (inline)</option>
+        <option value="overlay">Sobreposto ao chat (overlay)</option>
+        <option value="floating">Ícone flutuante à direita</option>
+      </select>
+      <label for="responseLengthSelect">Tamanho das respostas:</label>
+      <select id="responseLengthSelect">
+        <option value="short">Curta (padrão)</option>
+        <option value="medium">Média</option>
+        <option value="long">Longa</option>
+      </select>
+    </div>
 
-  <div class="section">
-    <label for="responseLengthSelect">Tamanho das respostas:</label>
-    <select id="responseLengthSelect">
-      <option value="short">Curta (padrão)</option>
-      <option value="medium">Média</option>
-      <option value="long">Longa</option>
-    </select>
-  </div>
-
-  <label for="profileInput">Contexto sobre você (perfil, estilo, limites):</label>
-  <textarea id="profileInput" rows="4" placeholder="Ex.: Tenho 32 anos, moro em SP, gosto de treinar e café. Prefiro respostas curtas e respeitosas."></textarea>
-  <button id="saveBtn">Salvar</button>
-  <div class="note">
-    As chaves são salvas localmente (chrome.storage) e usadas pelo content script.
+    <div class="card">
+      <div class="card-title">Seu contexto</div>
+      <label for="profileInput">Perfil, estilo e limites:</label>
+      <textarea id="profileInput" rows="4" placeholder="Ex.: Tenho 32 anos, moro em SP, gosto de treinar e café. Prefiro respostas curtas e respeitosas."></textarea>
+      <button id="saveBtn">Salvar configurações</button>
+      <div class="note">
+        As chaves ficam locais (chrome.storage) e são usadas pelo content script.
+      </div>
+    </div>
   </div>
   <script src="popup.js"></script>
 </body>
