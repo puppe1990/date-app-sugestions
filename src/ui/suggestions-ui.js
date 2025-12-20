@@ -100,6 +100,13 @@
             this.floatingLauncher = null;
             this.floatingLauncherWrap = null;
             this.floatingConfigButton = null;
+            this.floatingDragging = false;
+            this.floatingDragPointerId = null;
+            this.floatingDragOffsetX = 0;
+            this.floatingDragOffsetY = 0;
+            this.floatingPosition = null; // { left, top }
+            this.floatingDragMoved = false;
+            this.floatingDragEndedAt = 0;
             this.boundFloatingKeydown = null;
             this.boundFloatingDocPointerDown = null;
             this.toastRoot = null;
@@ -903,6 +910,10 @@
             configButton.textContent = '⚙';
 
             button.addEventListener('click', (e) => {
+                if (this.floatingDragEndedAt && Date.now() - this.floatingDragEndedAt < 250) {
+                    this.floatingDragEndedAt = 0;
+                    return;
+                }
                 e.preventDefault();
                 e.stopPropagation();
                 this.floatingOpen = !this.floatingOpen;
@@ -922,6 +933,10 @@
             this.floatingLauncher = button;
             this.floatingLauncherWrap = wrap;
             this.floatingConfigButton = configButton;
+
+            this.loadFloatingLauncherPosition();
+            this.applyFloatingLauncherPosition();
+            this.attachFloatingLauncherDragHandlers();
 
             this.attachFloatingGlobalHandlers();
             return button;
@@ -971,6 +986,113 @@
                 this.floatingLauncher.setAttribute('aria-label', this.floatingOpen ? 'Fechar sugestões' : 'Abrir sugestões');
                 this.floatingLauncher.title = this.floatingOpen ? 'Fechar sugestões' : 'Sugestões';
             }
+        }
+
+        getFloatingLauncherStorageKey() {
+            const host = (location && location.host) ? location.host : 'unknown';
+            return `bcs:floatingLauncher:${host}`;
+        }
+
+        loadFloatingLauncherPosition() {
+            try {
+                const raw = localStorage.getItem(this.getFloatingLauncherStorageKey());
+                if (!raw) return;
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed.left !== 'number' || typeof parsed.top !== 'number') return;
+                this.floatingPosition = {
+                    left: parsed.left,
+                    top: parsed.top
+                };
+            } catch (e) {
+                // Ignora
+            }
+        }
+
+        saveFloatingLauncherPosition() {
+            try {
+                if (!this.floatingPosition) {
+                    localStorage.removeItem(this.getFloatingLauncherStorageKey());
+                    return;
+                }
+                localStorage.setItem(this.getFloatingLauncherStorageKey(), JSON.stringify(this.floatingPosition));
+            } catch (e) {
+                // Ignora
+            }
+        }
+
+        applyFloatingLauncherPosition() {
+            if (this.placement !== 'floating') return;
+            if (!this.floatingLauncherWrap) return;
+            if (!this.floatingPosition) {
+                this.floatingLauncherWrap.style.left = '';
+                this.floatingLauncherWrap.style.top = '';
+                this.floatingLauncherWrap.style.right = '14px';
+                this.floatingLauncherWrap.style.transform = 'translateY(-50%)';
+                return;
+            }
+            this.floatingLauncherWrap.style.right = 'auto';
+            this.floatingLauncherWrap.style.transform = 'none';
+            this.floatingLauncherWrap.style.left = `${Math.max(0, Math.round(this.floatingPosition.left))}px`;
+            this.floatingLauncherWrap.style.top = `${Math.max(0, Math.round(this.floatingPosition.top))}px`;
+        }
+
+        attachFloatingLauncherDragHandlers() {
+            if (!this.floatingLauncher || !this.floatingLauncherWrap) return;
+            if (this.floatingLauncher._bcsDragAttached) return;
+
+            const onPointerMove = (e) => {
+                if (!this.floatingDragging || e.pointerId !== this.floatingDragPointerId) return;
+                const nextLeft = e.clientX - this.floatingDragOffsetX;
+                const nextTop = e.clientY - this.floatingDragOffsetY;
+                const moved = Math.abs(nextLeft - (this.floatingPosition?.left ?? 0)) > 2 ||
+                    Math.abs(nextTop - (this.floatingPosition?.top ?? 0)) > 2;
+                if (moved) {
+                    this.floatingDragMoved = true;
+                }
+                const maxLeft = Math.max(0, window.innerWidth - this.floatingLauncherWrap.offsetWidth);
+                const maxTop = Math.max(0, window.innerHeight - this.floatingLauncherWrap.offsetHeight);
+                const clampedLeft = Math.min(Math.max(0, nextLeft), maxLeft);
+                const clampedTop = Math.min(Math.max(0, nextTop), maxTop);
+                this.floatingPosition = {
+                    left: clampedLeft,
+                    top: clampedTop
+                };
+                this.applyFloatingLauncherPosition();
+            };
+
+            const onPointerUp = (e) => {
+                if (!this.floatingDragging || e.pointerId !== this.floatingDragPointerId) return;
+                this.floatingDragging = false;
+                this.floatingDragPointerId = null;
+                this.floatingLauncher.releasePointerCapture?.(e.pointerId);
+                document.removeEventListener('pointermove', onPointerMove, true);
+                document.removeEventListener('pointerup', onPointerUp, true);
+                document.removeEventListener('pointercancel', onPointerUp, true);
+                this.saveFloatingLauncherPosition();
+                if (this.floatingDragMoved) {
+                    this.floatingDragEndedAt = Date.now();
+                }
+                this.floatingDragMoved = false;
+            };
+
+            this.floatingLauncher.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0) return;
+                if (this.placement !== 'floating') return;
+                e.preventDefault();
+                e.stopPropagation();
+                this.floatingDragging = true;
+                this.floatingDragPointerId = e.pointerId;
+                this.floatingDragMoved = false;
+                const rect = this.floatingLauncherWrap.getBoundingClientRect();
+                this.floatingDragOffsetX = e.clientX - rect.left;
+                this.floatingDragOffsetY = e.clientY - rect.top;
+                this.floatingLauncher.setPointerCapture?.(e.pointerId);
+                document.addEventListener('pointermove', onPointerMove, true);
+                document.addEventListener('pointerup', onPointerUp, true);
+                document.addEventListener('pointercancel', onPointerUp, true);
+            });
+
+            this.floatingLauncher._bcsDragAttached = true;
         }
 
         applyFloatingPlacement() {
@@ -3070,6 +3192,8 @@
             this.floatingLauncher = null;
             this.floatingLauncherWrap = null;
             this.floatingConfigButton = null;
+            this.floatingDragging = false;
+            this.floatingDragPointerId = null;
 
             if (this.toastTimeouts && this.toastTimeouts.length) {
                 this.toastTimeouts.forEach(id => clearTimeout(id));
