@@ -17,6 +17,13 @@
         return String(value).replace(/\s+/g, ' ').trim();
     };
 
+    const normalizeMessageText = (value) => {
+        const text = normalizeText(value);
+        if (!text) return '';
+        if (text.toLowerCase() === 'enter') return '';
+        return text.replace(/(\s+Enter)+$/i, '').trim();
+    };
+
     const getOtherPersonNameFromDom = () => {
         try {
             const headingTitle = document.querySelector('h2 span[title]') ||
@@ -144,7 +151,7 @@
     };
 
     const buildMessageFromItem = (item, thread) => {
-        const text = normalizeText(item?.text || item?.message || '');
+        const text = normalizeMessageText(item?.text || item?.message || '');
         if (!text) return null;
 
         const isOutgoing = typeof item?.is_sent_by_viewer === 'boolean'
@@ -292,13 +299,13 @@
             candidates.forEach(el => {
                 if (!el) return;
                 if (el.querySelector && el.querySelector('span[dir="auto"], div[dir="auto"]')) return;
-                const text = normalizeText(el.textContent || '');
+                const text = normalizeMessageText(el.textContent || '');
                 if (!text) return;
                 if (this.isSystemText(text)) return;
                 textParts.push(text);
             });
 
-            const text = normalizeText(textParts.join(' '));
+            const text = normalizeMessageText(textParts.join(' '));
             if (!text) return null;
 
             const { direction } = this.resolveDomDirection(node, containerRect);
