@@ -195,8 +195,10 @@
             const cfg = this.getResponseLengthConfig(responseLength);
             const lastMessages = messages.slice(-25);
             const mapped = lastMessages.map((msg, idx) => {
-                const inboundName = msg.sender || otherPersonName || 'OUTRA PESSOA';
-                const dir = msg.direction === 'out' ? 'EU' : inboundName;
+                const senderName = msg.sender && !['Outro', 'OUTRA PESSOA'].includes(msg.sender)
+                    ? msg.sender
+                    : (otherPersonName || 'OUTRA PESSOA');
+                const dir = msg.direction === 'out' ? 'EU' : senderName;
                 return `${idx + 1}. ${dir}: ${msg.text}`;
             }).join('\n');
 
