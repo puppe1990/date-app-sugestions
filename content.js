@@ -20,7 +20,43 @@
         const host = (location.hostname || '').toLowerCase();
         if (host === 'tinder.com' || host.endsWith('.tinder.com')) return 'tinder';
         if (host === 'web.whatsapp.com') return 'whatsapp';
+        if (host === 'www.instagram.com' || host.endsWith('.instagram.com')) return 'instagram';
         return 'badoo';
+    };
+
+    const isDebugEnabled = () => {
+        try {
+            const domFlag = document.documentElement?.dataset?.bcsDebug;
+            return Boolean(window.badooChatSuggestionsDebug || domFlag === '1' || domFlag === 'true');
+        } catch (e) {
+            return Boolean(window.badooChatSuggestionsDebug);
+        }
+    };
+
+    const initDebugObserver = () => {
+        try {
+            const root = document.documentElement;
+            if (!root || root.__bcsDebugObserverAttached) return;
+            root.__bcsDebugObserverAttached = true;
+
+            const updateFlag = () => {
+                const debug = isDebugEnabled();
+                window.badooChatSuggestionsDebug = debug;
+                root.dataset.bcsDebugActive = debug ? '1' : '0';
+            };
+
+            updateFlag();
+            new MutationObserver((mutations) => {
+                for (const mutation of mutations) {
+                    if (mutation.type === 'attributes' && mutation.attributeName === 'data-bcs-debug') {
+                        updateFlag();
+                        break;
+                    }
+                }
+            }).observe(root, { attributes: true });
+        } catch (e) {
+            // Ignora
+        }
     };
 
     const isMessagesUrlForPlatform = (platform, url) => {
@@ -29,9 +65,10 @@
             const path = parsed.pathname || '';
             if (platform === 'tinder') return path.startsWith('/app/messages');
             if (platform === 'whatsapp') return true;
+            if (platform === 'instagram') return path.startsWith('/direct/');
             return path.startsWith('/messages');
         } catch (e) {
-            return url.includes('/messages/');
+            return url.includes('/messages/') || url.includes('/direct/');
         }
     };
 
@@ -120,11 +157,11 @@
         });
     };
 
-	    const PLATFORM_DEFAULTS = {
+	        const PLATFORM_DEFAULTS = {
 	        whatsapp: {
 	            chatContainerSelector: '#main',
 	            inputSelector: '#main footer [contenteditable=\"true\"][data-lexical-editor=\"true\"], #main footer [role=\"textbox\"][contenteditable=\"true\"], #main footer [contenteditable=\"true\"], #main footer [contenteditable=\"true\"][data-tab], #main footer [role=\"textbox\"], #main > footer > div.x1n2onr6.xhtitgo.x9f619.x78zum5.x1q0g3np.xuk3077.xjbqb8w.x1wiwyrm.xquzyny.xvc5jky.x11t971q.xnpuxes.copyable-area > div > span > div > div > div [contenteditable=\"true\"]',
-	            uiPlacement: 'overlay',
+	            uiPlacement: 'floating',
 	            otherPersonNameSelector: '#pane-side [role="row"][aria-selected="true"] span[title], #pane-side [aria-selected="true"] span[title], #main header span[title], header span[title], #pane-side > div:nth-child(2) > div > div > div:nth-child(1) > div > div > div > div._ak8l._ap1_ > div._ak8o > div._ak8q > div > div > span',
 	            profileContainerSelector: '#main header',
 	            messageReaderConfig: {
@@ -196,6 +233,39 @@
 	                }
 	            }
 	        },
+	        instagram: {
+	            chatContainerSelector: 'main [role="log"], main',
+	            inputSelector: 'main form textarea, main form [contenteditable="true"], main [role="textbox"][contenteditable="true"], main [contenteditable="true"][role="textbox"], div[contenteditable="true"][role="textbox"], div[contenteditable="true"]',
+	            uiPlacement: 'overlay',
+	            profileContainerSelector: 'main header, header',
+	            otherPersonNameSelector: 'h2 span[title], main header span[title], header span[title], header h1, header h2, header [dir="auto"]',
+	            messageReaderFactory: () => window.BadooChatSuggestions?.createInstagramMessageReader?.({
+	                domReaderConfig: {
+	                    messageSelector: 'div[role="listitem"]',
+	                    textSelector: 'span[dir="auto"], div[dir="auto"]',
+	                    senderSelector: null,
+	                    allowTextContentFallback: true,
+	                    textResolver: (node) => {
+	                        try {
+	                            const textEl = node.querySelector('span[dir="auto"], div[dir="auto"]');
+	                            if (textEl && textEl.textContent) return textEl.textContent;
+	                        } catch (e) {
+	                            // Ignora
+	                        }
+	                        return '';
+	                    },
+	                    directionResolver: (node) => {
+	                        try {
+	                            const rect = node.getBoundingClientRect();
+	                            const mid = rect.left + rect.width / 2;
+	                            return mid > (window.innerWidth / 2) ? 'out' : 'in';
+	                        } catch (e) {
+	                            return '';
+	                        }
+	                    }
+	                }
+	            })
+	        },
 	        badoo: {
 	            chatContainerSelector: '.csms-chat-messages',
 	            inputSelector: '#chat-composer-input-message',
@@ -262,6 +332,10 @@
             return;
         }
 
+        initDebugObserver();
+        const debug = isDebugEnabled();
+        window.badooChatSuggestionsDebug = debug;
+
         const platform = detectChatPlatform();
         console.info('[Chat Suggestions] Platform detectada', {
             platform,
@@ -276,9 +350,15 @@
             ...platformDefaults,
             ...(window.badooChatSuggestionsConfig || {})
         };
-        const messageReader = config.messageReaderConfig
-            ? new window.BadooChatSuggestions.MessageReader(config.messageReaderConfig)
-            : config.messageReader;
+        let messageReader = null;
+        if (typeof config.messageReaderFactory === 'function') {
+            messageReader = config.messageReaderFactory();
+        }
+        if (!messageReader) {
+            messageReader = config.messageReaderConfig
+                ? new window.BadooChatSuggestions.MessageReader(config.messageReaderConfig)
+                : config.messageReader;
+        }
         const provider = config.llmProvider || defaultProvider;
         const apiKey = provider === 'gemini'
             ? (config.geminiApiKey || envKeys.geminiKey)
@@ -316,7 +396,7 @@
 	            platform,
 	            messageReader,
 	            aiClientConfig,
-	            debug: window.badooChatSuggestionsDebug
+	            debug
 	        });
 
         window.chatSuggestionsInstance = controller;

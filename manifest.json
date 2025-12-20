@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Chat Suggestions",
-  "version": "1.0.0",
+  "version": "1.1.2",
   "description": "Adds intelligent text suggestions based on the conversation context",
   "action": {
     "default_popup": "popup.html",
@@ -15,6 +15,7 @@
     "https://badoo.com/*",
     "https://tinder.com/*",
     "https://web.whatsapp.com/*",
+    "https://www.instagram.com/*",
     "https://openrouter.ai/*",
     "https://generativelanguage.googleapis.com/*"
   ],
@@ -23,11 +24,13 @@
       "matches": [
         "https://badoo.com/messages/*",
         "https://tinder.com/app/messages/*",
-        "https://web.whatsapp.com/*"
+        "https://web.whatsapp.com/*",
+        "https://www.instagram.com/direct/*"
       ],
       "js": [
         "src/constants/keywords.js",
         "src/context/message-reader.js",
+        "src/context/instagram-message-reader.js",
         "src/context/context-extractor.js",
         "src/storage/context-store.js",
         "src/core/ai-client.js",
@@ -44,7 +47,8 @@
     {
       "resources": [
         ".env",
-        "suggestions-library-example.json"
+        "suggestions-library-example.json",
+        "suggestions-library.json"
       ],
       "matches": [
         "<all_urls>"

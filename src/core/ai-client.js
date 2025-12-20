@@ -195,7 +195,8 @@
             const cfg = this.getResponseLengthConfig(responseLength);
             const lastMessages = messages.slice(-25);
             const mapped = lastMessages.map((msg, idx) => {
-                const dir = msg.direction === 'out' ? 'EU' : (otherPersonName || 'OUTRA PESSOA');
+                const inboundName = msg.sender || otherPersonName || 'OUTRA PESSOA';
+                const dir = msg.direction === 'out' ? 'EU' : inboundName;
                 return `${idx + 1}. ${dir}: ${msg.text}`;
             }).join('\n');
 
