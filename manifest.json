@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Chat Suggestions",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "Adds intelligent text suggestions based on the conversation context",
   "action": {
     "default_popup": "popup.html",
@@ -31,6 +31,11 @@
         "src/constants/keywords.js",
         "src/context/message-reader.js",
         "src/context/instagram-message-reader.js",
+        "src/platforms/platform-registry.js",
+        "src/platforms/badoo.js",
+        "src/platforms/tinder.js",
+        "src/platforms/whatsapp.js",
+        "src/platforms/instagram.js",
         "src/context/context-extractor.js",
         "src/storage/context-store.js",
         "src/core/ai-client.js",
