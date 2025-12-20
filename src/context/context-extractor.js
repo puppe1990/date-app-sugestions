@@ -3,8 +3,8 @@
         constructor({ debug = false, messageReader } = {}) {
             this.debug = debug;
             this.messageReader = messageReader ||
-                window.BadooChatSuggestions.createDefaultMessageReader?.() ||
-                window.BadooChatSuggestions.createBadooMessageReader();
+                window.ChatSuggestions.createDefaultMessageReader?.() ||
+                window.ChatSuggestions.createBadooMessageReader();
         }
 
         extract(chatContainer, { fullHistory = false } = {}) {
@@ -13,7 +13,7 @@
                 return null;
             }
 
-            const { TOPIC_KEYWORDS } = window.BadooChatSuggestions.constants;
+            const { TOPIC_KEYWORDS } = window.ChatSuggestions.constants;
             const messages = this.messageReader.read(chatContainer);
             const context = {
                 allMessages: [],
@@ -81,7 +81,7 @@
         }
 
         extractMentionedPlaces(text, places) {
-            const { PLACE_PATTERNS, SPECIFIC_PLACES } = window.BadooChatSuggestions.constants;
+            const { PLACE_PATTERNS, SPECIFIC_PLACES } = window.ChatSuggestions.constants;
             const lowerText = text.toLowerCase();
 
             PLACE_PATTERNS.forEach(pattern => {
@@ -105,7 +105,7 @@
         }
 
         extractMentionedJobs(text, jobs) {
-            const { JOB_PATTERNS, SPECIFIC_JOBS } = window.BadooChatSuggestions.constants;
+            const { JOB_PATTERNS, SPECIFIC_JOBS } = window.ChatSuggestions.constants;
             const lowerText = text.toLowerCase();
 
             JOB_PATTERNS.forEach(pattern => {
@@ -129,7 +129,7 @@
         }
 
         extractMentionedHobbies(text, hobbies) {
-            const { HOBBY_KEYWORDS } = window.BadooChatSuggestions.constants;
+            const { HOBBY_KEYWORDS } = window.ChatSuggestions.constants;
             const lowerText = text.toLowerCase();
             HOBBY_KEYWORDS.forEach(keyword => {
                 if (lowerText.includes(keyword) && !hobbies.includes(keyword)) {
@@ -156,6 +156,6 @@
         }
     }
 
-    window.BadooChatSuggestions = window.BadooChatSuggestions || {};
-    window.BadooChatSuggestions.ContextExtractor = ContextExtractor;
+    window.ChatSuggestions = window.ChatSuggestions || {};
+    window.ChatSuggestions.ContextExtractor = ContextExtractor;
 })();

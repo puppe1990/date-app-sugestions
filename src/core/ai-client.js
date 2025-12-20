@@ -288,6 +288,6 @@
         }
     }
 
-    window.BadooChatSuggestions = window.BadooChatSuggestions || {};
-    window.BadooChatSuggestions.AIClient = AIClient;
+    window.ChatSuggestions = window.ChatSuggestions || {};
+    window.ChatSuggestions.AIClient = AIClient;
 })();

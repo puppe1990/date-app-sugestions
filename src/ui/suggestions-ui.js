@@ -1121,7 +1121,7 @@
             const looksLikeWhatsAppFooter = selectorText.includes('#main') && selectorText.includes('footer');
             const allowGlobalFallback = !looksLikeWhatsAppFooter;
             const selectors = allowGlobalFallback
-                ? [this.inputSelector, ...(window.BadooChatSuggestions?.constants?.INPUT_SELECTORS || [])]
+                ? [this.inputSelector, ...(window.ChatSuggestions?.constants?.INPUT_SELECTORS || [])]
                 : [this.inputSelector];
 
             const pickCandidate = (nodes) => {
@@ -2528,7 +2528,7 @@
         }
 
         getLibraryData() {
-            const lib = window.BadooChatSuggestions?.constants?.SUGGESTION_LIBRARY;
+            const lib = window.ChatSuggestions?.constants?.SUGGESTION_LIBRARY;
             if (Array.isArray(lib) && lib.length) return lib;
             return [];
         }
@@ -3034,7 +3034,7 @@
         }
 
         insertSuggestion(text) {
-            const selectors = [this.inputSelector, ...window.BadooChatSuggestions.constants.INPUT_SELECTORS];
+            const selectors = [this.inputSelector, ...window.ChatSuggestions.constants.INPUT_SELECTORS];
             let input = null;
             for (const selector of selectors) {
                 input = document.querySelector(selector);
@@ -3233,6 +3233,6 @@
         }
     }
 
-    window.BadooChatSuggestions = window.BadooChatSuggestions || {};
-    window.BadooChatSuggestions.SuggestionsUI = SuggestionsUI;
+    window.ChatSuggestions = window.ChatSuggestions || {};
+    window.ChatSuggestions.SuggestionsUI = SuggestionsUI;
 })();

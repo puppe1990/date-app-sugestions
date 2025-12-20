@@ -1,5 +1,5 @@
 (() => {
-    const root = window.BadooChatSuggestions = window.BadooChatSuggestions || {};
+    const root = window.ChatSuggestions = window.ChatSuggestions || {};
     const registry = root.PlatformRegistry;
     if (!registry || typeof registry.register !== 'function') return;
 

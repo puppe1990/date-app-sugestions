@@ -1,5 +1,5 @@
 (() => {
-    const root = window.BadooChatSuggestions = window.BadooChatSuggestions || {};
+    const root = window.ChatSuggestions = window.ChatSuggestions || {};
     const registry = root.PlatformRegistry;
     if (!registry || typeof registry.register !== 'function') return;
 
@@ -9,7 +9,7 @@
         uiPlacement: 'overlay',
         profileContainerSelector: 'main header, header',
         otherPersonNameSelector: 'h2 span[title], main header span[title], header span[title], header h1, header h2, header [dir="auto"]',
-        messageReaderFactory: () => window.BadooChatSuggestions?.createInstagramMessageReader?.({
+        messageReaderFactory: () => window.ChatSuggestions?.createInstagramMessageReader?.({
             domReaderConfig: {
                 messageSelector: 'div[role="listitem"]',
                 textSelector: 'span[dir="auto"], div[dir="auto"]',

@@ -4,13 +4,13 @@
 
     window.__bcsInstagramReaderLoaded = true;
 
-    const state = window.BadooChatSuggestionsInstagramState || {
+    const state = window.ChatSuggestionsInstagramState || {
         threads: [],
         lastThreadId: '',
         lastMessages: [],
         lastUpdatedAt: 0
     };
-    window.BadooChatSuggestionsInstagramState = state;
+    window.ChatSuggestionsInstagramState = state;
 
     const normalizeText = (value) => {
         if (!value) return '';
@@ -237,7 +237,7 @@
 
     class InstagramMessageReader {
         constructor({ domReaderConfig = {} } = {}) {
-            this.domReader = new window.BadooChatSuggestions.MessageReader({
+            this.domReader = new window.ChatSuggestions.MessageReader({
                 allowTextContentFallback: true,
                 ...domReaderConfig
             });
@@ -421,7 +421,7 @@
         return new InstagramMessageReader(options);
     }
 
-    window.BadooChatSuggestions = window.BadooChatSuggestions || {};
-    window.BadooChatSuggestions.InstagramMessageReader = InstagramMessageReader;
-    window.BadooChatSuggestions.createInstagramMessageReader = createInstagramMessageReader;
+    window.ChatSuggestions = window.ChatSuggestions || {};
+    window.ChatSuggestions.InstagramMessageReader = InstagramMessageReader;
+    window.ChatSuggestions.createInstagramMessageReader = createInstagramMessageReader;
 })();

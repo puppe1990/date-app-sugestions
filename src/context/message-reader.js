@@ -118,8 +118,8 @@
         return new MessageReader();
     }
 
-    window.BadooChatSuggestions = window.BadooChatSuggestions || {};
-    window.BadooChatSuggestions.MessageReader = MessageReader;
-    window.BadooChatSuggestions.createDefaultMessageReader = createDefaultMessageReader;
-    window.BadooChatSuggestions.createBadooMessageReader = createDefaultMessageReader;
+    window.ChatSuggestions = window.ChatSuggestions || {};
+    window.ChatSuggestions.MessageReader = MessageReader;
+    window.ChatSuggestions.createDefaultMessageReader = createDefaultMessageReader;
+    window.ChatSuggestions.createBadooMessageReader = createDefaultMessageReader;
 })();

@@ -21,8 +21,8 @@ class ChatSuggestionsController {
             this.otherPersonNameSelector = otherPersonNameSelector;
             this.platform = platform;
             this.messageReader = messageReader ||
-                window.BadooChatSuggestions.createDefaultMessageReader?.() ||
-                window.BadooChatSuggestions.createBadooMessageReader();
+                window.ChatSuggestions.createDefaultMessageReader?.() ||
+                window.ChatSuggestions.createBadooMessageReader();
             this.messageSelector = messageSelector ||
                 (this.messageReader && this.messageReader.config && this.messageReader.config.messageSelector) ||
                 '[data-qa="chat-message"]';
@@ -76,14 +76,14 @@ class ChatSuggestionsController {
                 console.log('[Chat Suggestions] Inicializando...');
             }
 
-            this.contextExtractor = new window.BadooChatSuggestions.ContextExtractor({
+            this.contextExtractor = new window.ChatSuggestions.ContextExtractor({
                 debug: this.debug,
                 messageReader: this.messageReader
             });
-            this.contextStore = new window.BadooChatSuggestions.ContextStore({ debug: this.debug });
+            this.contextStore = new window.ChatSuggestions.ContextStore({ debug: this.debug });
             this.aiClient = this.aiClient || this.createAIClient();
-            this.suggestionEngine = new window.BadooChatSuggestions.SuggestionEngine({ debug: this.debug });
-            this.ui = new window.BadooChatSuggestions.SuggestionsUI({
+            this.suggestionEngine = new window.ChatSuggestions.SuggestionEngine({ debug: this.debug });
+            this.ui = new window.ChatSuggestions.SuggestionsUI({
                 inputSelector: this.inputSelector,
                 placement: this.uiPlacement,
                 responseLength: this.aiClientConfig?.responseLength || 'short',
@@ -685,12 +685,12 @@ class ChatSuggestionsController {
                 return null;
             }
 
-            if (!window.BadooChatSuggestions.AIClient) {
+            if (!window.ChatSuggestions.AIClient) {
                 this.info('AIClient não disponível');
                 return null;
             }
 
-            return new window.BadooChatSuggestions.AIClient({ apiKey, model, profile, provider, responseLength });
+            return new window.ChatSuggestions.AIClient({ apiKey, model, profile, provider, responseLength });
         }
 
         setAIResponseLength(responseLength) {
@@ -981,6 +981,6 @@ class ChatSuggestionsController {
         }
     }
 
-    window.BadooChatSuggestions = window.BadooChatSuggestions || {};
-    window.BadooChatSuggestions.ChatSuggestionsController = ChatSuggestionsController;
+    window.ChatSuggestions = window.ChatSuggestions || {};
+    window.ChatSuggestions.ChatSuggestionsController = ChatSuggestionsController;
 })();

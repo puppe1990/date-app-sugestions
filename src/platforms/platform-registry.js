@@ -1,5 +1,5 @@
 (() => {
-    const root = window.BadooChatSuggestions = window.BadooChatSuggestions || {};
+    const root = window.ChatSuggestions = window.ChatSuggestions || {};
     const registry = {};
 
     const register = (platform, defaults) => {

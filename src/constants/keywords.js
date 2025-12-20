@@ -1,4 +1,12 @@
 (() => {
+    const root = window.ChatSuggestions = window.ChatSuggestions || {};
+    if (!window.BadooChatSuggestions) {
+        window.BadooChatSuggestions = root;
+    }
+    if (!window.ChatSuggestionsConfig && window.badooChatSuggestionsConfig) {
+        window.ChatSuggestionsConfig = window.badooChatSuggestionsConfig;
+    }
+
     const TOPIC_KEYWORDS = {
         trabalho: [
             'trabalho', 'trabalha', 'trabalho com', 'trabalho na', 'trabalho no', 'trabalho em',
@@ -235,9 +243,9 @@
     };
 
     const loadSuggestionLibraryJson = async () => {
-        const configUrl = window.badooChatSuggestionsConfig?.suggestionLibraryUrl ||
+        const configUrl = window.ChatSuggestionsConfig?.suggestionLibraryUrl ||
             window.chatSuggestionsConfig?.suggestionLibraryUrl ||
-            window.BadooChatSuggestionsConfig?.suggestionLibraryUrl;
+            window.badooChatSuggestionsConfig?.suggestionLibraryUrl;
 
         const candidates = [];
         if (configUrl) candidates.push(configUrl);
@@ -261,7 +269,7 @@
                 const json = await res.json();
                 const normalized = normalizeLibrary(json);
                 if (normalized) {
-                    window.BadooChatSuggestions.constants.SUGGESTION_LIBRARY = normalized;
+                    window.ChatSuggestions.constants.SUGGESTION_LIBRARY = normalized;
                     console.info('[Chat Suggestions] Biblioteca carregada', { url, sections: normalized.length });
                     return;
                 }
@@ -271,8 +279,7 @@
         }
     };
 
-    window.BadooChatSuggestions = window.BadooChatSuggestions || {};
-    window.BadooChatSuggestions.constants = {
+    root.constants = {
         TOPIC_KEYWORDS,
         PLACE_PATTERNS,
         SPECIFIC_PLACES,
@@ -285,5 +292,5 @@
 
     loadSuggestionLibraryJson();
 
-    window.BadooChatSuggestions.loadSuggestionLibraryJson = loadSuggestionLibraryJson;
+    root.loadSuggestionLibraryJson = loadSuggestionLibraryJson;
 })();

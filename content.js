@@ -158,7 +158,7 @@
     };
 
     const getPlatformDefaults = (platform) => {
-        const registry = window.BadooChatSuggestions?.PlatformRegistry;
+        const registry = window.ChatSuggestions?.PlatformRegistry;
         const defaults = registry?.getDefaults?.(platform);
         if (defaults) return defaults;
         return registry?.getDefaults?.('badoo') || {};
@@ -234,7 +234,7 @@
         const config = {
             ...stored,
             ...platformDefaults,
-            ...(window.badooChatSuggestionsConfig || {})
+            ...(window.ChatSuggestionsConfig || window.badooChatSuggestionsConfig || {})
         };
         let messageReader = null;
         if (typeof config.messageReaderFactory === 'function') {
@@ -242,7 +242,7 @@
         }
         if (!messageReader) {
             messageReader = config.messageReaderConfig
-                ? new window.BadooChatSuggestions.MessageReader(config.messageReaderConfig)
+                ? new window.ChatSuggestions.MessageReader(config.messageReaderConfig)
                 : config.messageReader;
         }
         const provider = config.llmProvider || defaultProvider;
@@ -272,7 +272,7 @@
             inputSelector: config.inputSelector || '#chat-composer-input-message'
         });
 
-	        const controller = new window.BadooChatSuggestions.ChatSuggestionsController({
+	        const controller = new window.ChatSuggestions.ChatSuggestionsController({
 	            chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
 	            inputSelector: config.inputSelector || '#chat-composer-input-message',
 	            messageSelector: config.messageReaderConfig?.messageSelector,

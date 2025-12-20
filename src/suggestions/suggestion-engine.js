@@ -322,7 +322,7 @@
             const mentionsWork = text.match(/\b(pedágio|pedagio|loja|porcelanato|trabalho|trabalha|faz o que|profissão)\b/i);
             const asksLocation = text.includes('onde') || text.includes('mora') || text.includes('bairro') || text.includes('zona') || text.includes('cidade');
             const isReverseQuestion = text.includes('e vc') || text.includes('e você');
-            const hobbyKeywords = window.BadooChatSuggestions.constants.HOBBY_KEYWORDS || [];
+            const hobbyKeywords = window.ChatSuggestions.constants.HOBBY_KEYWORDS || [];
             const mentionsHobby = hobbyKeywords.some(keyword => normalizedText.includes(keyword.normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
             const myHobbies = (context.mentionedHobbies || []).filter(Boolean);
             const myHobbiesJoined = myHobbies.slice(0, 3).join(', ');
@@ -520,7 +520,7 @@
         }
 
         hasTopicBeenDiscussed(context, topic) {
-            const keywords = window.BadooChatSuggestions.constants.TOPIC_KEYWORDS[topic] || [];
+            const keywords = window.ChatSuggestions.constants.TOPIC_KEYWORDS[topic] || [];
             if (keywords.length === 0) return false;
 
             let hasQuestion = false;
@@ -554,6 +554,6 @@
         }
     }
 
-    window.BadooChatSuggestions = window.BadooChatSuggestions || {};
-    window.BadooChatSuggestions.SuggestionEngine = SuggestionEngine;
+    window.ChatSuggestions = window.ChatSuggestions || {};
+    window.ChatSuggestions.SuggestionEngine = SuggestionEngine;
 })();

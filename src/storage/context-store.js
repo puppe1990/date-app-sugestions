@@ -74,6 +74,6 @@
         }
     }
 
-    window.BadooChatSuggestions = window.BadooChatSuggestions || {};
-    window.BadooChatSuggestions.ContextStore = ContextStore;
+    window.ChatSuggestions = window.ChatSuggestions || {};
+    window.ChatSuggestions.ContextStore = ContextStore;
 })();
