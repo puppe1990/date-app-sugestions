@@ -636,10 +636,44 @@ class ChatSuggestionsController {
             return text.length > MAX ? `${text.slice(0, MAX)}…` : text;
         }
 
+        buildConversationCopyText({ maxMessages = 40, maxChars = 2400 } = {}) {
+            if (!this.contextExtractor || !this.chatContainer) return '';
+            const context = this.contextExtractor.extract(this.chatContainer, { fullHistory: true });
+            const messages = context?.allMessages?.length ? context.allMessages : (context?.lastMessages || []);
+            if (!messages.length) return '';
+
+            const otherPersonName = this.extractOtherPersonName();
+            const entries = messages.slice(-maxMessages).map((msg) => {
+                const text = String(msg?.text || '').trim();
+                if (!text) return null;
+                const senderName = msg.sender && !['Outro', 'OUTRA PESSOA'].includes(msg.sender)
+                    ? msg.sender
+                    : (otherPersonName || 'OUTRA PESSOA');
+                const dir = msg.direction === 'out' ? 'EU' : senderName;
+                return { dir, text };
+            }).filter(Boolean);
+
+            if (!entries.length) return '';
+
+            const render = (items) => items.map((entry, index) => (
+                `${index + 1}. ${entry.dir}: ${entry.text}`
+            )).join('\n');
+
+            let startIndex = 0;
+            let joined = render(entries);
+            while (joined.length > maxChars && startIndex < entries.length - 1) {
+                startIndex += 1;
+                joined = render(entries.slice(startIndex));
+            }
+
+            return joined.trim();
+        }
+
         async copyOtherPersonProfileToClipboard() {
             try {
                 const profileText = this.extractProfileText();
-                if (!profileText) {
+                const conversationText = this.buildConversationCopyText();
+                if (!profileText && !conversationText) {
                     if (this.platform === 'badoo') {
                         this.waitForBadooProfilePortalAndCache({ timeoutMs: 2500 });
                     }
@@ -651,15 +685,24 @@ class ChatSuggestionsController {
                     };
                 }
 
+                const parts = [];
+                if (profileText) {
+                    parts.push(`Perfil da outra pessoa:\n${profileText}`);
+                }
+                if (conversationText) {
+                    parts.push(`Conversa:\n${conversationText}`);
+                }
+                const payload = parts.join('\n\n').trim();
+
                 const ok = this.ui && typeof this.ui.copyToClipboard === 'function'
-                    ? await this.ui.copyToClipboard(profileText)
+                    ? await this.ui.copyToClipboard(payload)
                     : false;
 
                 if (!ok) {
                     return { ok: false, message: 'Não foi possível copiar' };
                 }
 
-                return { ok: true, message: 'Perfil copiado!' };
+                return { ok: true, message: conversationText ? 'Perfil e conversa copiados!' : 'Perfil copiado!' };
             } catch (e) {
                 return { ok: false, message: 'Não foi possível copiar' };
             }
