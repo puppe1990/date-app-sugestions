@@ -106,6 +106,12 @@
         }
 
         getSender(node, direction) {
+            if (typeof this.config.senderResolver === 'function') {
+                const resolved = this.config.senderResolver(node, direction);
+                if (resolved && String(resolved).trim()) {
+                    return String(resolved).trim();
+                }
+            }
             const senderElement = this.config.senderSelector ? node.querySelector(this.config.senderSelector) : null;
             if (senderElement && senderElement.textContent) {
                 return senderElement.textContent;
