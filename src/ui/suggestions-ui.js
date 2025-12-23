@@ -317,10 +317,6 @@
                     .chat-suggestions-container.bcs-floating-panel {
                         position: fixed !important;
                         z-index: 2147483647 !important;
-                        right: 72px !important;
-                        top: 50% !important;
-                        transform: translateY(-50%) !important;
-                        width: 340px !important;
                         max-width: calc(100vw - 110px) !important;
                         max-height: 70vh !important;
                         overflow: auto !important;
@@ -1011,6 +1007,9 @@
             const container = this.getContainer();
             if (container) {
                 container.style.display = this.floatingOpen ? 'flex' : 'none';
+                if (this.floatingOpen) {
+                    this.applyFloatingPlacement();
+                }
             }
 
             if (this.floatingLauncher) {
@@ -1090,6 +1089,9 @@
                     top: clampedTop
                 };
                 this.applyFloatingLauncherPosition();
+                if (this.floatingOpen) {
+                    this.applyFloatingPlacement();
+                }
             };
 
             const onPointerUp = (e) => {
@@ -1136,16 +1138,66 @@
             container.classList.add('bcs-floating-panel');
             container.style.position = 'fixed';
             container.style.zIndex = '2147483647';
-            container.style.left = '';
-            container.style.bottom = '';
-            container.style.right = '72px';
-            container.style.top = '50%';
-            container.style.transform = 'translateY(-50%)';
-            container.style.width = '340px';
             container.style.maxWidth = 'calc(100vw - 110px)';
             container.style.maxHeight = '70vh';
             container.style.overflow = 'auto';
             container.style.flexWrap = 'wrap';
+
+            const launcher = this.floatingLauncherWrap || this.floatingLauncher;
+            let launcherRect = null;
+            try {
+                if (launcher && launcher.getBoundingClientRect) {
+                    launcherRect = launcher.getBoundingClientRect();
+                }
+            } catch (e) {
+                launcherRect = null;
+            }
+
+            const viewportWidth = window.innerWidth || 0;
+            const viewportHeight = window.innerHeight || 0;
+            const maxPanelWidth = Math.max(220, viewportWidth - 110);
+            const panelWidth = Math.min(340, maxPanelWidth);
+            container.style.width = `${Math.max(220, Math.round(panelWidth))}px`;
+
+            const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+            if (!launcherRect || !launcherRect.width || !launcherRect.height) {
+                container.style.left = '';
+                container.style.bottom = '';
+                container.style.right = '72px';
+                container.style.top = '50%';
+                container.style.transform = 'translateY(-50%)';
+                return;
+            }
+
+            const containerRect = container.getBoundingClientRect();
+            const panelHeight = containerRect.height || Math.min(360, viewportHeight * 0.7);
+            const gap = 12;
+            const spaceLeft = launcherRect.left;
+            const spaceRight = viewportWidth - launcherRect.right;
+            let nextLeft = spaceRight >= panelWidth + gap
+                ? launcherRect.right + gap
+                : launcherRect.left - panelWidth - gap;
+
+            if (spaceRight < panelWidth + gap && spaceLeft < panelWidth + gap) {
+                nextLeft = spaceRight >= spaceLeft
+                    ? launcherRect.right + gap
+                    : launcherRect.left - panelWidth - gap;
+            }
+
+            const minLeft = 8;
+            const maxLeft = Math.max(minLeft, viewportWidth - panelWidth - 8);
+            const nextTop = clamp(
+                launcherRect.top + (launcherRect.height / 2) - (panelHeight / 2),
+                8,
+                Math.max(8, viewportHeight - panelHeight - 8)
+            );
+
+            container.style.left = `${Math.round(clamp(nextLeft, minLeft, maxLeft))}px`;
+            container.style.top = `${Math.round(nextTop)}px`;
+            container.style.right = 'auto';
+            container.style.bottom = 'auto';
+            container.style.transform = 'none';
         }
 
         findInputElement() {
