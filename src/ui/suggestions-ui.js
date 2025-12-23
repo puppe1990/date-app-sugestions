@@ -51,7 +51,8 @@
             getContactContextMeta,
             onContactContextSave,
             onContactContextClear,
-            onCopyOtherPersonProfile
+            onCopyOtherPersonProfile,
+            conversationMode = 'casual'
         } = {}) {
             this.inputSelector = inputSelector || '#chat-composer-input-message';
             this.placement = placement || 'inline';
@@ -132,6 +133,13 @@
             this.configProfileTextarea = null;
             this.configPlacementSelect = null;
             this.configResponseLengthSelect = null;
+            this.configConversationModeSelect = null;
+            this.configBusinessFieldsWrap = null;
+            this.configBusinessContextTextarea = null;
+            this.configBusinessToneSelect = null;
+            this.configProfileByMode = { casual: '', business: '' };
+            this.configCurrentMode = 'casual';
+            this.conversationMode = conversationMode === 'business' ? 'business' : 'casual';
         }
 
         getContainer() {
@@ -189,6 +197,29 @@
                         --bcs-chip-border: rgba(17, 17, 17, 0.14);
                         --bcs-chip-hover: rgba(17, 17, 17, 0.10);
                         --bcs-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+                        --bcs-accent-rgb: 255, 68, 88;
+                        --bcs-accent-strong-rgb: 125, 54, 255;
+                        --bcs-accent: rgb(var(--bcs-accent-rgb));
+                        --bcs-accent-strong: rgb(var(--bcs-accent-strong-rgb));
+                        --bcs-accent-soft: rgba(var(--bcs-accent-rgb), 0.14);
+                        --bcs-accent-soft-strong: rgba(var(--bcs-accent-strong-rgb), 0.12);
+                        --bcs-accent-border: rgba(var(--bcs-accent-rgb), 0.35);
+                        --bcs-accent-glow: rgba(var(--bcs-accent-rgb), 0.12);
+                        --bcs-accent-glow-strong: rgba(var(--bcs-accent-strong-rgb), 0.14);
+                        --bcs-accent-solid: rgba(var(--bcs-accent-rgb), 0.98);
+                        --bcs-accent-solid-strong: rgba(var(--bcs-accent-strong-rgb), 0.98);
+                        --bcs-accent-solid-dim: rgba(var(--bcs-accent-rgb), 0.92);
+                        --bcs-accent-solid-strong-dim: rgba(var(--bcs-accent-strong-rgb), 0.92);
+                    }
+
+                    :root.bcs-mode-business {
+                        --bcs-accent-rgb: 31, 111, 255;
+                        --bcs-accent-strong-rgb: 25, 181, 166;
+                    }
+
+                    :root.bcs-mode-casual {
+                        --bcs-accent-rgb: 255, 68, 88;
+                        --bcs-accent-strong-rgb: 125, 54, 255;
                     }
 
                     .chat-suggestions-container {
@@ -261,26 +292,26 @@
                     }
 
                     .chat-suggestion-button--active {
-                        background: rgba(255, 68, 88, 0.14);
-                        border-color: rgba(255, 68, 88, 0.35);
+                        background: var(--bcs-accent-soft);
+                        border-color: var(--bcs-accent-border);
                     }
 
                     .chat-suggestion-button--ai {
                         border-color: rgba(127, 127, 127, 0.35);
-                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.15), rgba(125, 54, 255, 0.12));
+                        background: linear-gradient(135deg, rgba(var(--bcs-accent-rgb), 0.15), rgba(var(--bcs-accent-strong-rgb), 0.12));
                     }
 
                     .chat-suggestion-button--ai:hover {
-                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.22), rgba(125, 54, 255, 0.18));
+                        background: linear-gradient(135deg, rgba(var(--bcs-accent-rgb), 0.22), rgba(var(--bcs-accent-strong-rgb), 0.18));
                     }
 
                     .chat-suggestion-button--ai-suggestion {
-                        border-color: rgba(255, 68, 88, 0.35);
-                        background: rgba(255, 68, 88, 0.12);
+                        border-color: var(--bcs-accent-border);
+                        background: rgba(var(--bcs-accent-rgb), 0.12);
                     }
 
                     .chat-suggestion-button--ai-suggestion:hover {
-                        background: rgba(255, 68, 88, 0.18);
+                        background: rgba(var(--bcs-accent-rgb), 0.18);
                     }
 
                     .chat-suggestions-container.bcs-floating-panel {
@@ -320,8 +351,8 @@
                         height: 48px;
                         border-radius: 999px;
                         border: 1px solid rgba(255, 255, 255, 0.30);
-                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.98), rgba(125, 54, 255, 0.98));
-                        box-shadow: 0 16px 46px rgba(0, 0, 0, 0.25), 0 0 0 6px rgba(255, 68, 88, 0.12);
+                        background: linear-gradient(135deg, var(--bcs-accent-solid), var(--bcs-accent-solid-strong));
+                        box-shadow: 0 16px 46px rgba(0, 0, 0, 0.25), 0 0 0 6px var(--bcs-accent-glow);
                         color: #fff;
                         cursor: pointer;
                         display: inline-flex;
@@ -346,23 +377,23 @@
                     }
 
                     .bcs-floating-launcher:hover {
-                        box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28), 0 0 0 7px rgba(125, 54, 255, 0.14);
+                        box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28), 0 0 0 7px var(--bcs-accent-glow-strong);
                     }
 
                     .bcs-floating-launcher.bcs-theme-dark {
                         border-color: rgba(255, 255, 255, 0.28);
-                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.92), rgba(125, 54, 255, 0.92));
+                        background: linear-gradient(135deg, var(--bcs-accent-solid-dim), var(--bcs-accent-solid-strong-dim));
                         color: rgba(255, 255, 255, 0.96);
-                        box-shadow: 0 20px 62px rgba(0, 0, 0, 0.55), 0 0 0 6px rgba(255, 68, 88, 0.12);
+                        box-shadow: 0 20px 62px rgba(0, 0, 0, 0.55), 0 0 0 6px var(--bcs-accent-glow);
                     }
 
                     .bcs-floating-launcher.bcs-theme-dark:hover {
-                        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62), 0 0 0 7px rgba(125, 54, 255, 0.14);
+                        box-shadow: 0 24px 70px rgba(0, 0, 0, 0.62), 0 0 0 7px var(--bcs-accent-glow-strong);
                     }
 
                     .bcs-floating-launcher.bcs-floating-launcher--active {
                         border-color: rgba(255, 255, 255, 0.55);
-                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.30), 0 0 0 8px rgba(255, 68, 88, 0.18);
+                        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.30), 0 0 0 8px rgba(var(--bcs-accent-rgb), 0.18);
                     }
 
                     .bcs-floating-config {
@@ -413,7 +444,7 @@
                         padding: 10px 12px;
                         border-radius: 14px;
                         border: 1px solid rgba(255, 255, 255, 0.28);
-                        background: linear-gradient(135deg, rgba(255, 68, 88, 0.98), rgba(125, 54, 255, 0.98));
+                        background: linear-gradient(135deg, var(--bcs-accent-solid), var(--bcs-accent-solid-strong));
                         box-shadow: 0 16px 46px rgba(0, 0, 0, 0.25);
                         color: #fff;
                         font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -648,8 +679,8 @@
                     }
 
                     .bcs-modal__btn--primary {
-                        background: #ff4458;
-                        border-color: #ff4458;
+                        background: var(--bcs-accent);
+                        border-color: var(--bcs-accent);
                         color: #fff;
                     }
 
@@ -714,6 +745,7 @@
 
         mount() {
             const container = this.getContainer();
+            this.applyConversationModeTheme(this.conversationMode);
             const inserted = this.tryInsert(container);
             if (!this.domObserver) {
                 this.attachDomObserver();
@@ -2110,6 +2142,65 @@
             profileTextarea.placeholder = 'Ex.: Tenho 32 anos, moro em SP, gosto de treinar e café. Prefiro respostas curtas e respeitosas.';
             body.appendChild(profileTextarea);
 
+            const modeTitle = document.createElement('div');
+            modeTitle.className = 'bcs-modal__section-title';
+            modeTitle.textContent = 'Modo de conversa';
+            body.appendChild(modeTitle);
+
+            const conversationModeLabel = document.createElement('label');
+            conversationModeLabel.className = 'bcs-modal__label';
+            conversationModeLabel.textContent = 'Modo';
+            body.appendChild(conversationModeLabel);
+
+            const conversationModeSelect = document.createElement('select');
+            conversationModeSelect.className = 'bcs-modal__select';
+            [
+                { value: 'casual', label: 'Casual (padrão)' },
+                { value: 'business', label: 'Negócios e vendas' }
+            ].forEach((item) => {
+                const option = document.createElement('option');
+                option.value = item.value;
+                option.textContent = item.label;
+                conversationModeSelect.appendChild(option);
+            });
+            body.appendChild(conversationModeSelect);
+
+            const businessFieldsWrap = document.createElement('div');
+            businessFieldsWrap.className = 'bcs-hidden';
+
+            const businessContextLabel = document.createElement('label');
+            businessContextLabel.className = 'bcs-modal__label';
+            businessContextLabel.textContent = 'O que você está vendendo';
+            businessFieldsWrap.appendChild(businessContextLabel);
+
+            const businessContextTextarea = document.createElement('textarea');
+            businessContextTextarea.className = 'bcs-modal__textarea';
+            businessContextTextarea.placeholder = 'Ex.: Consultoria de tráfego pago para pequenas empresas.';
+            businessContextTextarea.style.minHeight = '90px';
+            businessFieldsWrap.appendChild(businessContextTextarea);
+
+            const businessToneLabel = document.createElement('label');
+            businessToneLabel.className = 'bcs-modal__label';
+            businessToneLabel.textContent = 'Tom das respostas';
+            businessFieldsWrap.appendChild(businessToneLabel);
+
+            const businessToneSelect = document.createElement('select');
+            businessToneSelect.className = 'bcs-modal__select';
+            [
+                { value: 'consultivo', label: 'Consultivo' },
+                { value: 'direto', label: 'Direto' },
+                { value: 'persuasivo', label: 'Persuasivo' },
+                { value: 'amigavel', label: 'Amigável' },
+                { value: 'premium', label: 'Premium' }
+            ].forEach((item) => {
+                const option = document.createElement('option');
+                option.value = item.value;
+                option.textContent = item.label;
+                businessToneSelect.appendChild(option);
+            });
+            businessFieldsWrap.appendChild(businessToneSelect);
+            body.appendChild(businessFieldsWrap);
+
             const note = document.createElement('div');
             note.className = 'bcs-modal__note';
             note.textContent = 'As chaves ficam salvas localmente (chrome.storage).';
@@ -2148,6 +2239,22 @@
                 this.toggleConfigSections(providerSelect.value);
             });
 
+            conversationModeSelect.addEventListener('change', () => {
+                if (this.configProfileTextarea) {
+                    this.configProfileByMode[this.configCurrentMode] = String(this.configProfileTextarea.value || '').trim();
+                }
+                this.configCurrentMode = conversationModeSelect.value || 'casual';
+                if (this.configProfileTextarea) {
+                    this.configProfileTextarea.value = this.configProfileByMode[this.configCurrentMode] || '';
+                }
+                this.toggleBusinessModeFields(this.configCurrentMode);
+                this.applyConversationModeTheme(this.configCurrentMode);
+            });
+
+            profileTextarea.addEventListener('input', (e) => {
+                this.configProfileByMode[this.configCurrentMode] = e.target.value;
+            });
+
             this.boundConfigKeydown = (e) => {
                 if (e.key === 'Escape') {
                     this.closeConfigModal();
@@ -2168,6 +2275,10 @@
             this.configProfileTextarea = profileTextarea;
             this.configPlacementSelect = placementSelect;
             this.configResponseLengthSelect = responseSelect;
+            this.configConversationModeSelect = conversationModeSelect;
+            this.configBusinessFieldsWrap = businessFieldsWrap;
+            this.configBusinessContextTextarea = businessContextTextarea;
+            this.configBusinessToneSelect = businessToneSelect;
         }
 
         toggleConfigSections(provider) {
@@ -2180,16 +2291,36 @@
             }
         }
 
+        toggleBusinessModeFields(mode) {
+            if (!this.configBusinessFieldsWrap) return;
+            const show = mode === 'business';
+            this.configBusinessFieldsWrap.classList.toggle('bcs-hidden', !show);
+        }
+
+        applyConversationModeTheme(mode) {
+            const nextMode = mode === 'business' ? 'business' : 'casual';
+            this.conversationMode = nextMode;
+            const root = document.documentElement;
+            if (!root) return;
+            root.classList.toggle('bcs-mode-business', nextMode === 'business');
+            root.classList.toggle('bcs-mode-casual', nextMode !== 'business');
+        }
+
         async loadStoredConfig() {
             const fallback = {
                 llmProvider: DEFAULT_PROVIDER,
                 openRouterModel: DEFAULT_OPENROUTER_MODEL,
                 openRouterApiKey: '',
                 openRouterProfile: '',
+                openRouterProfileCasual: '',
+                openRouterProfileBusiness: '',
                 geminiApiKey: '',
                 geminiModel: DEFAULT_GEMINI_MODEL,
                 uiPlacementOverride: 'auto',
-                aiResponseLength: this.selectedResponseLength || 'short'
+                aiResponseLength: this.selectedResponseLength || 'short',
+                businessModeEnabled: false,
+                businessContext: '',
+                businessTone: 'consultivo'
             };
 
             if (!chrome?.storage?.local) {
@@ -2202,20 +2333,30 @@
                     'openRouterModel',
                     'openRouterApiKey',
                     'openRouterProfile',
+                    'openRouterProfileCasual',
+                    'openRouterProfileBusiness',
                     'geminiApiKey',
                     'geminiModel',
                     'uiPlacementOverride',
-                    'aiResponseLength'
+                    'aiResponseLength',
+                    'businessModeEnabled',
+                    'businessContext',
+                    'businessTone'
                 ], (result) => {
                     resolve({
                         llmProvider: result.llmProvider || fallback.llmProvider,
                         openRouterModel: result.openRouterModel || fallback.openRouterModel,
                         openRouterApiKey: result.openRouterApiKey || fallback.openRouterApiKey,
                         openRouterProfile: result.openRouterProfile || fallback.openRouterProfile,
+                        openRouterProfileCasual: result.openRouterProfileCasual || result.openRouterProfile || fallback.openRouterProfileCasual,
+                        openRouterProfileBusiness: result.openRouterProfileBusiness || fallback.openRouterProfileBusiness,
                         geminiApiKey: result.geminiApiKey || fallback.geminiApiKey,
                         geminiModel: result.geminiModel || fallback.geminiModel,
                         uiPlacementOverride: result.uiPlacementOverride || fallback.uiPlacementOverride,
-                        aiResponseLength: result.aiResponseLength || fallback.aiResponseLength
+                        aiResponseLength: result.aiResponseLength || fallback.aiResponseLength,
+                        businessModeEnabled: Boolean(result.businessModeEnabled),
+                        businessContext: result.businessContext || fallback.businessContext,
+                        businessTone: result.businessTone || fallback.businessTone
                     });
                 });
             });
@@ -2246,7 +2387,11 @@
                 this.configGeminiKeyInput.value = config.geminiApiKey || '';
             }
             if (this.configProfileTextarea) {
-                this.configProfileTextarea.value = config.openRouterProfile || '';
+                const casualProfile = config.openRouterProfileCasual || '';
+                const businessProfile = config.openRouterProfileBusiness || '';
+                this.configProfileByMode = { casual: casualProfile, business: businessProfile };
+                this.configCurrentMode = config.businessModeEnabled ? 'business' : 'casual';
+                this.configProfileTextarea.value = this.configProfileByMode[this.configCurrentMode] || '';
             }
             if (this.configPlacementSelect) {
                 this.configPlacementSelect.value = config.uiPlacementOverride || 'auto';
@@ -2254,7 +2399,18 @@
             if (this.configResponseLengthSelect) {
                 this.configResponseLengthSelect.value = config.aiResponseLength || 'short';
             }
+            if (this.configConversationModeSelect) {
+                this.configConversationModeSelect.value = this.configCurrentMode;
+            }
+            if (this.configBusinessContextTextarea) {
+                this.configBusinessContextTextarea.value = config.businessContext || '';
+            }
+            if (this.configBusinessToneSelect) {
+                this.configBusinessToneSelect.value = config.businessTone || 'consultivo';
+            }
             this.toggleConfigSections(provider);
+            this.toggleBusinessModeFields(config.businessModeEnabled ? 'business' : 'casual');
+            this.applyConversationModeTheme(this.configCurrentMode);
         }
 
         async openConfigModal() {
@@ -2306,17 +2462,36 @@
             const aiResponseLength = this.configResponseLengthSelect
                 ? (this.configResponseLengthSelect.value || 'short')
                 : 'short';
+            const conversationMode = this.configConversationModeSelect
+                ? (this.configConversationModeSelect.value || 'casual')
+                : 'casual';
+            const businessModeEnabled = conversationMode === 'business';
+            const businessContext = this.configBusinessContextTextarea
+                ? String(this.configBusinessContextTextarea.value || '').trim()
+                : '';
+            const businessTone = this.configBusinessToneSelect
+                ? (this.configBusinessToneSelect.value || 'consultivo')
+                : 'consultivo';
+            this.configProfileByMode[this.configCurrentMode] = profile;
+            const profileCasual = this.configProfileByMode.casual || '';
+            const profileBusiness = this.configProfileByMode.business || '';
 
             const payload = {
                 llmProvider: provider,
                 openRouterModel,
                 openRouterApiKey,
-                openRouterProfile: profile,
+                openRouterProfile: profileCasual,
+                openRouterProfileCasual: profileCasual,
+                openRouterProfileBusiness: profileBusiness,
                 geminiApiKey,
                 geminiModel,
                 uiPlacementOverride,
-                aiResponseLength
+                aiResponseLength,
+                businessModeEnabled,
+                businessContext,
+                businessTone
             };
+            this.applyConversationModeTheme(conversationMode);
 
             try {
                 window.badooChatSuggestionsConfig = window.badooChatSuggestionsConfig || {};

@@ -51,6 +51,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const geminiKeyInput = document.getElementById('geminiKeyInput');
   const uiPlacementSelect = document.getElementById('uiPlacementSelect');
   const responseLengthSelect = document.getElementById('responseLengthSelect');
+  const conversationModeSelect = document.getElementById('conversationModeSelect');
+  const businessModeFields = document.getElementById('businessModeFields');
+  const businessContextInput = document.getElementById('businessContextInput');
+  const businessToneSelect = document.getElementById('businessToneSelect');
+  let currentConversationMode = 'casual';
+  const profileByMode = { casual: '', business: '' };
 
   OPENROUTER_MODELS.forEach((model, index) => {
     const option = document.createElement('option');
@@ -66,15 +72,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     geminiModelSelect.appendChild(option);
   });
 
-  chrome.storage.local.get(['openRouterModel', 'openRouterApiKey', 'openRouterProfile', 'llmProvider', 'geminiApiKey', 'geminiModel', 'uiPlacementOverride', 'aiResponseLength'], (result) => {
+  chrome.storage.local.get([
+    'openRouterModel',
+    'openRouterApiKey',
+    'openRouterProfile',
+    'openRouterProfileCasual',
+    'openRouterProfileBusiness',
+    'llmProvider',
+    'geminiApiKey',
+    'geminiModel',
+    'uiPlacementOverride',
+    'aiResponseLength',
+    'businessModeEnabled',
+    'businessContext',
+    'businessTone'
+  ], (result) => {
     const storedModel = result.openRouterModel;
     const storedKey = result.openRouterApiKey;
-    const storedProfile = result.openRouterProfile;
+    const storedProfileLegacy = result.openRouterProfile;
+    const storedProfileCasual = result.openRouterProfileCasual || storedProfileLegacy || '';
+    const storedProfileBusiness = result.openRouterProfileBusiness || '';
     const storedProvider = result.llmProvider || DEFAULT_PROVIDER;
     const storedGeminiKey = result.geminiApiKey;
     const storedGeminiModel = result.geminiModel;
     const storedUiPlacementOverride = result.uiPlacementOverride || 'auto';
     const storedAiResponseLength = result.aiResponseLength || 'short';
+    const storedBusinessModeEnabled = Boolean(result.businessModeEnabled);
+    const storedBusinessContext = result.businessContext;
+    const storedBusinessTone = result.businessTone || 'consultivo';
+    profileByMode.casual = storedProfileCasual;
+    profileByMode.business = storedProfileBusiness;
+    currentConversationMode = storedBusinessModeEnabled ? 'business' : 'casual';
 
     providerSelect.value = storedProvider;
 
@@ -94,9 +122,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       geminiModelSelect.value = DEFAULT_GEMINI_MODEL;
     }
-    if (storedProfile) {
-      profileInput.value = storedProfile;
-    }
+    profileInput.value = profileByMode[currentConversationMode] || '';
 
     if (uiPlacementSelect) {
       uiPlacementSelect.value = storedUiPlacementOverride;
@@ -106,7 +132,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       responseLengthSelect.value = storedAiResponseLength;
     }
 
+    if (conversationModeSelect) {
+      conversationModeSelect.value = currentConversationMode;
+    }
+
+    if (businessContextInput && storedBusinessContext) {
+      businessContextInput.value = storedBusinessContext;
+    }
+
+    if (businessToneSelect) {
+      businessToneSelect.value = storedBusinessTone;
+    }
+
     toggleSections(storedProvider);
+    toggleBusinessFields(currentConversationMode);
+    applyPopupModeTheme(currentConversationMode);
   });
 
   saveBtn.addEventListener('click', () => {
@@ -115,27 +155,61 @@ document.addEventListener('DOMContentLoaded', async () => {
     const apiKey = apiKeyInput.value.trim();
     const geminiApiKey = geminiKeyInput.value.trim();
     const geminiModel = geminiModelSelect.value || DEFAULT_GEMINI_MODEL;
-    const profile = profileInput.value.trim();
+    profileByMode[currentConversationMode] = profileInput.value.trim();
+    const profileCasual = profileByMode.casual || '';
+    const profileBusiness = profileByMode.business || '';
     const uiPlacementOverride = uiPlacementSelect ? (uiPlacementSelect.value || 'auto') : 'auto';
     const aiResponseLength = responseLengthSelect ? (responseLengthSelect.value || 'short') : 'short';
+    const conversationMode = conversationModeSelect ? (conversationModeSelect.value || 'casual') : 'casual';
+    const businessModeEnabled = conversationMode === 'business';
+    const businessContext = businessContextInput ? businessContextInput.value.trim() : '';
+    const businessTone = businessToneSelect ? (businessToneSelect.value || 'consultivo') : 'consultivo';
     chrome.storage.local.set({
       llmProvider: provider,
       openRouterModel: chosen,
       openRouterApiKey: apiKey,
-      openRouterProfile: profile,
+      openRouterProfile: profileCasual,
+      openRouterProfileCasual: profileCasual,
+      openRouterProfileBusiness: profileBusiness,
       geminiApiKey,
       geminiModel,
       uiPlacementOverride,
-      aiResponseLength
+      aiResponseLength,
+      businessModeEnabled,
+      businessContext,
+      businessTone
     }, () => {
       saveBtn.textContent = 'Salvo!';
       setTimeout(() => (saveBtn.textContent = 'Salvar'), 1200);
+      notifyActiveTabModeChange({
+        businessModeEnabled,
+        businessContext,
+        businessTone,
+        profileCasual,
+        profileBusiness
+      });
     });
   });
 
   providerSelect.addEventListener('change', (e) => {
     toggleSections(e.target.value);
   });
+
+  if (conversationModeSelect) {
+    conversationModeSelect.addEventListener('change', (e) => {
+      profileByMode[currentConversationMode] = profileInput.value.trim();
+      currentConversationMode = e.target.value || 'casual';
+      profileInput.value = profileByMode[currentConversationMode] || '';
+      toggleBusinessFields(currentConversationMode);
+      applyPopupModeTheme(currentConversationMode);
+    });
+  }
+
+  if (profileInput) {
+    profileInput.addEventListener('input', (e) => {
+      profileByMode[currentConversationMode] = e.target.value;
+    });
+  }
 
   function toggleSections(provider) {
     if (provider === 'gemini') {
@@ -145,5 +219,31 @@ document.addEventListener('DOMContentLoaded', async () => {
       geminiSection.classList.add('hidden');
       openrouterSection.classList.remove('hidden');
     }
+  }
+
+  function toggleBusinessFields(mode) {
+    if (!businessModeFields) return;
+    businessModeFields.classList.toggle('hidden', mode !== 'business');
+  }
+
+  function applyPopupModeTheme(mode) {
+    const root = document.documentElement;
+    if (!root) return;
+    const isBusiness = mode === 'business';
+    root.classList.toggle('bcs-mode-business', isBusiness);
+    root.classList.toggle('bcs-mode-casual', !isBusiness);
+  }
+
+  function notifyActiveTabModeChange(payload) {
+    if (!chrome?.tabs?.query) return;
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tabId = tabs && tabs[0] ? tabs[0].id : null;
+      if (!tabId) return;
+      try {
+        chrome.tabs.sendMessage(tabId, { type: 'bcs:modeUpdated', payload });
+      } catch (e) {
+        // Ignora falhas de envio
+      }
+    });
   }
 });

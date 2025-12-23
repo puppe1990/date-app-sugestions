@@ -6,7 +6,10 @@
             endpoint = 'https://openrouter.ai/api/v1/chat/completions',
             provider = 'gemini',
             profile = null,
-            responseLength = 'short'
+            responseLength = 'short',
+            businessModeEnabled = false,
+            businessContext = '',
+            businessTone = 'consultivo'
         } = {}) {
             this.apiKey = apiKey;
             this.model = model;
@@ -15,6 +18,9 @@
             this.profile = profile;
             this.otherPersonProfile = null;
             this.responseLength = responseLength || 'short';
+            this.businessModeEnabled = Boolean(businessModeEnabled);
+            this.businessContext = businessContext || '';
+            this.businessTone = businessTone || 'consultivo';
         }
 
         getResponseLengthConfig(responseLength) {
@@ -44,12 +50,29 @@
             const profileLine = this.profile ? `\nContexto sobre o usuário:\n${this.profile}` : '';
             const otherPersonProfileLine = this.otherPersonProfile ? `\nContexto sobre a outra pessoa (perfil):\n${this.otherPersonProfile}` : '';
             const cfg = this.getResponseLengthConfig(responseLength);
+            const businessContextLine = (this.businessModeEnabled && this.businessContext)
+                ? `\nContexto do que estou vendendo:\n${this.businessContext}`
+                : '';
+            const businessToneLabel = this.getBusinessToneLabel(this.businessTone);
+            const baseLines = this.businessModeEnabled
+                ? [
+                    'Você é um assistente que gera respostas curtas e naturais para conversa comercial e vendas no WhatsApp, em português do Brasil.',
+                    `Gere sugestões em primeira pessoa, tom ${businessToneLabel}, tamanho ${cfg.label} (máx ${cfg.maxChars} caracteres por sugestão).`,
+                    'Seja consultivo(a), educado(a) e avance a conversa com perguntas úteis. Evite pressão.',
+                    'Quando fizer sentido, sugira próximo passo (ex.: tirar dúvidas, enviar catálogo, agendar).',
+                    'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
+                    'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.'
+                ]
+                : [
+                    'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil.',
+                    `Gere sugestões em primeira pessoa, tom leve, tamanho ${cfg.label} (máx ${cfg.maxChars} caracteres por sugestão).`,
+                    'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
+                    'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.'
+                ];
             return [
-                'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil.',
-                `Gere sugestões em primeira pessoa, tom leve, tamanho ${cfg.label} (máx ${cfg.maxChars} caracteres por sugestão).`,
-                'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
-                'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.',
+                ...baseLines,
                 profileLine,
+                businessContextLine,
                 otherPersonProfileLine
             ].filter(Boolean).join('\n');
         }
@@ -212,6 +235,12 @@
             const otherPersonProfileLine = otherPersonProfile ? `\nPerfil da outra pessoa:\n${otherPersonProfile}` : '';
             const otherPersonContextLine = otherPersonContextNote ? `\nContexto adicional (anotações):\n${otherPersonContextNote}` : '';
             const otherPersonLine = otherPersonName ? `\nNome da outra pessoa: ${otherPersonName}` : '';
+            const businessContextLine = (this.businessModeEnabled && this.businessContext)
+                ? `\nContexto da oferta:\n${this.businessContext}`
+                : '';
+            const businessToneLine = this.businessModeEnabled
+                ? `\nTom desejado: ${this.getBusinessToneLabel(this.businessTone)}.`
+                : '';
             const focusLine = pendingMessage
                 ? `\nMensagem pendente da outra pessoa: "${pendingMessage.text}". Responda a isso diretamente, sem cumprimentar.`
                 : 'Nenhuma mensagem pendente; continue a conversa com um follow-up natural (sem cumprimentar nem repetir perguntas).';
@@ -223,6 +252,8 @@
                 'Não cumprimente de novo se já houve cumprimento. Não repita perguntas já feitas. Evite respostas genéricas.',
                 'Responda APENAS com JSON válido: {"suggestions":["resposta1","resposta2",...]} sem texto extra, sem markdown, sem texto antes/depois. Não inclua saudações a menos que a última mensagem peça. Assim que fechar o JSON, pare.',
                 profileLine,
+                businessContextLine,
+                businessToneLine,
                 otherPersonProfileLine,
                 otherPersonContextLine,
                 otherPersonLine,
@@ -231,6 +262,18 @@
                 '\nHistórico:',
                 mapped
             ].filter(Boolean).join('\n');
+        }
+
+        getBusinessToneLabel(tone) {
+            const value = String(tone || '').toLowerCase();
+            const map = {
+                consultivo: 'consultivo',
+                direto: 'direto',
+                persuasivo: 'persuasivo',
+                amigavel: 'amigável',
+                premium: 'premium'
+            };
+            return map[value] || map.consultivo;
         }
 
         extractSuggestions(text) {

@@ -17,6 +17,13 @@
       --bcs-radius: 14px;
     }
 
+    :root.bcs-mode-business {
+      --bcs-bg: #f2f8ff;
+      --bcs-bg-alt: #e8f7f4;
+      --bcs-accent: #1f6fff;
+      --bcs-accent-strong: #19b5a6;
+    }
+
     * {
       box-sizing: border-box;
     }
@@ -193,6 +200,27 @@
         <option value="medium">Média</option>
         <option value="long">Longa</option>
       </select>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Modo de conversa</div>
+      <label for="conversationModeSelect">Modo:</label>
+      <select id="conversationModeSelect">
+        <option value="casual">Casual (padrão)</option>
+        <option value="business">Negócios e vendas</option>
+      </select>
+      <div id="businessModeFields" class="hidden">
+        <label for="businessContextInput">O que você está vendendo:</label>
+        <textarea id="businessContextInput" rows="3" placeholder="Ex.: Consultoria de tráfego pago para pequenas empresas."></textarea>
+        <label for="businessToneSelect">Tom das respostas:</label>
+        <select id="businessToneSelect">
+          <option value="consultivo">Consultivo</option>
+          <option value="direto">Direto</option>
+          <option value="persuasivo">Persuasivo</option>
+          <option value="amigavel">Amigável</option>
+          <option value="premium">Premium</option>
+        </select>
+      </div>
     </div>
 
     <div class="card">

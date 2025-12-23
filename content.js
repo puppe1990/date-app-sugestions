@@ -175,20 +175,30 @@
                 'openRouterModel',
                 'openRouterApiKey',
                 'openRouterProfile',
+                'openRouterProfileCasual',
+                'openRouterProfileBusiness',
                 'geminiApiKey',
                 'geminiModel',
                 'uiPlacementOverride',
-                'aiResponseLength'
+                'aiResponseLength',
+                'businessModeEnabled',
+                'businessContext',
+                'businessTone'
             ], (result) => {
                 resolve({
                     llmProvider: result.llmProvider || defaultProvider,
                     openRouterModel: result.openRouterModel || defaultOpenRouterModel,
                     openRouterApiKey: result.openRouterApiKey,
                     openRouterProfile: result.openRouterProfile,
+                    openRouterProfileCasual: result.openRouterProfileCasual || result.openRouterProfile || '',
+                    openRouterProfileBusiness: result.openRouterProfileBusiness || '',
                     geminiApiKey: result.geminiApiKey,
                     geminiModel: result.geminiModel || defaultGeminiModel,
                     uiPlacementOverride: result.uiPlacementOverride || 'auto',
-                    aiResponseLength: result.aiResponseLength || 'short'
+                    aiResponseLength: result.aiResponseLength || 'short',
+                    businessModeEnabled: Boolean(result.businessModeEnabled),
+                    businessContext: result.businessContext || '',
+                    businessTone: result.businessTone || 'consultivo'
                 });
             });
         });
@@ -253,12 +263,18 @@
             ? (config.geminiModel || defaultGeminiModel)
             : (config.openRouterModel || defaultOpenRouterModel);
 
+        const profileByMode = config.businessModeEnabled
+            ? config.openRouterProfileBusiness
+            : config.openRouterProfileCasual;
         const aiClientConfig = {
             provider,
             apiKey,
             model,
-            profile: config.openRouterProfile,
-            responseLength: config.aiResponseLength || 'short'
+            profile: profileByMode || '',
+            responseLength: config.aiResponseLength || 'short',
+            businessModeEnabled: Boolean(config.businessModeEnabled),
+            businessContext: config.businessContext || '',
+            businessTone: config.businessTone || 'consultivo'
         };
 
         let effectiveUiPlacement = config.uiPlacement;
@@ -296,9 +312,31 @@
         }
     };
 
+    const attachRuntimeListeners = () => {
+        if (!chrome?.runtime?.onMessage) return;
+        chrome.runtime.onMessage.addListener((message) => {
+            if (!message || message.type !== 'bcs:modeUpdated') return;
+            const payload = message.payload || {};
+            const instance = window.chatSuggestionsInstance || window.badooChatSuggestionsInstance;
+            if (instance && typeof instance.updateBusinessModeConfig === 'function') {
+                instance.updateBusinessModeConfig({
+                    businessModeEnabled: Boolean(payload.businessModeEnabled),
+                    businessContext: payload.businessContext || '',
+                    businessTone: payload.businessTone || 'consultivo',
+                    profileCasual: payload.profileCasual || '',
+                    profileBusiness: payload.profileBusiness || ''
+                });
+            }
+        });
+    };
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', start);
+        document.addEventListener('DOMContentLoaded', () => {
+            attachRuntimeListeners();
+            start();
+        });
     } else {
+        attachRuntimeListeners();
         start();
     }
 

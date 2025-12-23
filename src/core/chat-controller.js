@@ -51,6 +51,7 @@ class ChatSuggestionsController {
             this.currentContactKey = '';
             this.currentContactName = '';
             this.currentContactContextText = '';
+            this.boundStorageChange = null;
         }
 
         init() {
@@ -87,6 +88,7 @@ class ChatSuggestionsController {
                 inputSelector: this.inputSelector,
                 placement: this.uiPlacement,
                 responseLength: this.aiClientConfig?.responseLength || 'short',
+                conversationMode: this.aiClientConfig?.businessModeEnabled ? 'business' : 'casual',
                 onAiGenerate: (opts) => this.openAIPromptModal(opts),
                 onAiCopyPrompt: (opts) => this.buildAIPrompts(opts),
                 onResponseLengthChange: ({ responseLength }) => this.setAIResponseLength(responseLength),
@@ -108,6 +110,7 @@ class ChatSuggestionsController {
             this.setupObservers();
             this.setupPlatformObservers();
             this.setupProfileCapture();
+            this.attachConfigListener();
 
             if (this.debug) {
                 console.log('[Chat Suggestions] Inicializado com sucesso!');
@@ -722,6 +725,12 @@ class ChatSuggestionsController {
             const responseLength = this.aiClientConfig.responseLength ||
                 (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.aiResponseLength) ||
                 'short';
+            const businessModeEnabled = this.aiClientConfig.businessModeEnabled ??
+                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.businessModeEnabled);
+            const businessContext = this.aiClientConfig.businessContext ||
+                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.businessContext);
+            const businessTone = this.aiClientConfig.businessTone ||
+                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.businessTone);
 
             if (!apiKey) {
                 this.info('OpenRouter não configurado; botão de IA ficará inativo');
@@ -733,7 +742,16 @@ class ChatSuggestionsController {
                 return null;
             }
 
-            return new window.ChatSuggestions.AIClient({ apiKey, model, profile, provider, responseLength });
+            return new window.ChatSuggestions.AIClient({
+                apiKey,
+                model,
+                profile,
+                provider,
+                responseLength,
+                businessModeEnabled: Boolean(businessModeEnabled),
+                businessContext: businessContext || '',
+                businessTone: businessTone || 'consultivo'
+            });
         }
 
         setAIResponseLength(responseLength) {
@@ -1009,10 +1027,78 @@ class ChatSuggestionsController {
                 this.ui = null;
             }
 
+            if (this.boundStorageChange && chrome?.storage?.onChanged) {
+                chrome.storage.onChanged.removeListener(this.boundStorageChange);
+                this.boundStorageChange = null;
+            }
+
             this.chatContainer = null;
             this.contextExtractor = null;
             this.suggestionEngine = null;
             this.lastMessageCount = 0;
+        }
+
+        attachConfigListener() {
+            if (!chrome?.storage?.onChanged || this.boundStorageChange) return;
+            this.boundStorageChange = (changes, areaName) => {
+                if (areaName !== 'local') return;
+                const watched = new Set([
+                    'businessModeEnabled',
+                    'businessContext',
+                    'businessTone',
+                    'openRouterProfileCasual',
+                    'openRouterProfileBusiness'
+                ]);
+                const shouldRefresh = Object.keys(changes || {}).some((key) => watched.has(key));
+                if (!shouldRefresh) return;
+                this.refreshBusinessModeFromStorage();
+            };
+            chrome.storage.onChanged.addListener(this.boundStorageChange);
+        }
+
+        refreshBusinessModeFromStorage() {
+            if (!chrome?.storage?.local) return;
+            chrome.storage.local.get([
+                'businessModeEnabled',
+                'businessContext',
+                'businessTone',
+                'openRouterProfileCasual',
+                'openRouterProfileBusiness'
+            ], (result) => {
+                const businessModeEnabled = Boolean(result.businessModeEnabled);
+                const businessContext = result.businessContext || '';
+                const businessTone = result.businessTone || 'consultivo';
+                const profileCasual = result.openRouterProfileCasual || '';
+                const profileBusiness = result.openRouterProfileBusiness || '';
+                this.updateBusinessModeConfig({
+                    businessModeEnabled,
+                    businessContext,
+                    businessTone,
+                    profileCasual,
+                    profileBusiness
+                });
+            });
+        }
+
+        updateBusinessModeConfig({ businessModeEnabled, businessContext, businessTone, profileCasual, profileBusiness }) {
+            const mode = businessModeEnabled ? 'business' : 'casual';
+            const profile = mode === 'business' ? profileBusiness : profileCasual;
+            this.aiClientConfig = this.aiClientConfig || {};
+            this.aiClientConfig.businessModeEnabled = Boolean(businessModeEnabled);
+            this.aiClientConfig.businessContext = businessContext || '';
+            this.aiClientConfig.businessTone = businessTone || 'consultivo';
+            this.aiClientConfig.profile = profile || '';
+
+            if (this.aiClient) {
+                this.aiClient.businessModeEnabled = Boolean(businessModeEnabled);
+                this.aiClient.businessContext = businessContext || '';
+                this.aiClient.businessTone = businessTone || 'consultivo';
+                this.aiClient.profile = profile || '';
+            }
+
+            if (this.ui && typeof this.ui.applyConversationModeTheme === 'function') {
+                this.ui.applyConversationModeTheme(mode);
+            }
         }
 
         info(message, data) {
