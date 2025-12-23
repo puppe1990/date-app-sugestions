@@ -2368,7 +2368,7 @@
                 openRouterProfileBusiness: '',
                 geminiApiKey: '',
                 geminiModel: DEFAULT_GEMINI_MODEL,
-                uiPlacementOverride: 'auto',
+                uiPlacementOverride: 'floating',
                 aiResponseLength: this.selectedResponseLength || 'short',
                 businessModeEnabled: false,
                 businessContext: '',
@@ -2446,7 +2446,7 @@
                 this.configProfileTextarea.value = this.configProfileByMode[this.configCurrentMode] || '';
             }
             if (this.configPlacementSelect) {
-                this.configPlacementSelect.value = config.uiPlacementOverride || 'auto';
+                this.configPlacementSelect.value = config.uiPlacementOverride || 'floating';
             }
             if (this.configResponseLengthSelect) {
                 this.configResponseLengthSelect.value = config.aiResponseLength || 'short';
@@ -2509,8 +2509,8 @@
                 ? String(this.configProfileTextarea.value || '').trim()
                 : '';
             const uiPlacementOverride = this.configPlacementSelect
-                ? (this.configPlacementSelect.value || 'auto')
-                : 'auto';
+                ? (this.configPlacementSelect.value || 'floating')
+                : 'floating';
             const aiResponseLength = this.configResponseLengthSelect
                 ? (this.configResponseLengthSelect.value || 'short')
                 : 'short';

@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const storedProvider = result.llmProvider || DEFAULT_PROVIDER;
     const storedGeminiKey = result.geminiApiKey;
     const storedGeminiModel = result.geminiModel;
-    const storedUiPlacementOverride = result.uiPlacementOverride || 'auto';
+    const storedUiPlacementOverride = result.uiPlacementOverride || 'floating';
     const storedAiResponseLength = result.aiResponseLength || 'short';
     const storedBusinessModeEnabled = Boolean(result.businessModeEnabled);
     const storedBusinessContext = result.businessContext;
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     profileByMode[currentConversationMode] = profileInput.value.trim();
     const profileCasual = profileByMode.casual || '';
     const profileBusiness = profileByMode.business || '';
-    const uiPlacementOverride = uiPlacementSelect ? (uiPlacementSelect.value || 'auto') : 'auto';
+    const uiPlacementOverride = uiPlacementSelect ? (uiPlacementSelect.value || 'floating') : 'floating';
     const aiResponseLength = responseLengthSelect ? (responseLengthSelect.value || 'short') : 'short';
     const conversationMode = conversationModeSelect ? (conversationModeSelect.value || 'casual') : 'casual';
     const businessModeEnabled = conversationMode === 'business';
@@ -240,7 +240,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       const tabId = tabs && tabs[0] ? tabs[0].id : null;
       if (!tabId) return;
       try {
-        chrome.tabs.sendMessage(tabId, { type: 'bcs:modeUpdated', payload });
+        chrome.tabs.sendMessage(tabId, { type: 'bcs:modeUpdated', payload }, () => {
+          if (chrome.runtime?.lastError) {
+            // Nenhum content script ativo na aba.
+          }
+        });
       } catch (e) {
         // Ignora falhas de envio
       }

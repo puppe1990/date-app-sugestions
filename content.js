@@ -194,7 +194,7 @@
                     openRouterProfileBusiness: result.openRouterProfileBusiness || '',
                     geminiApiKey: result.geminiApiKey,
                     geminiModel: result.geminiModel || defaultGeminiModel,
-                    uiPlacementOverride: result.uiPlacementOverride || 'auto',
+                    uiPlacementOverride: result.uiPlacementOverride || 'floating',
                     aiResponseLength: result.aiResponseLength || 'short',
                     businessModeEnabled: Boolean(result.businessModeEnabled),
                     businessContext: result.businessContext || '',
