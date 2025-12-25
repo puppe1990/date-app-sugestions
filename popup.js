@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const businessModeFields = document.getElementById('businessModeFields');
   const businessContextInput = document.getElementById('businessContextInput');
   const businessToneSelect = document.getElementById('businessToneSelect');
+  const activeTabHost = await getActiveTabHost();
   let currentConversationMode = 'casual';
   const profileByMode = { casual: '', business: '' };
 
@@ -84,6 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     'uiPlacementOverride',
     'aiResponseLength',
     'businessModeEnabled',
+    'businessModeByHost',
     'businessContext',
     'businessTone'
   ], (result) => {
@@ -98,11 +100,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const storedUiPlacementOverride = result.uiPlacementOverride || 'floating';
     const storedAiResponseLength = result.aiResponseLength || 'short';
     const storedBusinessModeEnabled = Boolean(result.businessModeEnabled);
+    const storedBusinessModeByHost = result.businessModeByHost || {};
+    const hostMode = activeTabHost ? storedBusinessModeByHost[activeTabHost] : undefined;
     const storedBusinessContext = result.businessContext;
     const storedBusinessTone = result.businessTone || 'consultivo';
     profileByMode.casual = storedProfileCasual;
     profileByMode.business = storedProfileBusiness;
-    currentConversationMode = storedBusinessModeEnabled ? 'business' : 'casual';
+    if (typeof hostMode === 'boolean') {
+      currentConversationMode = hostMode ? 'business' : 'casual';
+    } else {
+      currentConversationMode = storedBusinessModeEnabled ? 'business' : 'casual';
+    }
 
     providerSelect.value = storedProvider;
 
@@ -164,7 +172,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const businessModeEnabled = conversationMode === 'business';
     const businessContext = businessContextInput ? businessContextInput.value.trim() : '';
     const businessTone = businessToneSelect ? (businessToneSelect.value || 'consultivo') : 'consultivo';
-    chrome.storage.local.set({
+    const payload = {
       llmProvider: provider,
       openRouterModel: chosen,
       openRouterApiKey: apiKey,
@@ -178,17 +186,39 @@ document.addEventListener('DOMContentLoaded', async () => {
       businessModeEnabled,
       businessContext,
       businessTone
-    }, () => {
-      saveBtn.textContent = 'Salvo!';
-      setTimeout(() => (saveBtn.textContent = 'Salvar'), 1200);
-      notifyActiveTabModeChange({
-        businessModeEnabled,
-        businessContext,
-        businessTone,
-        profileCasual,
-        profileBusiness
+    };
+    if (activeTabHost) {
+      chrome.storage.local.get(['businessModeByHost'], (result) => {
+        const byHost = { ...(result.businessModeByHost || {}) };
+        byHost[activeTabHost] = businessModeEnabled;
+        chrome.storage.local.set({
+          ...payload,
+          businessModeByHost: byHost
+        }, () => {
+          saveBtn.textContent = 'Salvo!';
+          setTimeout(() => (saveBtn.textContent = 'Salvar'), 1200);
+          notifyActiveTabModeChange({
+            businessModeEnabled,
+            businessContext,
+            businessTone,
+            profileCasual,
+            profileBusiness
+          });
+        });
       });
-    });
+    } else {
+      chrome.storage.local.set(payload, () => {
+        saveBtn.textContent = 'Salvo!';
+        setTimeout(() => (saveBtn.textContent = 'Salvar'), 1200);
+        notifyActiveTabModeChange({
+          businessModeEnabled,
+          businessContext,
+          businessTone,
+          profileCasual,
+          profileBusiness
+        });
+      });
+    }
   });
 
   providerSelect.addEventListener('change', (e) => {
@@ -248,6 +278,25 @@ document.addEventListener('DOMContentLoaded', async () => {
       } catch (e) {
         // Ignora falhas de envio
       }
+    });
+  }
+
+  function getActiveTabHost() {
+    if (!chrome?.tabs?.query) return Promise.resolve('');
+    return new Promise((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const url = tabs && tabs[0] ? tabs[0].url : '';
+        if (!url) {
+          resolve('');
+          return;
+        }
+        try {
+          const host = new URL(url).hostname.toLowerCase();
+          resolve(host);
+        } catch (e) {
+          resolve('');
+        }
+      });
     });
   }
 });

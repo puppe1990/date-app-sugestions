@@ -1038,12 +1038,21 @@ class ChatSuggestionsController {
             this.lastMessageCount = 0;
         }
 
+        getCurrentHost() {
+            try {
+                return (location.hostname || '').toLowerCase();
+            } catch (e) {
+                return '';
+            }
+        }
+
         attachConfigListener() {
             if (!chrome?.storage?.onChanged || this.boundStorageChange) return;
             this.boundStorageChange = (changes, areaName) => {
                 if (areaName !== 'local') return;
                 const watched = new Set([
                     'businessModeEnabled',
+                    'businessModeByHost',
                     'businessContext',
                     'businessTone',
                     'openRouterProfileCasual',
@@ -1060,12 +1069,17 @@ class ChatSuggestionsController {
             if (!chrome?.storage?.local) return;
             chrome.storage.local.get([
                 'businessModeEnabled',
+                'businessModeByHost',
                 'businessContext',
                 'businessTone',
                 'openRouterProfileCasual',
                 'openRouterProfileBusiness'
             ], (result) => {
-                const businessModeEnabled = Boolean(result.businessModeEnabled);
+                const host = this.getCurrentHost();
+                const hostMode = host ? (result.businessModeByHost || {})[host] : undefined;
+                const businessModeEnabled = typeof hostMode === 'boolean'
+                    ? hostMode
+                    : Boolean(result.businessModeEnabled);
                 const businessContext = result.businessContext || '';
                 const businessTone = result.businessTone || 'consultivo';
                 const profileCasual = result.openRouterProfileCasual || '';

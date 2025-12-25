@@ -142,6 +142,14 @@
             this.conversationMode = conversationMode === 'business' ? 'business' : 'casual';
         }
 
+        getCurrentHost() {
+            try {
+                return (location.hostname || '').toLowerCase();
+            } catch (e) {
+                return '';
+            }
+        }
+
         getContainer() {
             if (this.container) {
                 return this.container;
@@ -2392,9 +2400,15 @@
                     'uiPlacementOverride',
                     'aiResponseLength',
                     'businessModeEnabled',
+                    'businessModeByHost',
                     'businessContext',
                     'businessTone'
                 ], (result) => {
+                    const host = this.getCurrentHost();
+                    const hostMode = host ? (result.businessModeByHost || {})[host] : undefined;
+                    const businessModeEnabled = typeof hostMode === 'boolean'
+                        ? hostMode
+                        : Boolean(result.businessModeEnabled);
                     resolve({
                         llmProvider: result.llmProvider || fallback.llmProvider,
                         openRouterModel: result.openRouterModel || fallback.openRouterModel,
@@ -2406,7 +2420,7 @@
                         geminiModel: result.geminiModel || fallback.geminiModel,
                         uiPlacementOverride: result.uiPlacementOverride || fallback.uiPlacementOverride,
                         aiResponseLength: result.aiResponseLength || fallback.aiResponseLength,
-                        businessModeEnabled: Boolean(result.businessModeEnabled),
+                        businessModeEnabled,
                         businessContext: result.businessContext || fallback.businessContext,
                         businessTone: result.businessTone || fallback.businessTone
                     });
@@ -2567,10 +2581,22 @@
             }
 
             if (chrome?.storage?.local) {
-                chrome.storage.local.set(payload, () => {
-                    this.showToast('Configurações salvas. Recarregue a página para aplicar modelo/posição.');
-                    this.closeConfigModal();
-                });
+                const host = this.getCurrentHost();
+                if (host) {
+                    chrome.storage.local.get(['businessModeByHost'], (result) => {
+                        const byHost = { ...(result.businessModeByHost || {}) };
+                        byHost[host] = businessModeEnabled;
+                        chrome.storage.local.set({ ...payload, businessModeByHost: byHost }, () => {
+                            this.showToast('Configurações salvas. Recarregue a página para aplicar modelo/posição.');
+                            this.closeConfigModal();
+                        });
+                    });
+                } else {
+                    chrome.storage.local.set(payload, () => {
+                        this.showToast('Configurações salvas. Recarregue a página para aplicar modelo/posição.');
+                        this.closeConfigModal();
+                    });
+                }
             } else {
                 try {
                     localStorage.setItem('bcs:config', JSON.stringify(payload));

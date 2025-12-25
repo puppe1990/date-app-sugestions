@@ -24,6 +24,14 @@
         return 'badoo';
     };
 
+    const getCurrentHost = () => {
+        try {
+            return (location.hostname || '').toLowerCase();
+        } catch (e) {
+            return '';
+        }
+    };
+
     const isDebugEnabled = () => {
         try {
             const domFlag = document.documentElement?.dataset?.bcsDebug;
@@ -182,9 +190,15 @@
                 'uiPlacementOverride',
                 'aiResponseLength',
                 'businessModeEnabled',
+                'businessModeByHost',
                 'businessContext',
                 'businessTone'
             ], (result) => {
+                const host = getCurrentHost();
+                const hostMode = host ? (result.businessModeByHost || {})[host] : undefined;
+                const businessModeEnabled = typeof hostMode === 'boolean'
+                    ? hostMode
+                    : Boolean(result.businessModeEnabled);
                 resolve({
                     llmProvider: result.llmProvider || defaultProvider,
                     openRouterModel: result.openRouterModel || defaultOpenRouterModel,
@@ -196,7 +210,7 @@
                     geminiModel: result.geminiModel || defaultGeminiModel,
                     uiPlacementOverride: result.uiPlacementOverride || 'floating',
                     aiResponseLength: result.aiResponseLength || 'short',
-                    businessModeEnabled: Boolean(result.businessModeEnabled),
+                    businessModeEnabled,
                     businessContext: result.businessContext || '',
                     businessTone: result.businessTone || 'consultivo'
                 });
