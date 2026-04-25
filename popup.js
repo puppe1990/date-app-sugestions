@@ -112,9 +112,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 select.value = DEFAULT_OPENROUTER_MODEL;
             }
-            if (storedKey) {
-                apiKeyInput.value = storedKey;
-            }
             if (
                 storedGeminiModel &&
                 GEMINI_MODELS.includes(storedGeminiModel)
