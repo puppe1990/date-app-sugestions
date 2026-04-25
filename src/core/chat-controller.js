@@ -108,6 +108,7 @@
                     ? 'business'
                     : 'casual',
                 onAiGenerate: (opts) => this.openAIPromptModal(opts),
+                onAiReply: () => this.generateAIReplyIntoInput(),
                 onAiCopyPrompt: (opts) => this.buildAIPrompts(opts),
                 onResponseLengthChange: ({ responseLength }) =>
                     this.setAIResponseLength(responseLength),
@@ -1201,6 +1202,66 @@
                 alert(
                     `Não foi possível gerar sugestões via IA.\n${error.message || ''}`,
                 );
+            } finally {
+                this.aiLoading = false;
+                this.ui.setAiLoading(false);
+            }
+        }
+
+        async generateAIReplyIntoInput() {
+            if (this.aiLoading) return '';
+            if (!this.aiClient) {
+                const provider = this.aiClientConfig?.provider || 'gemini';
+                this.info(`IA (${provider}) não configurada`);
+                alert(
+                    'IA não configurada. Defina a chave do provider selecionado no arquivo .env e recarregue a extensão.',
+                );
+                return '';
+            }
+
+            try {
+                this.aiLoading = true;
+                this.ui.setAiLoading(true);
+                const context = this.contextExtractor.extract(
+                    this.chatContainer,
+                    { fullHistory: true },
+                );
+                const messages =
+                    context?.allMessages || context?.lastMessages || [];
+                const configuredProfile =
+                    (this.aiClientConfig && this.aiClientConfig.profile) ||
+                    (window.badooChatSuggestionsConfig &&
+                        window.badooChatSuggestionsConfig.openRouterProfile);
+                const profile = [configuredProfile]
+                    .filter(Boolean)
+                    .join('\n\n');
+                const otherPersonProfile = this.extractProfileText();
+                const otherPersonName = this.extractOtherPersonName();
+                const otherPersonContextNote =
+                    this.getCurrentContactContextForPrompt();
+
+                const aiSuggestions = await this.aiClient.generateSuggestions({
+                    messages,
+                    profile,
+                    otherPersonName,
+                    otherPersonProfile,
+                    otherPersonContextNote,
+                });
+                const safe =
+                    aiSuggestions && aiSuggestions.length
+                        ? aiSuggestions
+                        : this.suggestionEngine.getDefaultSuggestions();
+                this.ui.render(safe, { isAI: true });
+                return safe[0] || '';
+            } catch (error) {
+                console.error(
+                    '[Chat Suggestions] Erro ao responder com IA',
+                    error,
+                );
+                alert(
+                    `Não foi possível gerar a resposta com IA.\n${error.message || ''}`,
+                );
+                return '';
             } finally {
                 this.aiLoading = false;
                 this.ui.setAiLoading(false);
