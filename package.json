@@ -1,0 +1,26 @@
+{
+    "name": "date-app-sugestions",
+    "private": true,
+    "scripts": {
+        "test": "node --test",
+        "lint": "eslint . --max-warnings 0",
+        "format": "prettier --write .",
+        "format:check": "prettier --check .",
+        "prepare": "husky",
+        "ci": "npm test && npm run lint && npm run format:check"
+    },
+    "lint-staged": {
+        "*.js": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{html,json,md,yml,yaml}": "prettier --write"
+    },
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "eslint": "^10.2.1",
+        "husky": "^9.1.7",
+        "lint-staged": "^16.4.0",
+        "prettier": "^3.8.3"
+    }
+}

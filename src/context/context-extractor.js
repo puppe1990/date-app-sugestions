@@ -2,14 +2,17 @@
     class ContextExtractor {
         constructor({ debug = false, messageReader } = {}) {
             this.debug = debug;
-            this.messageReader = messageReader ||
+            this.messageReader =
+                messageReader ||
                 window.ChatSuggestions.createDefaultMessageReader?.() ||
                 window.ChatSuggestions.createBadooMessageReader();
         }
 
         extract(chatContainer, { fullHistory = false } = {}) {
             if (!chatContainer) {
-                console.error('[Chat Suggestions] Container de chat não encontrado');
+                console.error(
+                    '[Chat Suggestions] Container de chat não encontrado',
+                );
                 return null;
             }
 
@@ -27,16 +30,18 @@
                 lastSender: null,
                 conversationLength: 0,
                 hasQuestions: false,
-                hasElogios: false
+                hasElogios: false,
             };
 
             const allMessagesArray = Array.from(messages);
             context.conversationLength = allMessagesArray.length;
 
-            const targetMessages = fullHistory ? allMessagesArray : allMessagesArray.slice(-10);
-            targetMessages.forEach(message => {
+            const targetMessages = fullHistory
+                ? allMessagesArray
+                : allMessagesArray.slice(-10);
+            targetMessages.forEach((message) => {
                 if (!message) return;
-                const { sender, text, direction, type } = message;
+                const { sender, text, type } = message;
 
                 if (fullHistory) {
                     context.allMessages = allMessagesArray;
@@ -52,14 +57,26 @@
                     this.extractTopics(text, context.topics, TOPIC_KEYWORDS);
                     this.extractMentionedPlaces(text, context.mentionedPlaces);
                     this.extractMentionedJobs(text, context.mentionedJobs);
-                    this.extractMentionedHobbies(text, context.mentionedHobbies);
+                    this.extractMentionedHobbies(
+                        text,
+                        context.mentionedHobbies,
+                    );
 
-                    if (text.includes('?') || text.match(/\b(qual|quando|onde|como|quem|por que|porque)\b/i)) {
+                    if (
+                        text.includes('?') ||
+                        text.match(
+                            /\b(qual|quando|onde|como|quem|por que|porque)\b/i,
+                        )
+                    ) {
                         context.hasQuestions = true;
                         context.questions.push(text);
                     }
 
-                    if (text.match(/\b(gostei|legal|interessante|bonito|lindo|adoro|amo|curto|incrível|maravilhoso)\b/i)) {
+                    if (
+                        text.match(
+                            /\b(gostei|legal|interessante|bonito|lindo|adoro|amo|curto|incrível|maravilhoso)\b/i,
+                        )
+                    ) {
                         context.hasElogios = true;
                     }
                 }
@@ -72,7 +89,7 @@
         extractTopics(text, topics, keywordsMap) {
             const lowerText = text.toLowerCase();
             for (const [topic, keywords] of Object.entries(keywordsMap)) {
-                if (keywords.some(keyword => lowerText.includes(keyword))) {
+                if (keywords.some((keyword) => lowerText.includes(keyword))) {
                     if (!topics.includes(topic)) {
                         topics.push(topic);
                     }
@@ -81,23 +98,33 @@
         }
 
         extractMentionedPlaces(text, places) {
-            const { PLACE_PATTERNS, SPECIFIC_PLACES } = window.ChatSuggestions.constants;
+            const { PLACE_PATTERNS, SPECIFIC_PLACES } =
+                window.ChatSuggestions.constants;
             const lowerText = text.toLowerCase();
 
-            PLACE_PATTERNS.forEach(pattern => {
+            PLACE_PATTERNS.forEach((pattern) => {
                 const matches = text.match(pattern);
                 if (matches) {
-                    matches.forEach(match => {
-                        let place = match.replace(/\b(moro|mora|em|no|na|e vc|e você)\b/gi, '').trim();
+                    matches.forEach((match) => {
+                        let place = match
+                            .replace(
+                                /\b(moro|mora|em|no|na|e vc|e você)\b/gi,
+                                '',
+                            )
+                            .trim();
                         place = place.replace(/[.,!?;:]/g, '').trim();
-                        if (place && place.length > 2 && !places.includes(place)) {
+                        if (
+                            place &&
+                            place.length > 2 &&
+                            !places.includes(place)
+                        ) {
                             places.push(place);
                         }
                     });
                 }
             });
 
-            SPECIFIC_PLACES.forEach(place => {
+            SPECIFIC_PLACES.forEach((place) => {
                 if (lowerText.includes(place) && !places.includes(place)) {
                     places.push(place);
                 }
@@ -105,14 +132,20 @@
         }
 
         extractMentionedJobs(text, jobs) {
-            const { JOB_PATTERNS, SPECIFIC_JOBS } = window.ChatSuggestions.constants;
+            const { JOB_PATTERNS, SPECIFIC_JOBS } =
+                window.ChatSuggestions.constants;
             const lowerText = text.toLowerCase();
 
-            JOB_PATTERNS.forEach(pattern => {
+            JOB_PATTERNS.forEach((pattern) => {
                 const matches = text.match(pattern);
                 if (matches) {
-                    matches.forEach(match => {
-                        let job = match.replace(/\b(sou|trabalho|com|como|no|na|em|e vc|e você)\b/gi, '').trim();
+                    matches.forEach((match) => {
+                        let job = match
+                            .replace(
+                                /\b(sou|trabalho|com|como|no|na|em|e vc|e você)\b/gi,
+                                '',
+                            )
+                            .trim();
                         job = job.replace(/[.,!?;:]/g, '').trim();
                         if (job && job.length > 2 && !jobs.includes(job)) {
                             jobs.push(job);
@@ -121,7 +154,7 @@
                 }
             });
 
-            SPECIFIC_JOBS.forEach(job => {
+            SPECIFIC_JOBS.forEach((job) => {
                 if (lowerText.includes(job) && !jobs.includes(job)) {
                     jobs.push(job);
                 }
@@ -131,7 +164,7 @@
         extractMentionedHobbies(text, hobbies) {
             const { HOBBY_KEYWORDS } = window.ChatSuggestions.constants;
             const lowerText = text.toLowerCase();
-            HOBBY_KEYWORDS.forEach(keyword => {
+            HOBBY_KEYWORDS.forEach((keyword) => {
                 if (lowerText.includes(keyword) && !hobbies.includes(keyword)) {
                     hobbies.push(keyword);
                 }
@@ -142,16 +175,34 @@
             if (!this.debug) return;
 
             console.log('[Chat Suggestions] === MENSAGENS ANALISADAS ===');
-            console.log(`[Chat Suggestions] Total de mensagens: ${context.conversationLength}`);
-            console.log(`[Chat Suggestions] Últimas ${context.lastMessages.length} mensagens:`);
+            console.log(
+                `[Chat Suggestions] Total de mensagens: ${context.conversationLength}`,
+            );
+            console.log(
+                `[Chat Suggestions] Últimas ${context.lastMessages.length} mensagens:`,
+            );
             context.lastMessages.forEach((msg, index) => {
                 const direction = msg.direction === 'out' ? 'VOCÊ' : 'OUTRO';
-                console.log(`[Chat Suggestions] ${index + 1}. [${direction}] ${msg.sender}: "${msg.text}"`);
+                console.log(
+                    `[Chat Suggestions] ${index + 1}. [${direction}] ${msg.sender}: "${msg.text}"`,
+                );
             });
-            console.log('[Chat Suggestions] Tópicos detectados:', context.topics);
-            console.log('[Chat Suggestions] Lugares mencionados:', context.mentionedPlaces);
-            console.log('[Chat Suggestions] Profissões mencionadas:', context.mentionedJobs);
-            console.log('[Chat Suggestions] Hobbies mencionados:', context.mentionedHobbies);
+            console.log(
+                '[Chat Suggestions] Tópicos detectados:',
+                context.topics,
+            );
+            console.log(
+                '[Chat Suggestions] Lugares mencionados:',
+                context.mentionedPlaces,
+            );
+            console.log(
+                '[Chat Suggestions] Profissões mencionadas:',
+                context.mentionedJobs,
+            );
+            console.log(
+                '[Chat Suggestions] Hobbies mencionados:',
+                context.mentionedHobbies,
+            );
             console.log('[Chat Suggestions] ============================');
         }
     }

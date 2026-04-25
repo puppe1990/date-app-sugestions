@@ -1,5 +1,5 @@
 (() => {
-    const root = window.ChatSuggestions = window.ChatSuggestions || {};
+    const root = (window.ChatSuggestions = window.ChatSuggestions || {});
     const registry = root.PlatformRegistry;
     if (!registry || typeof registry.register !== 'function') return;
 
@@ -7,6 +7,6 @@
         chatContainerSelector: '.csms-chat-messages',
         inputSelector: '#chat-composer-input-message',
         uiPlacement: 'inline',
-        messageReaderConfig: null
+        messageReaderConfig: null,
     });
 })();

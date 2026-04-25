@@ -5,23 +5,23 @@
 - `manifest.json`, `content.js`, `popup.html`, and `popup.js` define the Chrome extension entry points.
 - `chat-suggestions.js` is the standalone bundle for direct script usage.
 - `src/` holds the modular source:
-  - `src/core/` controller and AI client wiring.
-  - `src/context/` message readers and context extraction.
-  - `src/platforms/` per-platform selectors (Badoo, Tinder, Instagram, WhatsApp).
-  - `src/ui/` suggestion rendering and interactions.
-  - `src/storage/` in-browser context persistence.
-  - `src/constants/` keyword lists.
-  - `src/suggestions/` generation logic.
+    - `src/core/` controller and AI client wiring.
+    - `src/context/` message readers and context extraction.
+    - `src/platforms/` per-platform selectors (Badoo, Tinder, Instagram, WhatsApp).
+    - `src/ui/` suggestion rendering and interactions.
+    - `src/storage/` in-browser context persistence.
+    - `src/constants/` keyword lists.
+    - `src/suggestions/` generation logic.
 - `suggestions-library.json` and `suggestions-library-example.json` provide seed data.
 
 ## Build, Test, and Development Commands
 
 - No build step is required; files are loaded directly by the browser.
 - Load the extension locally:
-  - Open `chrome://extensions/`, enable Developer Mode, then "Load unpacked" with the repo root.
+    - Open `chrome://extensions/`, enable Developer Mode, then "Load unpacked" with the repo root.
 - For script-only usage, include `chat-suggestions.js` in a page or inject it via the console.
 - Debug logging:
-  - Set `window.badooChatSuggestionsDebug = true` in the browser console.
+    - Set `window.badooChatSuggestionsDebug = true` in the browser console.
 
 ## Coding Style & Naming Conventions
 
@@ -34,9 +34,9 @@
 
 - There are no automated tests in this repository.
 - Manual verification checklist:
-  - Load the extension and open `https://badoo.com/messages/*`.
-  - Confirm suggestions render and buttons insert text into the message box.
-  - Verify platform selectors when changing `src/platforms/*.js`.
+    - Load the extension and open `https://badoo.com/messages/*`.
+    - Confirm suggestions render and buttons insert text into the message box.
+    - Verify platform selectors when changing `src/platforms/*.js`.
 
 ## Commit & Pull Request Guidelines
 
@@ -44,8 +44,8 @@
 - Keep the first line concise and add details in the body if needed.
 - If you touch the extension behavior, update `manifest.json` version when appropriate.
 - PRs should include:
-  - A brief description of the change and test steps.
-  - Screenshots or a short clip for UI/UX changes.
+    - A brief description of the change and test steps.
+    - Screenshots or a short clip for UI/UX changes.
 
 ## Configuration & Security Notes
 

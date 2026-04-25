@@ -76,6 +76,7 @@ chatSuggestions.init();
 ## Estrutura do HTML Esperada
 
 O script espera encontrar mensagens com a estrutura:
+
 - Container: `.csms-chat-messages`
 - Mensagens: `[data-qa="chat-message"]`
 - Direção: `[data-qa-message-direction="in"|"out"]`

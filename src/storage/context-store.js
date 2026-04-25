@@ -29,8 +29,10 @@
                 if (!data || typeof data !== 'object') return null;
                 return {
                     name: typeof data.name === 'string' ? data.name : '',
-                    context: typeof data.context === 'string' ? data.context : '',
-                    updatedAt: typeof data.updatedAt === 'number' ? data.updatedAt : 0
+                    context:
+                        typeof data.context === 'string' ? data.context : '',
+                    updatedAt:
+                        typeof data.updatedAt === 'number' ? data.updatedAt : 0,
                 };
             } catch (e) {
                 return null;
@@ -43,15 +45,18 @@
             const payload = {
                 name: String(name || '').trim(),
                 context: String(context || ''),
-                updatedAt: Date.now()
+                updatedAt: Date.now(),
             };
             try {
                 localStorage.setItem(storageKey, JSON.stringify(payload));
                 if (this.debug) {
-                    console.info('[Chat Suggestions][ContextStore] Contexto salvo', {
-                        contactKey,
-                        chars: payload.context.length
-                    });
+                    console.info(
+                        '[Chat Suggestions][ContextStore] Contexto salvo',
+                        {
+                            contactKey,
+                            chars: payload.context.length,
+                        },
+                    );
                 }
                 return true;
             } catch (e) {
@@ -65,7 +70,10 @@
             try {
                 localStorage.removeItem(storageKey);
                 if (this.debug) {
-                    console.info('[Chat Suggestions][ContextStore] Contexto removido', { contactKey });
+                    console.info(
+                        '[Chat Suggestions][ContextStore] Contexto removido',
+                        { contactKey },
+                    );
                 }
                 return true;
             } catch (e) {

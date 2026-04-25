@@ -3,18 +3,19 @@
         constructor({
             apiKey,
             model = 'google/gemini-2.0-flash-exp:free',
-            endpoint = 'https://openrouter.ai/api/v1/chat/completions',
+            endpoint = null,
             provider = 'gemini',
             profile = null,
             responseLength = 'short',
             businessModeEnabled = false,
             businessContext = '',
-            businessTone = 'consultivo'
+            businessTone = 'consultivo',
         } = {}) {
             this.apiKey = apiKey;
             this.model = model;
-            this.endpoint = endpoint;
             this.provider = provider || 'gemini';
+            this.endpoint =
+                endpoint || this.getDefaultEndpointForProvider(this.provider);
             this.profile = profile;
             this.otherPersonProfile = null;
             this.responseLength = responseLength || 'short';
@@ -23,84 +24,144 @@
             this.businessTone = businessTone || 'consultivo';
         }
 
+        getDefaultEndpointForProvider(provider) {
+            if (provider === 'nvidia') {
+                return 'https://integrate.api.nvidia.com/v1/chat/completions';
+            }
+            return 'https://openrouter.ai/api/v1/chat/completions';
+        }
+
         getResponseLengthConfig(responseLength) {
-            const value = String(responseLength || this.responseLength || 'short');
+            const value = String(
+                responseLength || this.responseLength || 'short',
+            );
             const map = {
                 short: {
                     label: 'curta',
                     maxChars: 80,
-                    maxTokens: 180
+                    maxTokens: 180,
                 },
                 medium: {
                     label: 'média',
                     maxChars: 160,
-                    maxTokens: 320
+                    maxTokens: 320,
                 },
                 long: {
                     label: 'longa',
                     maxChars: 280,
-                    maxTokens: 520
-                }
+                    maxTokens: 520,
+                },
             };
             return map[value] || map.short;
         }
 
         buildSystemPrompt(profile, responseLength) {
             this.profile = this.profile || profile;
-            const profileLine = this.profile ? `\nContexto sobre o usuário:\n${this.profile}` : '';
-            const otherPersonProfileLine = this.otherPersonProfile ? `\nContexto sobre a outra pessoa (perfil):\n${this.otherPersonProfile}` : '';
-            const cfg = this.getResponseLengthConfig(responseLength);
-            const businessContextLine = (this.businessModeEnabled && this.businessContext)
-                ? `\nContexto do que estou vendendo:\n${this.businessContext}`
+            const profileLine = this.profile
+                ? `\nContexto sobre o usuário:\n${this.profile}`
                 : '';
-            const businessToneLabel = this.getBusinessToneLabel(this.businessTone);
+            const otherPersonProfileLine = this.otherPersonProfile
+                ? `\nContexto sobre a outra pessoa (perfil):\n${this.otherPersonProfile}`
+                : '';
+            const cfg = this.getResponseLengthConfig(responseLength);
+            const businessContextLine =
+                this.businessModeEnabled && this.businessContext
+                    ? `\nContexto do que estou vendendo:\n${this.businessContext}`
+                    : '';
+            const businessToneLabel = this.getBusinessToneLabel(
+                this.businessTone,
+            );
             const baseLines = this.businessModeEnabled
                 ? [
-                    'Você é um assistente que gera respostas curtas e naturais para conversa comercial e vendas no WhatsApp, em português do Brasil.',
-                    `Gere sugestões em primeira pessoa, tom ${businessToneLabel}, tamanho ${cfg.label} (máx ${cfg.maxChars} caracteres por sugestão).`,
-                    'Seja consultivo(a), educado(a) e avance a conversa com perguntas úteis. Evite pressão.',
-                    'Quando fizer sentido, sugira próximo passo (ex.: tirar dúvidas, enviar catálogo, agendar).',
-                    'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
-                    'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.'
-                ]
+                      'Você é um assistente que gera respostas curtas e naturais para conversa comercial e vendas no WhatsApp, em português do Brasil.',
+                      `Gere sugestões em primeira pessoa, tom ${businessToneLabel}, tamanho ${cfg.label} (máx ${cfg.maxChars} caracteres por sugestão).`,
+                      'Seja consultivo(a), educado(a) e avance a conversa com perguntas úteis. Evite pressão.',
+                      'Quando fizer sentido, sugira próximo passo (ex.: tirar dúvidas, enviar catálogo, agendar).',
+                      'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
+                      'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.',
+                  ]
                 : [
-                    'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil.',
-                    `Gere sugestões em primeira pessoa, tom leve, tamanho ${cfg.label} (máx ${cfg.maxChars} caracteres por sugestão).`,
-                    'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
-                    'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.'
-                ];
+                      'Você é um assistente que gera respostas curtas e naturais para conversa casual em português do Brasil.',
+                      `Gere sugestões em primeira pessoa, tom leve, tamanho ${cfg.label} (máx ${cfg.maxChars} caracteres por sugestão).`,
+                      'Não use cumprimentos (oi, olá, bom dia, boa tarde, boa noite) a menos que a última mensagem peça isso explicitamente.',
+                      'Sempre devolva APENAS JSON válido no formato {"suggestions":["...","..."]} sem texto extra, sem markdown, sem explicações, sem raciocínio exposto, sem texto fora do JSON. Assim que fechar o JSON, pare a geração.',
+                  ];
             return [
                 ...baseLines,
                 profileLine,
                 businessContextLine,
-                otherPersonProfileLine
-            ].filter(Boolean).join('\n');
+                otherPersonProfileLine,
+            ]
+                .filter(Boolean)
+                .join('\n');
         }
 
-        buildSystemPromptWithOtherPersonContext(profile, responseLength, otherPersonContextNote) {
+        buildSystemPromptWithOtherPersonContext(
+            profile,
+            responseLength,
+            otherPersonContextNote,
+        ) {
             const base = this.buildSystemPrompt(profile, responseLength);
             const note = String(otherPersonContextNote || '').trim();
             if (!note) return base;
             return [
                 base,
-                `\nContexto adicional sobre a outra pessoa (anotações do usuário):\n${note}`
-            ].filter(Boolean).join('\n');
+                `\nContexto adicional sobre a outra pessoa (anotações do usuário):\n${note}`,
+            ]
+                .filter(Boolean)
+                .join('\n');
         }
 
-        buildPrompts({ messages, profile, otherPersonName, responseLength, otherPersonProfile, otherPersonContextNote } = {}) {
-            this.otherPersonProfile = otherPersonProfile || this.otherPersonProfile || null;
-            const userPrompt = this.buildUserPrompt(messages, profile, otherPersonName, responseLength, otherPersonProfile, otherPersonContextNote);
-            const systemPrompt = this.buildSystemPromptWithOtherPersonContext(profile, responseLength, otherPersonContextNote);
+        buildPrompts({
+            messages,
+            profile,
+            otherPersonName,
+            responseLength,
+            otherPersonProfile,
+            otherPersonContextNote,
+        } = {}) {
+            this.otherPersonProfile =
+                otherPersonProfile || this.otherPersonProfile || null;
+            const userPrompt = this.buildUserPrompt(
+                messages,
+                profile,
+                otherPersonName,
+                responseLength,
+                otherPersonProfile,
+                otherPersonContextNote,
+            );
+            const systemPrompt = this.buildSystemPromptWithOtherPersonContext(
+                profile,
+                responseLength,
+                otherPersonContextNote,
+            );
             return { systemPrompt, userPrompt };
         }
 
-        async generateSuggestions({ messages, profile, otherPersonName, responseLength, otherPersonProfile, otherPersonContextNote } = {}) {
+        async generateSuggestions({
+            messages,
+            profile,
+            otherPersonName,
+            responseLength,
+            otherPersonProfile,
+            otherPersonContextNote,
+        } = {}) {
             if (!this.apiKey) {
                 throw new Error('API key não configurada');
             }
 
-            const { systemPrompt, userPrompt } = this.buildPrompts({ messages, profile, otherPersonName, responseLength, otherPersonProfile, otherPersonContextNote });
-            return this.generateSuggestionsWithPrompts({ systemPrompt, userPrompt });
+            const { systemPrompt, userPrompt } = this.buildPrompts({
+                messages,
+                profile,
+                otherPersonName,
+                responseLength,
+                otherPersonProfile,
+                otherPersonContextNote,
+            });
+            return this.generateSuggestionsWithPrompts({
+                systemPrompt,
+                userPrompt,
+            });
         }
 
         async generateSuggestionsWithPrompts({ systemPrompt, userPrompt }) {
@@ -111,10 +172,22 @@
             const cfg = this.getResponseLengthConfig(this.responseLength);
 
             if (this.provider === 'gemini') {
-                if (typeof window !== 'undefined' && window.badooChatSuggestionsDebug) {
-                    console.info('[Chat Suggestions][AI] Prompt enviado para IA (Gemini):', { model: this.model, prompt: `${systemPrompt}\n\n${userPrompt}` });
+                if (
+                    typeof window !== 'undefined' &&
+                    window.badooChatSuggestionsDebug
+                ) {
+                    console.info(
+                        '[Chat Suggestions][AI] Prompt enviado para IA (Gemini):',
+                        {
+                            model: this.model,
+                            prompt: `${systemPrompt}\n\n${userPrompt}`,
+                        },
+                    );
                 }
-                return this.callGemini({ prompt: `${systemPrompt}\n\n${userPrompt}`, maxOutputTokens: cfg.maxTokens });
+                return this.callGemini({
+                    prompt: `${systemPrompt}\n\n${userPrompt}`,
+                    maxOutputTokens: cfg.maxTokens,
+                });
             }
 
             const payload = {
@@ -122,31 +195,37 @@
                 messages: [
                     {
                         role: 'system',
-                        content: systemPrompt
+                        content: systemPrompt,
                     },
                     {
                         role: 'user',
-                        content: userPrompt
-                    }
+                        content: userPrompt,
+                    },
                 ],
                 max_tokens: cfg.maxTokens,
                 temperature: 0.6,
                 top_p: 0.9,
                 stream: false,
-                response_format: { type: 'json_object' }
+                response_format: { type: 'json_object' },
             };
 
-            if (typeof window !== 'undefined' && window.badooChatSuggestionsDebug) {
-                console.info('[Chat Suggestions][AI] Prompt enviado para IA (OpenRouter):', { model: this.model, payload });
+            if (
+                typeof window !== 'undefined' &&
+                window.badooChatSuggestionsDebug
+            ) {
+                console.info(
+                    `[Chat Suggestions][AI] Prompt enviado para IA (${this.provider === 'nvidia' ? 'NVIDIA' : 'OpenRouter'}):`,
+                    { model: this.model, payload },
+                );
             }
 
             const response = await fetch(this.endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${this.apiKey}`
+                    Authorization: `Bearer ${this.apiKey}`,
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
             });
 
             if (!response.ok) {
@@ -161,12 +240,17 @@
                 } catch (e) {
                     // ignore parse error
                 }
-                throw new Error(`Erro OpenRouter (${response.status}): ${errorText}`);
+                const label =
+                    this.provider === 'nvidia' ? 'NVIDIA' : 'OpenRouter';
+                throw new Error(
+                    `Erro ${label} (${response.status}): ${errorText}`,
+                );
             }
 
             const data = await response.json();
             const choice = data?.choices?.[0];
-            const content = choice?.message?.content || choice?.message?.reasoning || '';
+            const content =
+                choice?.message?.content || choice?.message?.reasoning || '';
             return this.extractSuggestions(content);
         }
 
@@ -176,22 +260,25 @@
                 contents: [
                     {
                         role: 'user',
-                        parts: [{ text: prompt }]
-                    }
+                        parts: [{ text: prompt }],
+                    },
                 ],
                 generationConfig: {
                     temperature: 0.6,
-                    maxOutputTokens: typeof maxOutputTokens === 'number' ? maxOutputTokens : 160,
-                    topP: 0.9
-                }
+                    maxOutputTokens:
+                        typeof maxOutputTokens === 'number'
+                            ? maxOutputTokens
+                            : 160,
+                    topP: 0.9,
+                },
             };
 
             const response = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(body)
+                body: JSON.stringify(body),
             });
 
             if (!response.ok) {
@@ -206,45 +293,86 @@
                 } catch (e) {
                     // ignore parse error
                 }
-                throw new Error(`Erro Gemini (${response.status}): ${errorText}`);
+                throw new Error(
+                    `Erro Gemini (${response.status}): ${errorText}`,
+                );
             }
 
             const data = await response.json();
-            const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).filter(Boolean).join('\n') || '';
+            const text =
+                data?.candidates?.[0]?.content?.parts
+                    ?.map((p) => p.text)
+                    .filter(Boolean)
+                    .join('\n') || '';
             return this.extractSuggestions(text);
         }
 
-        buildUserPrompt(messages = [], profile, otherPersonName, responseLength, otherPersonProfile, otherPersonContextNote) {
+        buildUserPrompt(
+            messages = [],
+            profile,
+            otherPersonName,
+            responseLength,
+            otherPersonProfile,
+            otherPersonContextNote,
+        ) {
             const cfg = this.getResponseLengthConfig(responseLength);
             const lastMessages = messages.slice(-25);
-            const mapped = lastMessages.map((msg, idx) => {
-                const senderName = msg.sender && !['Outro', 'OUTRA PESSOA'].includes(msg.sender)
-                    ? msg.sender
-                    : (otherPersonName || 'OUTRA PESSOA');
-                const dir = msg.direction === 'out' ? 'EU' : senderName;
-                return `${idx + 1}. ${dir}: ${msg.text}`;
-            }).join('\n');
+            const mapped = lastMessages
+                .map((msg, idx) => {
+                    const senderName =
+                        msg.sender &&
+                        !['Outro', 'OUTRA PESSOA'].includes(msg.sender)
+                            ? msg.sender
+                            : otherPersonName || 'OUTRA PESSOA';
+                    const dir = msg.direction === 'out' ? 'EU' : senderName;
+                    return `${idx + 1}. ${dir}: ${msg.text}`;
+                })
+                .join('\n');
 
-            const lastInboundIndex = [...lastMessages].map((m, i) => ({ m, i })).reverse().find(item => item.m.direction !== 'out')?.i ?? -1;
-            const lastOutboundIndex = [...lastMessages].map((m, i) => ({ m, i })).reverse().find(item => item.m.direction === 'out')?.i ?? -1;
-            const hasPendingInbound = lastInboundIndex > lastOutboundIndex && lastInboundIndex >= 0;
-            const pendingMessage = hasPendingInbound ? lastMessages[lastInboundIndex] : null;
-            const lastMyMessage = [...lastMessages].reverse().find(m => m.direction === 'out');
+            const lastInboundIndex =
+                [...lastMessages]
+                    .map((m, i) => ({ m, i }))
+                    .reverse()
+                    .find((item) => item.m.direction !== 'out')?.i ?? -1;
+            const lastOutboundIndex =
+                [...lastMessages]
+                    .map((m, i) => ({ m, i }))
+                    .reverse()
+                    .find((item) => item.m.direction === 'out')?.i ?? -1;
+            const hasPendingInbound =
+                lastInboundIndex > lastOutboundIndex && lastInboundIndex >= 0;
+            const pendingMessage = hasPendingInbound
+                ? lastMessages[lastInboundIndex]
+                : null;
+            const lastMyMessage = [...lastMessages]
+                .reverse()
+                .find((m) => m.direction === 'out');
 
-            const profileLine = profile ? `\nContexto sobre mim:\n${profile}` : '';
-            const otherPersonProfileLine = otherPersonProfile ? `\nPerfil da outra pessoa:\n${otherPersonProfile}` : '';
-            const otherPersonContextLine = otherPersonContextNote ? `\nContexto adicional (anotações):\n${otherPersonContextNote}` : '';
-            const otherPersonLine = otherPersonName ? `\nNome da outra pessoa: ${otherPersonName}` : '';
-            const businessContextLine = (this.businessModeEnabled && this.businessContext)
-                ? `\nContexto da oferta:\n${this.businessContext}`
+            const profileLine = profile
+                ? `\nContexto sobre mim:\n${profile}`
                 : '';
+            const otherPersonProfileLine = otherPersonProfile
+                ? `\nPerfil da outra pessoa:\n${otherPersonProfile}`
+                : '';
+            const otherPersonContextLine = otherPersonContextNote
+                ? `\nContexto adicional (anotações):\n${otherPersonContextNote}`
+                : '';
+            const otherPersonLine = otherPersonName
+                ? `\nNome da outra pessoa: ${otherPersonName}`
+                : '';
+            const businessContextLine =
+                this.businessModeEnabled && this.businessContext
+                    ? `\nContexto da oferta:\n${this.businessContext}`
+                    : '';
             const businessToneLine = this.businessModeEnabled
                 ? `\nTom desejado: ${this.getBusinessToneLabel(this.businessTone)}.`
                 : '';
             const focusLine = pendingMessage
                 ? `\nMensagem pendente da outra pessoa: "${pendingMessage.text}". Responda a isso diretamente, sem cumprimentar.`
                 : 'Nenhuma mensagem pendente; continue a conversa com um follow-up natural (sem cumprimentar nem repetir perguntas).';
-            const myLastLine = lastMyMessage ? `\nMinha última mensagem: "${lastMyMessage.text}".` : '';
+            const myLastLine = lastMyMessage
+                ? `\nMinha última mensagem: "${lastMyMessage.text}".`
+                : '';
 
             return [
                 'Use o histórico abaixo (ordem cronológica).',
@@ -260,8 +388,10 @@
                 focusLine,
                 myLastLine,
                 '\nHistórico:',
-                mapped
-            ].filter(Boolean).join('\n');
+                mapped,
+            ]
+                .filter(Boolean)
+                .join('\n');
         }
 
         getBusinessToneLabel(tone) {
@@ -271,7 +401,7 @@
                 direto: 'direto',
                 persuasivo: 'persuasivo',
                 amigavel: 'amigável',
-                premium: 'premium'
+                premium: 'premium',
             };
             return map[value] || map.consultivo;
         }
@@ -282,7 +412,7 @@
             const suggestions = [];
             const pushSuggestions = (arr) => {
                 if (!Array.isArray(arr)) return;
-                arr.forEach(item => {
+                arr.forEach((item) => {
                     if (typeof item === 'string') {
                         const trimmed = item.trim();
                         if (trimmed) suggestions.push(trimmed);
@@ -318,9 +448,11 @@
             }
 
             // 3) extrair múltiplos JSONs no texto
-            const jsonMatches = cleaned.match(/{[^{}]*"suggestions"\s*:\s*\[[\s\S]*?\]}/g);
+            const jsonMatches = cleaned.match(
+                /{[^{}]*"suggestions"\s*:\s*\[[\s\S]*?\]}/g,
+            );
             if (jsonMatches) {
-                jsonMatches.forEach(snippet => tryParse(snippet));
+                jsonMatches.forEach((snippet) => tryParse(snippet));
             }
             if (suggestions.length > 0) {
                 return Array.from(new Set(suggestions)).slice(0, 5);

@@ -1,5 +1,5 @@
 (() => {
-class ChatSuggestionsController {
+    class ChatSuggestionsController {
         constructor({
             chatContainerSelector = '.csms-chat-messages',
             inputSelector = '#chat-composer-input-message',
@@ -11,7 +11,7 @@ class ChatSuggestionsController {
             messageReader = null,
             aiClient = null,
             aiClientConfig = {},
-            debug = false
+            debug = false,
         } = {}) {
             this.chatContainerSelector = chatContainerSelector;
             this.inputSelector = inputSelector;
@@ -20,11 +20,15 @@ class ChatSuggestionsController {
             this.profileContainerSelector = profileContainerSelector;
             this.otherPersonNameSelector = otherPersonNameSelector;
             this.platform = platform;
-            this.messageReader = messageReader ||
+            this.messageReader =
+                messageReader ||
                 window.ChatSuggestions.createDefaultMessageReader?.() ||
                 window.ChatSuggestions.createBadooMessageReader();
-            this.messageSelector = messageSelector ||
-                (this.messageReader && this.messageReader.config && this.messageReader.config.messageSelector) ||
+            this.messageSelector =
+                messageSelector ||
+                (this.messageReader &&
+                    this.messageReader.config &&
+                    this.messageReader.config.messageSelector) ||
                 '[data-qa="chat-message"]';
             this.aiClient = aiClient;
             this.aiClientConfig = aiClientConfig || {};
@@ -55,11 +59,15 @@ class ChatSuggestionsController {
         }
 
         init() {
-            this.chatContainer = document.querySelector(this.chatContainerSelector);
+            this.chatContainer = document.querySelector(
+                this.chatContainerSelector,
+            );
 
             if (!this.chatContainer) {
                 if (this.debug) {
-                    console.warn('[Chat Suggestions] Container de chat não encontrado, tentando novamente...');
+                    console.warn(
+                        '[Chat Suggestions] Container de chat não encontrado, tentando novamente...',
+                    );
                 }
 
                 if (!this.initRetryTimeout) {
@@ -71,37 +79,53 @@ class ChatSuggestionsController {
                 return;
             }
 
-            this.info('Container de chat encontrado', { selector: this.chatContainerSelector });
+            this.info('Container de chat encontrado', {
+                selector: this.chatContainerSelector,
+            });
 
             if (this.debug) {
                 console.log('[Chat Suggestions] Inicializando...');
             }
 
-            this.contextExtractor = new window.ChatSuggestions.ContextExtractor({
+            this.contextExtractor = new window.ChatSuggestions.ContextExtractor(
+                {
+                    debug: this.debug,
+                    messageReader: this.messageReader,
+                },
+            );
+            this.contextStore = new window.ChatSuggestions.ContextStore({
                 debug: this.debug,
-                messageReader: this.messageReader
             });
-            this.contextStore = new window.ChatSuggestions.ContextStore({ debug: this.debug });
             this.aiClient = this.aiClient || this.createAIClient();
-            this.suggestionEngine = new window.ChatSuggestions.SuggestionEngine({ debug: this.debug });
+            this.suggestionEngine = new window.ChatSuggestions.SuggestionEngine(
+                { debug: this.debug },
+            );
             this.ui = new window.ChatSuggestions.SuggestionsUI({
                 inputSelector: this.inputSelector,
                 placement: this.uiPlacement,
                 responseLength: this.aiClientConfig?.responseLength || 'short',
-                conversationMode: this.aiClientConfig?.businessModeEnabled ? 'business' : 'casual',
+                conversationMode: this.aiClientConfig?.businessModeEnabled
+                    ? 'business'
+                    : 'casual',
                 onAiGenerate: (opts) => this.openAIPromptModal(opts),
                 onAiCopyPrompt: (opts) => this.buildAIPrompts(opts),
-                onResponseLengthChange: ({ responseLength }) => this.setAIResponseLength(responseLength),
+                onResponseLengthChange: ({ responseLength }) =>
+                    this.setAIResponseLength(responseLength),
                 getContactContextMeta: () => this.getContactContextMeta(),
-                onContactContextSave: ({ contextText }) => this.saveContactContext(contextText),
+                onContactContextSave: ({ contextText }) =>
+                    this.saveContactContext(contextText),
                 onContactContextClear: () => this.clearContactContext(),
-                onCopyOtherPersonProfile: (this.platform === 'badoo' || this.platform === 'tinder')
-                    ? () => this.copyOtherPersonProfileToClipboard()
-                    : null
+                onCopyOtherPersonProfile:
+                    this.platform === 'badoo' || this.platform === 'tinder'
+                        ? () => this.copyOtherPersonProfileToClipboard()
+                        : null,
             });
 
             const mounted = this.ui.mount();
-            this.info('Container de sugestões montado', { mounted, inputSelector: this.inputSelector });
+            this.info('Container de sugestões montado', {
+                mounted,
+                inputSelector: this.inputSelector,
+            });
 
             this.refreshContactContext({ force: true });
             this.lastMessageCount = 0;
@@ -125,17 +149,21 @@ class ChatSuggestionsController {
                 '#page-container .mini-profile__user-info',
                 '.mini-profile__user-info',
                 '[data-qa="mini-profile-user-info"]',
-                '[data-qa="mini-profile"] .mini-profile__user-info'
+                '[data-qa="mini-profile"] .mini-profile__user-info',
             ];
 
             this.profileClickHandler = (event) => {
                 try {
                     const target = event && event.target;
                     if (!target || !target.closest) return;
-                    const trigger = triggerSelectors.map(sel => target.closest(sel)).find(Boolean);
+                    const trigger = triggerSelectors
+                        .map((sel) => target.closest(sel))
+                        .find(Boolean);
                     if (!trigger) return;
                     if (this.debug) {
-                        console.info('[Chat Suggestions][Badoo] Clique detectado para abrir perfil; iniciando monitoramento do portal');
+                        console.info(
+                            '[Chat Suggestions][Badoo] Clique detectado para abrir perfil; iniciando monitoramento do portal',
+                        );
                     }
                     this.waitForBadooProfilePortalAndCache({ timeoutMs: 7000 });
                 } catch (e) {
@@ -145,7 +173,9 @@ class ChatSuggestionsController {
 
             document.addEventListener('click', this.profileClickHandler, true);
             if (this.debug) {
-                console.info('[Chat Suggestions][Badoo] Listener de clique para capturar perfil registrado');
+                console.info(
+                    '[Chat Suggestions][Badoo] Listener de clique para capturar perfil registrado',
+                );
             }
         }
 
@@ -159,7 +189,9 @@ class ChatSuggestionsController {
                     const name = this.extractOtherPersonName();
                     if (name) this.cachedOtherPersonProfileName = name;
                     if (changed) {
-                        this.info('Perfil atualizado (Badoo)', { chars: text.length });
+                        this.info('Perfil atualizado (Badoo)', {
+                            chars: text.length,
+                        });
                     }
                     return true;
                 }
@@ -170,7 +202,9 @@ class ChatSuggestionsController {
 
             if (this.profilePortalObserver) {
                 if (this.debug) {
-                    console.info('[Chat Suggestions][Badoo] Observer do portal já ativo; aguardando atualização do perfil');
+                    console.info(
+                        '[Chat Suggestions][Badoo] Observer do portal já ativo; aguardando atualização do perfil',
+                    );
                 }
                 return;
             }
@@ -178,27 +212,46 @@ class ChatSuggestionsController {
             const startedAt = Date.now();
             let lastChangeAt = startedAt;
             if (this.debug) {
-                console.info('[Chat Suggestions][Badoo] Iniciando observer do portal do perfil', { timeoutMs });
+                console.info(
+                    '[Chat Suggestions][Badoo] Iniciando observer do portal do perfil',
+                    { timeoutMs },
+                );
             }
             this.profilePortalObserver = new MutationObserver(() => {
                 const before = this.cachedOtherPersonProfileText;
                 const ok = tryCapture();
-                if (ok && this.cachedOtherPersonProfileText && this.cachedOtherPersonProfileText !== before) {
+                if (
+                    ok &&
+                    this.cachedOtherPersonProfileText &&
+                    this.cachedOtherPersonProfileText !== before
+                ) {
                     lastChangeAt = Date.now();
                 }
 
                 const elapsed = Date.now() - startedAt;
                 const settledFor = Date.now() - lastChangeAt;
-                const hasBio = (this.cachedOtherPersonProfileText || '').includes('Sobre mim:');
+                const hasBio = (
+                    this.cachedOtherPersonProfileText || ''
+                ).includes('Sobre mim:');
 
-                if (elapsed > timeoutMs || (this.cachedOtherPersonProfileText && settledFor > 800 && (hasBio || elapsed > 1500))) {
+                if (
+                    elapsed > timeoutMs ||
+                    (this.cachedOtherPersonProfileText &&
+                        settledFor > 800 &&
+                        (hasBio || elapsed > 1500))
+                ) {
                     if (this.debug) {
-                        console.info('[Chat Suggestions][Badoo] Encerrando observer do portal do perfil', {
-                            elapsedMs: elapsed,
-                            settledForMs: settledFor,
-                            hasBio,
-                            cachedChars: this.cachedOtherPersonProfileText ? this.cachedOtherPersonProfileText.length : 0
-                        });
+                        console.info(
+                            '[Chat Suggestions][Badoo] Encerrando observer do portal do perfil',
+                            {
+                                elapsedMs: elapsed,
+                                settledForMs: settledFor,
+                                hasBio,
+                                cachedChars: this.cachedOtherPersonProfileText
+                                    ? this.cachedOtherPersonProfileText.length
+                                    : 0,
+                            },
+                        );
                     }
                     this.profilePortalObserver.disconnect();
                     this.profilePortalObserver = null;
@@ -207,22 +260,38 @@ class ChatSuggestionsController {
 
             const root = document.body || document.documentElement;
             if (!root) return;
-            this.profilePortalObserver.observe(root, { childList: true, subtree: true });
+            this.profilePortalObserver.observe(root, {
+                childList: true,
+                subtree: true,
+            });
         }
 
         extractBadooProfileTextFromPortal() {
-            const portal = document.querySelector('[data-qa="profile-portal-content-container_wrapper"], .profile-portal-container');
+            const portal = document.querySelector(
+                '[data-qa="profile-portal-content-container_wrapper"], .profile-portal-container',
+            );
             if (this.debug) {
-                console.info('[Chat Suggestions][Badoo] Portal do perfil', { found: Boolean(portal) });
+                console.info('[Chat Suggestions][Badoo] Portal do perfil', {
+                    found: Boolean(portal),
+                });
             }
             if (!portal) return '';
 
             const extractBlockByTitle = (titleText) => {
                 try {
                     const normalized = String(titleText || '').toLowerCase();
-                    const headers = Array.from(portal.querySelectorAll('.csms-view-profile-block__header-title, .csms-view-profile-block__header-title *'));
-                    const header = headers.find(el => {
-                        const txt = (el && (el.textContent || el.innerText)) ? (el.textContent || el.innerText).trim().toLowerCase() : '';
+                    const headers = Array.from(
+                        portal.querySelectorAll(
+                            '.csms-view-profile-block__header-title, .csms-view-profile-block__header-title *',
+                        ),
+                    );
+                    const header = headers.find((el) => {
+                        const txt =
+                            el && (el.textContent || el.innerText)
+                                ? (el.textContent || el.innerText)
+                                      .trim()
+                                      .toLowerCase()
+                                : '';
                         return txt && txt.includes(normalized);
                     });
                     if (!header) return null;
@@ -235,7 +304,10 @@ class ChatSuggestionsController {
             const pickText = (selector) => {
                 try {
                     const el = portal.querySelector(selector);
-                    const txt = (el && (el.textContent || el.innerText)) ? (el.textContent || el.innerText).trim() : '';
+                    const txt =
+                        el && (el.textContent || el.innerText)
+                            ? (el.textContent || el.innerText).trim()
+                            : '';
                     return txt.replace(/\s+/g, ' ').trim();
                 } catch (e) {
                     return '';
@@ -246,11 +318,22 @@ class ChatSuggestionsController {
             const age = pickText('[data-qa="profile-info__age"]');
             const aboutMe = (() => {
                 try {
-                    const section = portal.querySelector('.user-section[data-qa="about-me"]') || extractBlockByTitle('Sobre mim');
+                    const section =
+                        portal.querySelector(
+                            '.user-section[data-qa="about-me"]',
+                        ) || extractBlockByTitle('Sobre mim');
                     if (!section) return '';
-                    const content = section.querySelector('.csms-view-profile-block__content');
-                    const txt = (content && (content.textContent || content.innerText)) ? (content.textContent || content.innerText).trim() : '';
-                    return txt.replace(/\s+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+                    const content = section.querySelector(
+                        '.csms-view-profile-block__content',
+                    );
+                    const txt =
+                        content && (content.textContent || content.innerText)
+                            ? (content.textContent || content.innerText).trim()
+                            : '';
+                    return txt
+                        .replace(/\s+\n/g, '\n')
+                        .replace(/\n{3,}/g, '\n\n')
+                        .trim();
                 } catch (e) {
                     return '';
                 }
@@ -258,10 +341,18 @@ class ChatSuggestionsController {
 
             const location = (() => {
                 try {
-                    const section = portal.querySelector('.user-section[data-qa="location"]') || extractBlockByTitle('Localização');
+                    const section =
+                        portal.querySelector(
+                            '.user-section[data-qa="location"]',
+                        ) || extractBlockByTitle('Localização');
                     if (!section) return '';
-                    const el = section.querySelector('.csms-view-profile-block__header-text');
-                    const txt = (el && (el.textContent || el.innerText)) ? (el.textContent || el.innerText).trim() : '';
+                    const el = section.querySelector(
+                        '.csms-view-profile-block__header-text',
+                    );
+                    const txt =
+                        el && (el.textContent || el.innerText)
+                            ? (el.textContent || el.innerText).trim()
+                            : '';
                     return txt.replace(/\s+/g, ' ').trim();
                 } catch (e) {
                     return '';
@@ -270,10 +361,19 @@ class ChatSuggestionsController {
 
             const infoBadges = (() => {
                 try {
-                    const section = portal.querySelector('.user-section[data-qa="about-me-badges"]') || extractBlockByTitle('Informações');
+                    const section =
+                        portal.querySelector(
+                            '.user-section[data-qa="about-me-badges"]',
+                        ) || extractBlockByTitle('Informações');
                     if (!section) return [];
-                    const badges = Array.from(section.querySelectorAll('.profile-badges__item .csms-badge__text'));
-                    return badges.map(b => (b.textContent || b.innerText || '').trim()).filter(Boolean);
+                    const badges = Array.from(
+                        section.querySelectorAll(
+                            '.profile-badges__item .csms-badge__text',
+                        ),
+                    );
+                    return badges
+                        .map((b) => (b.textContent || b.innerText || '').trim())
+                        .filter(Boolean);
                 } catch (e) {
                     return [];
                 }
@@ -281,10 +381,19 @@ class ChatSuggestionsController {
 
             const interests = (() => {
                 try {
-                    const section = portal.querySelector('.user-section[data-qa="interests"]') || extractBlockByTitle('Interesses');
+                    const section =
+                        portal.querySelector(
+                            '.user-section[data-qa="interests"]',
+                        ) || extractBlockByTitle('Interesses');
                     if (!section) return [];
-                    const badges = Array.from(section.querySelectorAll('.profile-badges__item [data-qa=\"badge\"] .csms-badge__text'));
-                    return badges.map(b => (b.textContent || b.innerText || '').trim()).filter(Boolean);
+                    const badges = Array.from(
+                        section.querySelectorAll(
+                            '.profile-badges__item [data-qa=\"badge\"] .csms-badge__text',
+                        ),
+                    );
+                    return badges
+                        .map((b) => (b.textContent || b.innerText || '').trim())
+                        .filter(Boolean);
                 } catch (e) {
                     return [];
                 }
@@ -292,36 +401,63 @@ class ChatSuggestionsController {
 
             const questions = (() => {
                 try {
-                    const sections = Array.from(portal.querySelectorAll('.user-section[data-qa^="profile-question-"]'));
-                    return sections.map(section => {
-                        const q = (() => {
-                            const qBtn = section.querySelector('[data-qa="overlay-action"]');
-                            const raw = (qBtn && (qBtn.textContent || qBtn.innerText)) ? (qBtn.textContent || qBtn.innerText).trim() : '';
-                            return raw.replace(/\s+/g, ' ').trim();
-                        })();
-                        const a = (() => {
-                            const aEl = section.querySelector('.csms-view-profile-block__header-text');
-                            const raw = (aEl && (aEl.textContent || aEl.innerText)) ? (aEl.textContent || aEl.innerText).trim() : '';
-                            return raw.replace(/\s+/g, ' ').trim();
-                        })();
-                        if (!q && !a) return null;
-                        return { q, a };
-                    }).filter(Boolean);
+                    const sections = Array.from(
+                        portal.querySelectorAll(
+                            '.user-section[data-qa^="profile-question-"]',
+                        ),
+                    );
+                    return sections
+                        .map((section) => {
+                            const q = (() => {
+                                const qBtn = section.querySelector(
+                                    '[data-qa="overlay-action"]',
+                                );
+                                const raw =
+                                    qBtn && (qBtn.textContent || qBtn.innerText)
+                                        ? (
+                                              qBtn.textContent || qBtn.innerText
+                                          ).trim()
+                                        : '';
+                                return raw.replace(/\s+/g, ' ').trim();
+                            })();
+                            const a = (() => {
+                                const aEl = section.querySelector(
+                                    '.csms-view-profile-block__header-text',
+                                );
+                                const raw =
+                                    aEl && (aEl.textContent || aEl.innerText)
+                                        ? (
+                                              aEl.textContent || aEl.innerText
+                                          ).trim()
+                                        : '';
+                                return raw.replace(/\s+/g, ' ').trim();
+                            })();
+                            if (!q && !a) return null;
+                            return { q, a };
+                        })
+                        .filter(Boolean);
                 } catch (e) {
                     return [];
                 }
             })();
 
             const lines = [];
-            const title = [name, age ? `${age} anos` : ''].filter(Boolean).join(', ');
+            const title = [name, age ? `${age} anos` : '']
+                .filter(Boolean)
+                .join(', ');
             if (title) lines.push(`Perfil: ${title}`);
             if (aboutMe) lines.push(`Sobre mim: ${aboutMe}`);
             if (location) lines.push(`Localização: ${location}`);
-            if (infoBadges.length) lines.push(`Informações: ${infoBadges.slice(0, 20).join('; ')}`);
-            if (interests.length) lines.push(`Interesses: ${interests.slice(0, 20).join('; ')}`);
+            if (infoBadges.length)
+                lines.push(
+                    `Informações: ${infoBadges.slice(0, 20).join('; ')}`,
+                );
+            if (interests.length)
+                lines.push(`Interesses: ${interests.slice(0, 20).join('; ')}`);
             if (questions.length) {
-                const qa = questions.slice(0, 10)
-                    .map(item => item.a ? `${item.q}: ${item.a}` : item.q)
+                const qa = questions
+                    .slice(0, 10)
+                    .map((item) => (item.a ? `${item.q}: ${item.a}` : item.q))
                     .filter(Boolean)
                     .join(' | ');
                 if (qa) lines.push(`Perguntas: ${qa}`);
@@ -336,8 +472,11 @@ class ChatSuggestionsController {
         setupPlatformObservers() {
             if (this.platformObserver) return;
 
-            const effectivePlatform = this.platform ||
-                ((location.hostname || '').includes('whatsapp.com') ? 'whatsapp' : null);
+            const effectivePlatform =
+                this.platform ||
+                ((location.hostname || '').includes('whatsapp.com')
+                    ? 'whatsapp'
+                    : null);
 
             if (effectivePlatform !== 'whatsapp') return;
 
@@ -353,14 +492,24 @@ class ChatSuggestionsController {
 
             this.platformObserver = new MutationObserver((mutations) => {
                 let changed = false;
-                mutations.forEach(m => {
-                    if (m.type === 'attributes' && m.attributeName === 'aria-selected') {
+                mutations.forEach((m) => {
+                    if (
+                        m.type === 'attributes' &&
+                        m.attributeName === 'aria-selected'
+                    ) {
                         const target = m.target;
-                        if (target && target.getAttribute && target.getAttribute('aria-selected') === 'true') {
+                        if (
+                            target &&
+                            target.getAttribute &&
+                            target.getAttribute('aria-selected') === 'true'
+                        ) {
                             changed = true;
                         }
                     }
-                    if (m.type === 'childList' && (m.addedNodes.length || m.removedNodes.length)) {
+                    if (
+                        m.type === 'childList' &&
+                        (m.addedNodes.length || m.removedNodes.length)
+                    ) {
                         changed = true;
                     }
                 });
@@ -372,7 +521,7 @@ class ChatSuggestionsController {
                 attributes: true,
                 attributeFilter: ['aria-selected'],
                 childList: true,
-                subtree: true
+                subtree: true,
             });
         }
 
@@ -401,14 +550,18 @@ class ChatSuggestionsController {
             const checkForNewMessages = () => {
                 if (!this.chatContainer) return;
 
-                const currentMessages = this.chatContainer.querySelectorAll(this.messageSelector);
+                const currentMessages = this.chatContainer.querySelectorAll(
+                    this.messageSelector,
+                );
                 const currentCount = currentMessages.length;
 
                 if (currentCount !== this.lastMessageCount) {
                     this.lastMessageCount = currentCount;
                     this.updateSuggestions();
                     if (this.debug) {
-                        console.log(`[Chat Suggestions] Nova mensagem detectada! Total: ${currentCount}`);
+                        console.log(
+                            `[Chat Suggestions] Nova mensagem detectada! Total: ${currentCount}`,
+                        );
                     }
                 }
             };
@@ -416,13 +569,19 @@ class ChatSuggestionsController {
             this.chatObserver = new MutationObserver((mutations) => {
                 let hasNewMessage = false;
 
-                mutations.forEach(mutation => {
+                mutations.forEach((mutation) => {
                     if (mutation.type === 'childList') {
-                        mutation.addedNodes.forEach(node => {
+                        mutation.addedNodes.forEach((node) => {
                             if (node.nodeType === 1) {
-                                if (node.matches && node.matches(this.messageSelector)) {
+                                if (
+                                    node.matches &&
+                                    node.matches(this.messageSelector)
+                                ) {
                                     hasNewMessage = true;
-                                } else if (node.querySelector && node.querySelector(this.messageSelector)) {
+                                } else if (
+                                    node.querySelector &&
+                                    node.querySelector(this.messageSelector)
+                                ) {
                                     hasNewMessage = true;
                                 }
                             }
@@ -434,9 +593,14 @@ class ChatSuggestionsController {
                     clearTimeout(this.updateTimeout);
                     this.updateTimeout = setTimeout(() => {
                         this.updateSuggestions();
-                        this.lastMessageCount = this.chatContainer.querySelectorAll(this.messageSelector).length;
+                        this.lastMessageCount =
+                            this.chatContainer.querySelectorAll(
+                                this.messageSelector,
+                            ).length;
                         if (this.debug) {
-                            console.log('[Chat Suggestions] Sugestões atualizadas devido a nova mensagem');
+                            console.log(
+                                '[Chat Suggestions] Sugestões atualizadas devido a nova mensagem',
+                            );
                         }
                     }, 300);
                 } else {
@@ -448,7 +612,7 @@ class ChatSuggestionsController {
                 childList: true,
                 subtree: true,
                 attributes: false,
-                characterData: false
+                characterData: false,
             });
 
             this.messageCheckInterval = setInterval(() => {
@@ -461,31 +625,43 @@ class ChatSuggestionsController {
         }
 
         updateSuggestions() {
-            if (!this.chatContainer || !this.contextExtractor || !this.suggestionEngine || !this.ui) {
+            if (
+                !this.chatContainer ||
+                !this.contextExtractor ||
+                !this.suggestionEngine ||
+                !this.ui
+            ) {
                 return;
             }
 
             this.refreshContactContext();
             const context = this.contextExtractor.extract(this.chatContainer);
             const suggestions = this.suggestionEngine.generate(context);
-            const safeSuggestions = suggestions.length > 0 ? suggestions : this.suggestionEngine.getDefaultSuggestions();
+            const safeSuggestions =
+                suggestions.length > 0
+                    ? suggestions
+                    : this.suggestionEngine.getDefaultSuggestions();
             if (this.debug && Array.isArray(context?.lastMessages)) {
-                const conversationLog = context.lastMessages.map((msg, index) => ({
-                    index: index + 1,
-                    direction: msg.direction,
-                    sender: msg.sender,
-                    text: msg.text
-                }));
+                const conversationLog = context.lastMessages.map(
+                    (msg, index) => ({
+                        index: index + 1,
+                        direction: msg.direction,
+                        sender: msg.sender,
+                        text: msg.text,
+                    }),
+                );
                 console.table(conversationLog);
             }
             this.ui.render(safeSuggestions);
             if (this.debug) {
                 console.info('[Chat Suggestions] Sugestões atualizadas', {
                     total: safeSuggestions.length,
-                    topics: context?.topics || []
+                    topics: context?.topics || [],
                 });
             }
-            this.lastMessageCount = this.chatContainer.querySelectorAll(this.messageSelector).length;
+            this.lastMessageCount = this.chatContainer.querySelectorAll(
+                this.messageSelector,
+            ).length;
         }
 
         normalizeContactKey(value) {
@@ -503,17 +679,21 @@ class ChatSuggestionsController {
 
                 const patterns = [
                     /\/messages\/([^/?#]+)/i,
-                    /\/app\/messages\/([^/?#]+)/i
+                    /\/app\/messages\/([^/?#]+)/i,
                 ];
 
                 for (const pattern of patterns) {
                     const match = path.match(pattern);
                     if (match && match[1]) {
-                        return this.normalizeContactKey(`${platform}:${match[1]}`);
+                        return this.normalizeContactKey(
+                            `${platform}:${match[1]}`,
+                        );
                     }
                 }
 
-                const hash = String(url.hash || '').replace(/^#/, '').trim();
+                const hash = String(url.hash || '')
+                    .replace(/^#/, '')
+                    .trim();
                 if (hash) {
                     return this.normalizeContactKey(`${platform}:hash:${hash}`);
                 }
@@ -526,22 +706,35 @@ class ChatSuggestionsController {
 
         extractWhatsAppContactKey() {
             try {
-                const selected = document.querySelector('#pane-side [role="row"][aria-selected="true"], #pane-side [aria-selected="true"][role="listitem"], #pane-side [aria-selected="true"]');
+                const selected = document.querySelector(
+                    '#pane-side [role="row"][aria-selected="true"], #pane-side [aria-selected="true"][role="listitem"], #pane-side [aria-selected="true"]',
+                );
                 if (!selected) return '';
 
                 const dataId = String(
                     selected.getAttribute('data-id') ||
-                    (selected.dataset ? selected.dataset.id : '') ||
-                    ''
+                        (selected.dataset ? selected.dataset.id : '') ||
+                        '',
                 ).trim();
-                if (dataId) return this.normalizeContactKey(`whatsapp:chat:${dataId}`);
+                if (dataId)
+                    return this.normalizeContactKey(`whatsapp:chat:${dataId}`);
 
-                const nestedWithId = selected.querySelector && selected.querySelector('[data-id]');
-                const nestedId = nestedWithId ? String(nestedWithId.getAttribute('data-id') || '').trim() : '';
-                if (nestedId) return this.normalizeContactKey(`whatsapp:chat:${nestedId}`);
+                const nestedWithId =
+                    selected.querySelector &&
+                    selected.querySelector('[data-id]');
+                const nestedId = nestedWithId
+                    ? String(nestedWithId.getAttribute('data-id') || '').trim()
+                    : '';
+                if (nestedId)
+                    return this.normalizeContactKey(
+                        `whatsapp:chat:${nestedId}`,
+                    );
 
                 const nameEl = selected.querySelector('span[title]');
-                const name = (nameEl && nameEl.getAttribute) ? String(nameEl.getAttribute('title') || '').trim() : '';
+                const name =
+                    nameEl && nameEl.getAttribute
+                        ? String(nameEl.getAttribute('title') || '').trim()
+                        : '';
                 if (name) {
                     return this.normalizeContactKey(`whatsapp:name:${name}`);
                 }
@@ -555,7 +748,10 @@ class ChatSuggestionsController {
         extractContactKey() {
             const platform = String(this.platform || '').trim();
             if (platform === 'whatsapp') {
-                return this.extractWhatsAppContactKey() || this.extractContactKeyFromUrl();
+                return (
+                    this.extractWhatsAppContactKey() ||
+                    this.extractContactKeyFromUrl()
+                );
             }
             return this.extractContactKeyFromUrl();
         }
@@ -571,17 +767,29 @@ class ChatSuggestionsController {
             this.currentContactName = this.extractOtherPersonName();
 
             const stored = this.contextStore.get(key);
-            this.currentContactContextText = stored && stored.context ? stored.context : '';
+            this.currentContactContextText =
+                stored && stored.context ? stored.context : '';
 
-            if (this.ui && typeof this.ui.setContactContextState === 'function') {
-                this.ui.setContactContextState({ hasContext: Boolean(this.currentContactContextText && this.currentContactContextText.trim()) });
+            if (
+                this.ui &&
+                typeof this.ui.setContactContextState === 'function'
+            ) {
+                this.ui.setContactContextState({
+                    hasContext: Boolean(
+                        this.currentContactContextText &&
+                        this.currentContactContextText.trim(),
+                    ),
+                });
             }
 
             if (this.debug) {
                 console.info('[Chat Suggestions][Context] Conversa atual', {
                     contactKey: this.currentContactKey,
                     contactName: this.currentContactName,
-                    hasContext: Boolean(this.currentContactContextText && this.currentContactContextText.trim())
+                    hasContext: Boolean(
+                        this.currentContactContextText &&
+                        this.currentContactContextText.trim(),
+                    ),
                 });
             }
         }
@@ -590,14 +798,15 @@ class ChatSuggestionsController {
             this.refreshContactContext();
             return {
                 contactKey: this.currentContactKey,
-                contactName: this.currentContactName || this.extractOtherPersonName(),
-                contextText: this.currentContactContextText || ''
+                contactName:
+                    this.currentContactName || this.extractOtherPersonName(),
+                contextText: this.currentContactContextText || '',
             };
         }
 
         trimContactContext(text) {
             const raw = String(text || '').trim();
-            const MAX = 2000;
+            const MAX = 4000;
             return raw.length > MAX ? raw.slice(0, MAX) : raw;
         }
 
@@ -608,12 +817,17 @@ class ChatSuggestionsController {
             const trimmed = this.trimContactContext(contextText);
             const ok = this.contextStore.set(this.currentContactKey, {
                 name: this.currentContactName || this.extractOtherPersonName(),
-                context: trimmed
+                context: trimmed,
             });
             if (ok) {
                 this.currentContactContextText = trimmed;
-                if (this.ui && typeof this.ui.setContactContextState === 'function') {
-                    this.ui.setContactContextState({ hasContext: Boolean(trimmed) });
+                if (
+                    this.ui &&
+                    typeof this.ui.setContactContextState === 'function'
+                ) {
+                    this.ui.setContactContextState({
+                        hasContext: Boolean(trimmed),
+                    });
                 }
             }
             return ok;
@@ -625,7 +839,10 @@ class ChatSuggestionsController {
             const ok = this.contextStore.clear(this.currentContactKey);
             if (ok) {
                 this.currentContactContextText = '';
-                if (this.ui && typeof this.ui.setContactContextState === 'function') {
+                if (
+                    this.ui &&
+                    typeof this.ui.setContactContextState === 'function'
+                ) {
                     this.ui.setContactContextState({ hasContext: false });
                 }
             }
@@ -634,37 +851,55 @@ class ChatSuggestionsController {
 
         getCurrentContactContextForPrompt() {
             this.refreshContactContext();
-            const text = this.trimContactContext(this.currentContactContextText || '');
-            const MAX = 1200;
-            return text.length > MAX ? `${text.slice(0, MAX)}…` : text;
+            const text = this.trimContactContext(
+                this.currentContactContextText || '',
+            );
+            const MAX = 4000;
+            return text.length > MAX ? text.slice(0, MAX) : text;
         }
 
         buildConversationCopyText({ maxMessages = 40, maxChars = 2400 } = {}) {
             if (!this.contextExtractor || !this.chatContainer) return '';
-            const context = this.contextExtractor.extract(this.chatContainer, { fullHistory: true });
-            const messages = context?.allMessages?.length ? context.allMessages : (context?.lastMessages || []);
+            const context = this.contextExtractor.extract(this.chatContainer, {
+                fullHistory: true,
+            });
+            const messages = context?.allMessages?.length
+                ? context.allMessages
+                : context?.lastMessages || [];
             if (!messages.length) return '';
 
             const otherPersonName = this.extractOtherPersonName();
-            const entries = messages.slice(-maxMessages).map((msg) => {
-                const text = String(msg?.text || '').trim();
-                if (!text) return null;
-                const senderName = msg.sender && !['Outro', 'OUTRA PESSOA'].includes(msg.sender)
-                    ? msg.sender
-                    : (otherPersonName || 'OUTRA PESSOA');
-                const dir = msg.direction === 'out' ? 'EU' : senderName;
-                return { dir, text };
-            }).filter(Boolean);
+            const entries = messages
+                .slice(-maxMessages)
+                .map((msg) => {
+                    const text = String(msg?.text || '').trim();
+                    if (!text) return null;
+                    const senderName =
+                        msg.sender &&
+                        !['Outro', 'OUTRA PESSOA'].includes(msg.sender)
+                            ? msg.sender
+                            : otherPersonName || 'OUTRA PESSOA';
+                    const dir = msg.direction === 'out' ? 'EU' : senderName;
+                    return { dir, text };
+                })
+                .filter(Boolean);
 
             if (!entries.length) return '';
 
-            const render = (items) => items.map((entry, index) => (
-                `${index + 1}. ${entry.dir}: ${entry.text}`
-            )).join('\n');
+            const render = (items) =>
+                items
+                    .map(
+                        (entry, index) =>
+                            `${index + 1}. ${entry.dir}: ${entry.text}`,
+                    )
+                    .join('\n');
 
             let startIndex = 0;
             let joined = render(entries);
-            while (joined.length > maxChars && startIndex < entries.length - 1) {
+            while (
+                joined.length > maxChars &&
+                startIndex < entries.length - 1
+            ) {
                 startIndex += 1;
                 joined = render(entries.slice(startIndex));
             }
@@ -678,13 +913,16 @@ class ChatSuggestionsController {
                 const conversationText = this.buildConversationCopyText();
                 if (!profileText && !conversationText) {
                     if (this.platform === 'badoo') {
-                        this.waitForBadooProfilePortalAndCache({ timeoutMs: 2500 });
+                        this.waitForBadooProfilePortalAndCache({
+                            timeoutMs: 2500,
+                        });
                     }
                     return {
                         ok: false,
-                        message: this.platform === 'badoo'
-                            ? 'Abra o perfil da pessoa e tente novamente'
-                            : 'Perfil não encontrado na página'
+                        message:
+                            this.platform === 'badoo'
+                                ? 'Abra o perfil da pessoa e tente novamente'
+                                : 'Perfil não encontrado na página',
                     };
                 }
 
@@ -697,43 +935,59 @@ class ChatSuggestionsController {
                 }
                 const payload = parts.join('\n\n').trim();
 
-                const ok = this.ui && typeof this.ui.copyToClipboard === 'function'
-                    ? await this.ui.copyToClipboard(payload)
-                    : false;
+                const ok =
+                    this.ui && typeof this.ui.copyToClipboard === 'function'
+                        ? await this.ui.copyToClipboard(payload)
+                        : false;
 
                 if (!ok) {
                     return { ok: false, message: 'Não foi possível copiar' };
                 }
 
-                return { ok: true, message: conversationText ? 'Perfil e conversa copiados!' : 'Perfil copiado!' };
+                return {
+                    ok: true,
+                    message: conversationText
+                        ? 'Perfil e conversa copiados!'
+                        : 'Perfil copiado!',
+                };
             } catch (e) {
                 return { ok: false, message: 'Não foi possível copiar' };
             }
         }
 
         createAIClient() {
-            const apiKey = this.aiClientConfig.apiKey ||
-                (typeof window !== 'undefined' && window.OPENROUTER_API_KEY) ||
-                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterApiKey);
-
-            const model = this.aiClientConfig.model ||
-                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterModel) ||
-                'openai/gpt-oss-120b:free';
-            const profile = this.aiClientConfig.profile ||
-                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
+            const providerConfig = window.ChatSuggestions?.ProviderConfig || {};
             const provider = this.aiClientConfig.provider || 'gemini';
-            const responseLength = this.aiClientConfig.responseLength ||
-                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.aiResponseLength) ||
+            const globalConfig = window.badooChatSuggestionsConfig || {};
+            const apiKey = this.aiClientConfig.apiKey || null;
+
+            const model =
+                this.aiClientConfig.model ||
+                (provider === 'nvidia'
+                    ? globalConfig.nvidiaModel
+                    : globalConfig.openRouterModel) ||
+                (typeof providerConfig.getDefaultModelForProvider === 'function'
+                    ? providerConfig.getDefaultModelForProvider(provider)
+                    : 'openai/gpt-oss-120b:free');
+            const profile =
+                this.aiClientConfig.profile || globalConfig.openRouterProfile;
+            const responseLength =
+                this.aiClientConfig.responseLength ||
+                globalConfig.aiResponseLength ||
                 'short';
-            const businessModeEnabled = this.aiClientConfig.businessModeEnabled ??
-                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.businessModeEnabled);
-            const businessContext = this.aiClientConfig.businessContext ||
-                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.businessContext);
-            const businessTone = this.aiClientConfig.businessTone ||
-                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.businessTone);
+            const businessModeEnabled =
+                this.aiClientConfig.businessModeEnabled ??
+                globalConfig.businessModeEnabled;
+            const businessContext =
+                this.aiClientConfig.businessContext ||
+                globalConfig.businessContext;
+            const businessTone =
+                this.aiClientConfig.businessTone || globalConfig.businessTone;
 
             if (!apiKey) {
-                this.info('OpenRouter não configurado; botão de IA ficará inativo');
+                this.info(
+                    `Provider ${provider} não configurado; botão de IA ficará inativo`,
+                );
                 return null;
             }
 
@@ -750,7 +1004,7 @@ class ChatSuggestionsController {
                 responseLength,
                 businessModeEnabled: Boolean(businessModeEnabled),
                 businessContext: businessContext || '',
-                businessTone: businessTone || 'consultivo'
+                businessTone: businessTone || 'consultivo',
             });
         }
 
@@ -767,7 +1021,8 @@ class ChatSuggestionsController {
             }
 
             try {
-                window.badooChatSuggestionsConfig = window.badooChatSuggestionsConfig || {};
+                window.badooChatSuggestionsConfig =
+                    window.badooChatSuggestionsConfig || {};
                 window.badooChatSuggestionsConfig.aiResponseLength = next;
             } catch (e) {
                 // Ignora
@@ -785,7 +1040,12 @@ class ChatSuggestionsController {
 
             try {
                 if (this.ui && typeof this.ui.showToast === 'function') {
-                    const label = next === 'short' ? 'Curta' : (next === 'medium' ? 'Média' : 'Longa');
+                    const label =
+                        next === 'short'
+                            ? 'Curta'
+                            : next === 'medium'
+                              ? 'Média'
+                              : 'Longa';
                     this.ui.showToast(`Respostas: ${label}`);
                 }
             } catch (e) {
@@ -805,7 +1065,11 @@ class ChatSuggestionsController {
 
             if (this.cachedOtherPersonProfileText) {
                 const currentName = this.extractOtherPersonName();
-                if (currentName && this.cachedOtherPersonProfileName && currentName !== this.cachedOtherPersonProfileName) {
+                if (
+                    currentName &&
+                    this.cachedOtherPersonProfileName &&
+                    currentName !== this.cachedOtherPersonProfileName
+                ) {
                     this.cachedOtherPersonProfileText = '';
                     this.cachedOtherPersonProfileUpdatedAt = 0;
                     this.cachedOtherPersonProfileName = '';
@@ -815,7 +1079,8 @@ class ChatSuggestionsController {
             }
 
             const selectors = [];
-            if (this.profileContainerSelector) selectors.push(this.profileContainerSelector);
+            if (this.profileContainerSelector)
+                selectors.push(this.profileContainerSelector);
             selectors.push('#main-content [data-testid="profileCard"]');
             selectors.push('#main-content [data-testid="profile"]');
 
@@ -836,7 +1101,7 @@ class ChatSuggestionsController {
 
             const cleaned = raw
                 .split('\n')
-                .map(l => l.trim())
+                .map((l) => l.trim())
                 .filter(Boolean)
                 .join('\n')
                 .replace(/\s+\n/g, '\n')
@@ -855,13 +1120,16 @@ class ChatSuggestionsController {
                 '[data-qa="profile-info__name"] .csms-profile-info__name-inner',
                 '.csms-profile-info__name-inner',
                 '[data-qa="profile-info__name"]',
-                '[data-qa="mini-profile-user-info__heading"] [data-qa="profile-info__name"]'
+                '[data-qa="mini-profile-user-info__heading"] [data-qa="profile-info__name"]',
             ].filter(Boolean);
 
             for (const selector of selectors) {
                 try {
                     const el = document.querySelector(selector);
-                    let name = (el && (el.textContent || el.innerText)) ? (el.textContent || el.innerText).trim() : '';
+                    let name =
+                        el && (el.textContent || el.innerText)
+                            ? (el.textContent || el.innerText).trim()
+                            : '';
                     if (!name) continue;
                     name = name.replace(/\s+/g, ' ').trim();
                     // Ex.: "Mayara, Abrir perfil"
@@ -879,34 +1147,60 @@ class ChatSuggestionsController {
         async generateAISuggestions() {
             if (this.aiLoading) return;
             if (!this.aiClient) {
-                this.info('OpenRouter não configurado; defina openRouterApiKey em window.badooChatSuggestionsConfig');
-                alert('IA não configurada. Defina openRouterApiKey em window.badooChatSuggestionsConfig ou window.OPENROUTER_API_KEY.');
+                const provider = this.aiClientConfig?.provider || 'gemini';
+                this.info(`IA (${provider}) não configurada`);
+                alert(
+                    'IA não configurada. Defina a chave do provider selecionado no arquivo .env e recarregue a extensão.',
+                );
                 return;
             }
 
             try {
                 this.aiLoading = true;
                 this.ui.setAiLoading(true);
-                const context = this.contextExtractor.extract(this.chatContainer, { fullHistory: true });
-                const messages = context?.allMessages || context?.lastMessages || [];
-                const configuredProfile = (this.aiClientConfig && this.aiClientConfig.profile) ||
-                    (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
-                const profile = [configuredProfile].filter(Boolean).join('\n\n');
+                const context = this.contextExtractor.extract(
+                    this.chatContainer,
+                    { fullHistory: true },
+                );
+                const messages =
+                    context?.allMessages || context?.lastMessages || [];
+                const configuredProfile =
+                    (this.aiClientConfig && this.aiClientConfig.profile) ||
+                    (window.badooChatSuggestionsConfig &&
+                        window.badooChatSuggestionsConfig.openRouterProfile);
+                const profile = [configuredProfile]
+                    .filter(Boolean)
+                    .join('\n\n');
                 const otherPersonProfile = this.extractProfileText();
                 const otherPersonName = this.extractOtherPersonName();
-                const otherPersonContextNote = this.getCurrentContactContextForPrompt();
+                const otherPersonContextNote =
+                    this.getCurrentContactContextForPrompt();
 
                 if (this.debug && otherPersonProfile) {
-                    console.info('[Chat Suggestions][AI] Perfil da outra pessoa extraído da página', { chars: otherPersonProfile.length });
+                    console.info(
+                        '[Chat Suggestions][AI] Perfil da outra pessoa extraído da página',
+                        { chars: otherPersonProfile.length },
+                    );
                 }
 
-                const aiSuggestions = await this.aiClient.generateSuggestions({ messages, profile, otherPersonName, otherPersonProfile, otherPersonContextNote });
-                const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
+                const aiSuggestions = await this.aiClient.generateSuggestions({
+                    messages,
+                    profile,
+                    otherPersonName,
+                    otherPersonProfile,
+                    otherPersonContextNote,
+                });
+                const safe =
+                    aiSuggestions && aiSuggestions.length
+                        ? aiSuggestions
+                        : this.suggestionEngine.getDefaultSuggestions();
                 this.ui.render(safe, { isAI: true });
                 this.info('Sugestões de IA geradas', { total: safe.length });
             } catch (error) {
                 console.error('[Chat Suggestions] Erro ao gerar via IA', error);
-                alert(`Não foi possível gerar sugestões via IA.\n${error.message || ''}`);
+                alert(
+                    `Não foi possível gerar sugestões via IA.\n${error.message || ''}`,
+                );
             } finally {
                 this.aiLoading = false;
                 this.ui.setAiLoading(false);
@@ -916,28 +1210,49 @@ class ChatSuggestionsController {
         buildAIPrompts({ personality } = {}) {
             if (this.aiLoading) return;
             if (!this.aiClient) {
-                this.info('IA não configurada; defina openRouterApiKey/geminiApiKey');
-                alert('IA não configurada. Configure a chave da API na extensão.');
+                this.info(
+                    'IA não configurada; defina a chave do provider no .env',
+                );
+                alert(
+                    'IA não configurada. Defina a chave do provider no arquivo .env e recarregue a extensão.',
+                );
                 return { systemPrompt: '', userPrompt: '' };
             }
 
-            const context = this.contextExtractor.extract(this.chatContainer, { fullHistory: true });
-            const messages = context?.allMessages || context?.lastMessages || [];
-            const configuredProfile = (this.aiClientConfig && this.aiClientConfig.profile) ||
-                (window.badooChatSuggestionsConfig && window.badooChatSuggestionsConfig.openRouterProfile);
+            const context = this.contextExtractor.extract(this.chatContainer, {
+                fullHistory: true,
+            });
+            const messages =
+                context?.allMessages || context?.lastMessages || [];
+            const configuredProfile =
+                (this.aiClientConfig && this.aiClientConfig.profile) ||
+                (window.badooChatSuggestionsConfig &&
+                    window.badooChatSuggestionsConfig.openRouterProfile);
             const profile = [configuredProfile].filter(Boolean).join('\n\n');
             const otherPersonProfile = this.extractProfileText();
             const otherPersonName = this.extractOtherPersonName();
-            const otherPersonContextNote = this.getCurrentContactContextForPrompt();
+            const otherPersonContextNote =
+                this.getCurrentContactContextForPrompt();
 
             if (this.debug) {
-                console.info('[Chat Suggestions][AI] Contexto do perfil (outra pessoa)', {
-                    hasProfile: Boolean(otherPersonProfile),
-                    chars: otherPersonProfile ? otherPersonProfile.length : 0
-                });
+                console.info(
+                    '[Chat Suggestions][AI] Contexto do perfil (outra pessoa)',
+                    {
+                        hasProfile: Boolean(otherPersonProfile),
+                        chars: otherPersonProfile
+                            ? otherPersonProfile.length
+                            : 0,
+                    },
+                );
             }
 
-            const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({ messages, profile, otherPersonName, otherPersonProfile, otherPersonContextNote });
+            const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({
+                messages,
+                profile,
+                otherPersonName,
+                otherPersonProfile,
+                otherPersonContextNote,
+            });
             return { systemPrompt, userPrompt, personality };
         }
 
@@ -954,29 +1269,43 @@ class ChatSuggestionsController {
             this.ui.openAiPromptModal({
                 systemPrompt,
                 userPrompt,
-                onSend: async ({ systemPrompt: editedSystem, userPrompt: editedUser }) => {
+                onSend: async ({
+                    systemPrompt: editedSystem,
+                    userPrompt: editedUser,
+                }) => {
                     if (this.aiLoading) return;
                     try {
                         this.aiLoading = true;
                         this.ui.setAiLoading(true);
                         this.ui.setAiPromptSending(true);
-                        const aiSuggestions = await this.aiClient.generateSuggestionsWithPrompts({
-                            systemPrompt: editedSystem,
-                            userPrompt: editedUser
-                        });
-                        const safe = aiSuggestions && aiSuggestions.length ? aiSuggestions : this.suggestionEngine.getDefaultSuggestions();
+                        const aiSuggestions =
+                            await this.aiClient.generateSuggestionsWithPrompts({
+                                systemPrompt: editedSystem,
+                                userPrompt: editedUser,
+                            });
+                        const safe =
+                            aiSuggestions && aiSuggestions.length
+                                ? aiSuggestions
+                                : this.suggestionEngine.getDefaultSuggestions();
                         this.ui.render(safe, { isAI: true });
-                        this.info('Sugestões de IA geradas', { total: safe.length });
+                        this.info('Sugestões de IA geradas', {
+                            total: safe.length,
+                        });
                         this.ui.closeAiPromptModal();
                     } catch (error) {
-                        console.error('[Chat Suggestions] Erro ao gerar via IA', error);
-                        alert(`Não foi possível gerar sugestões via IA.\n${error.message || ''}`);
+                        console.error(
+                            '[Chat Suggestions] Erro ao gerar via IA',
+                            error,
+                        );
+                        alert(
+                            `Não foi possível gerar sugestões via IA.\n${error.message || ''}`,
+                        );
                     } finally {
                         this.aiLoading = false;
                         this.ui.setAiLoading(false);
                         this.ui.setAiPromptSending(false);
                     }
-                }
+                },
             });
         }
 
@@ -998,7 +1327,11 @@ class ChatSuggestionsController {
             }
 
             if (this.profileClickHandler) {
-                document.removeEventListener('click', this.profileClickHandler, true);
+                document.removeEventListener(
+                    'click',
+                    this.profileClickHandler,
+                    true,
+                );
                 this.profileClickHandler = null;
             }
 
@@ -1028,7 +1361,9 @@ class ChatSuggestionsController {
             }
 
             if (this.boundStorageChange && chrome?.storage?.onChanged) {
-                chrome.storage.onChanged.removeListener(this.boundStorageChange);
+                chrome.storage.onChanged.removeListener(
+                    this.boundStorageChange,
+                );
                 this.boundStorageChange = null;
             }
 
@@ -1056,9 +1391,11 @@ class ChatSuggestionsController {
                     'businessContext',
                     'businessTone',
                     'openRouterProfileCasual',
-                    'openRouterProfileBusiness'
+                    'openRouterProfileBusiness',
                 ]);
-                const shouldRefresh = Object.keys(changes || {}).some((key) => watched.has(key));
+                const shouldRefresh = Object.keys(changes || {}).some((key) =>
+                    watched.has(key),
+                );
                 if (!shouldRefresh) return;
                 this.refreshBusinessModeFromStorage();
             };
@@ -1067,50 +1404,69 @@ class ChatSuggestionsController {
 
         refreshBusinessModeFromStorage() {
             if (!chrome?.storage?.local) return;
-            chrome.storage.local.get([
-                'businessModeEnabled',
-                'businessModeByHost',
-                'businessContext',
-                'businessTone',
-                'openRouterProfileCasual',
-                'openRouterProfileBusiness'
-            ], (result) => {
-                const host = this.getCurrentHost();
-                const hostMode = host ? (result.businessModeByHost || {})[host] : undefined;
-                const businessModeEnabled = typeof hostMode === 'boolean'
-                    ? hostMode
-                    : Boolean(result.businessModeEnabled);
-                const businessContext = result.businessContext || '';
-                const businessTone = result.businessTone || 'consultivo';
-                const profileCasual = result.openRouterProfileCasual || '';
-                const profileBusiness = result.openRouterProfileBusiness || '';
-                this.updateBusinessModeConfig({
-                    businessModeEnabled,
-                    businessContext,
-                    businessTone,
-                    profileCasual,
-                    profileBusiness
-                });
-            });
+            chrome.storage.local.get(
+                [
+                    'businessModeEnabled',
+                    'businessModeByHost',
+                    'businessContext',
+                    'businessTone',
+                    'openRouterProfileCasual',
+                    'openRouterProfileBusiness',
+                ],
+                (result) => {
+                    const host = this.getCurrentHost();
+                    const hostMode = host
+                        ? (result.businessModeByHost || {})[host]
+                        : undefined;
+                    const businessModeEnabled =
+                        typeof hostMode === 'boolean'
+                            ? hostMode
+                            : Boolean(result.businessModeEnabled);
+                    const businessContext = result.businessContext || '';
+                    const businessTone = result.businessTone || 'consultivo';
+                    const profileCasual = result.openRouterProfileCasual || '';
+                    const profileBusiness =
+                        result.openRouterProfileBusiness || '';
+                    this.updateBusinessModeConfig({
+                        businessModeEnabled,
+                        businessContext,
+                        businessTone,
+                        profileCasual,
+                        profileBusiness,
+                    });
+                },
+            );
         }
 
-        updateBusinessModeConfig({ businessModeEnabled, businessContext, businessTone, profileCasual, profileBusiness }) {
+        updateBusinessModeConfig({
+            businessModeEnabled,
+            businessContext,
+            businessTone,
+            profileCasual,
+            profileBusiness,
+        }) {
             const mode = businessModeEnabled ? 'business' : 'casual';
-            const profile = mode === 'business' ? profileBusiness : profileCasual;
+            const profile =
+                mode === 'business' ? profileBusiness : profileCasual;
             this.aiClientConfig = this.aiClientConfig || {};
-            this.aiClientConfig.businessModeEnabled = Boolean(businessModeEnabled);
+            this.aiClientConfig.businessModeEnabled =
+                Boolean(businessModeEnabled);
             this.aiClientConfig.businessContext = businessContext || '';
             this.aiClientConfig.businessTone = businessTone || 'consultivo';
             this.aiClientConfig.profile = profile || '';
 
             if (this.aiClient) {
-                this.aiClient.businessModeEnabled = Boolean(businessModeEnabled);
+                this.aiClient.businessModeEnabled =
+                    Boolean(businessModeEnabled);
                 this.aiClient.businessContext = businessContext || '';
                 this.aiClient.businessTone = businessTone || 'consultivo';
                 this.aiClient.profile = profile || '';
             }
 
-            if (this.ui && typeof this.ui.applyConversationModeTheme === 'function') {
+            if (
+                this.ui &&
+                typeof this.ui.applyConversationModeTheme === 'function'
+            ) {
                 this.ui.applyConversationModeTheme(mode);
             }
         }
@@ -1125,5 +1481,6 @@ class ChatSuggestionsController {
     }
 
     window.ChatSuggestions = window.ChatSuggestions || {};
-    window.ChatSuggestions.ChatSuggestionsController = ChatSuggestionsController;
+    window.ChatSuggestions.ChatSuggestionsController =
+        ChatSuggestionsController;
 })();

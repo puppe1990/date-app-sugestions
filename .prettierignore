@@ -1,4 +1,4 @@
 .env
 node_modules
+.husky/_
 suggestions-library.json
-.DS_Store

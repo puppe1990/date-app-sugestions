@@ -12,15 +12,17 @@
                 fallbackSenderOut: 'Você',
                 fallbackSenderIn: 'Outro',
                 allowTextContentFallback: false,
-                ...config
+                ...config,
             };
         }
 
         read(container) {
             if (!container) return [];
-            let nodes = Array.from(container.querySelectorAll(this.config.messageSelector));
+            let nodes = Array.from(
+                container.querySelectorAll(this.config.messageSelector),
+            );
             if (typeof this.config.nodeFilter === 'function') {
-                nodes = nodes.filter(node => {
+                nodes = nodes.filter((node) => {
                     try {
                         return Boolean(this.config.nodeFilter(node));
                     } catch (e) {
@@ -28,15 +30,15 @@
                     }
                 });
             }
-            return nodes
-                .map(node => this.parseMessage(node))
-                .filter(Boolean);
+            return nodes.map((node) => this.parseMessage(node)).filter(Boolean);
         }
 
         parseMessage(node) {
             const rawDirection = this.resolveDirection(node);
             const direction = this.normalizeDirection(rawDirection);
-            const contentText = this.config.textSelector ? node.querySelector(this.config.textSelector) : null;
+            const contentText = this.config.textSelector
+                ? node.querySelector(this.config.textSelector)
+                : null;
             const audioButton = node.querySelector(this.config.audioSelector);
 
             const sender = this.getSender(node, direction);
@@ -47,7 +49,7 @@
                     sender,
                     text: textFromResolver,
                     direction,
-                    type: 'text'
+                    type: 'text',
                 };
             }
 
@@ -57,7 +59,7 @@
                     sender,
                     text,
                     direction,
-                    type: 'text'
+                    type: 'text',
                 };
             }
 
@@ -66,7 +68,7 @@
                     sender,
                     text: 'Mensagem de voz',
                     direction,
-                    type: 'audio'
+                    type: 'audio',
                 };
             }
 
@@ -82,7 +84,8 @@
             }
 
             if (this.config.allowTextContentFallback) {
-                const text = (node && node.textContent) ? node.textContent.trim() : '';
+                const text =
+                    node && node.textContent ? node.textContent.trim() : '';
                 if (text) {
                     return text.replace(/\s+/g, ' ').trim();
                 }
@@ -112,11 +115,15 @@
                     return String(resolved).trim();
                 }
             }
-            const senderElement = this.config.senderSelector ? node.querySelector(this.config.senderSelector) : null;
+            const senderElement = this.config.senderSelector
+                ? node.querySelector(this.config.senderSelector)
+                : null;
             if (senderElement && senderElement.textContent) {
                 return senderElement.textContent;
             }
-            return direction === this.config.directionOutValue ? this.config.fallbackSenderOut : this.config.fallbackSenderIn;
+            return direction === this.config.directionOutValue
+                ? this.config.fallbackSenderOut
+                : this.config.fallbackSenderIn;
         }
     }
 
@@ -126,6 +133,8 @@
 
     window.ChatSuggestions = window.ChatSuggestions || {};
     window.ChatSuggestions.MessageReader = MessageReader;
-    window.ChatSuggestions.createDefaultMessageReader = createDefaultMessageReader;
-    window.ChatSuggestions.createBadooMessageReader = createDefaultMessageReader;
+    window.ChatSuggestions.createDefaultMessageReader =
+        createDefaultMessageReader;
+    window.ChatSuggestions.createBadooMessageReader =
+        createDefaultMessageReader;
 })();
