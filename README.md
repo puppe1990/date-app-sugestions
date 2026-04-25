@@ -1,113 +1,167 @@
-# Chat Suggestions - Sugestões de Texto para Chat
+# Chat Suggestions
 
-Script JavaScript que analisa conversas de chat e fornece sugestões de texto contextuais acima da caixa de mensagens.
+Extensão Chrome para sugerir respostas curtas com base no contexto da conversa em plataformas de chat. O projeto injeta uma UI acima ou ao lado da caixa de mensagem, lê o histórico recente da conversa e usa um provedor de IA configurável para gerar sugestões em português.
 
-## Funcionalidades
+Hoje a extensão está preparada para:
 
-- ✅ Analisa o contexto da conversa automaticamente
-- ✅ Gera sugestões baseadas nas últimas mensagens
-- ✅ Detecta tópicos da conversa (trabalho, localização, interesses, etc.)
-- ✅ Atualiza sugestões em tempo real conforme a conversa evolui
-- ✅ Interface visual com botões clicáveis
-- ✅ Insere sugestões diretamente na caixa de mensagem ao clicar
-- ✅ **Extensão Chrome para Badoo** - Funciona automaticamente na página de mensagens
+- Badoo
+- Tinder
+- WhatsApp Web
+- Instagram Direct
 
-## Como Usar
+## O que o projeto faz
 
-### 🚀 Opção 1: Extensão Chrome (Recomendado para Badoo)
+- Detecta automaticamente a plataforma aberta.
+- Lê as mensagens recentes e extrai contexto da conversa.
+- Gera sugestões com `Gemini`, `OpenRouter` ou `NVIDIA`.
+- Permite ajustar modelo, tamanho de resposta e modo da conversa pelo popup da extensão.
+- Suporta modo casual e modo comercial, com configuração por host.
+- Mantém uma arquitetura modular em `src/` e uma versão standalone em `chat-suggestions.js`.
 
-A extensão Chrome detecta automaticamente a página `https://badoo.com/messages/*` e adiciona as sugestões automaticamente.
+## Estrutura
 
-#### Instalação:
-
-1. Abra o Chrome e vá para `chrome://extensions/`
-2. Ative o "Modo do desenvolvedor" (toggle no canto superior direito)
-3. Clique em "Carregar sem compactação"
-4. Selecione a pasta deste projeto
-5. A extensão estará instalada e ativa!
-
-#### Uso:
-
-- Acesse qualquer página de mensagens no Badoo: `https://badoo.com/messages/*`
-- As sugestões aparecerão automaticamente acima da caixa de mensagens
-- Clique em qualquer sugestão para inserir o texto na caixa de mensagem
-
-### Opção 2: Incluir diretamente no HTML
-
-```html
-<script src="chat-suggestions.js"></script>
+```text
+.
+├── manifest.json
+├── content.js
+├── popup.html
+├── popup.js
+├── chat-suggestions.js
+├── src/
+│   ├── constants/
+│   ├── context/
+│   ├── core/
+│   ├── platforms/
+│   ├── storage/
+│   ├── suggestions/
+│   └── ui/
+├── tests/
+├── suggestions-library.json
+└── suggestions-library-example.json
 ```
 
-### Opção 3: Como módulo ES6
+## Instalação
 
-```javascript
-import ChatSuggestions from './chat-suggestions.js';
+### 1. Instale dependências de desenvolvimento
 
-const chatSuggestions = new ChatSuggestions('.csms-chat-messages');
-chatSuggestions.init();
+```bash
+npm install
 ```
 
-### Opção 4: Via console do navegador
+As dependências são usadas para lint, formatação, hooks e testes locais. A extensão em si é carregada direto no Chrome, sem etapa de build.
 
-```javascript
-// Cole o conteúdo do arquivo chat-suggestions.js no console
-// Ou carregue via:
-const script = document.createElement('script');
-script.src = 'chat-suggestions.js';
-document.head.appendChild(script);
+### 2. Configure as chaves de IA
+
+O projeto espera chaves em um arquivo `.env` na raiz. Os nomes reconhecidos pelo código são:
+
+```env
+OPENROUTER_API_KEY=...
+GEMINI_API_KEY=...
+NVIDIA_API_KEY=...
 ```
 
-## Personalização
+Você pode configurar uma ou mais chaves e depois escolher o provedor no popup da extensão.
 
-O script procura automaticamente pelo container de chat com a classe `.csms-chat-messages`. Se sua aplicação usar uma classe diferente, você pode especificar:
+### 3. Carregue a extensão no Chrome
 
-```javascript
-const chatSuggestions = new ChatSuggestions('.sua-classe-customizada');
-chatSuggestions.init();
+1. Abra `chrome://extensions/`.
+2. Ative `Developer mode`.
+3. Clique em `Load unpacked`.
+4. Selecione a raiz deste repositório.
+
+## Plataformas e permissões
+
+Os content scripts são carregados nestes hosts:
+
+- `https://badoo.com/messages/*`
+- `https://tinder.com/app/messages/*`
+- `https://web.whatsapp.com/*`
+- `https://www.instagram.com/direct/*`
+
+Também existem permissões de host para chamadas aos provedores:
+
+- `https://openrouter.ai/*`
+- `https://generativelanguage.googleapis.com/*`
+- `https://integrate.api.nvidia.com/*`
+
+## Como usar
+
+1. Abra uma conversa em uma das plataformas suportadas.
+2. Abra o popup da extensão.
+3. Escolha o provedor e o modelo.
+4. Ajuste o tamanho da resposta e o modo da conversa, se necessário.
+5. Volte para o chat e use as sugestões renderizadas pela extensão.
+
+As sugestões são inseridas no campo de mensagem ao clicar. Em algumas plataformas, a UI também pode respeitar o ajuste de posicionamento salvo no popup.
+
+## Popup e configuração
+
+O popup salva preferências em `chrome.storage.local`, incluindo:
+
+- provedor de IA
+- modelo selecionado
+- perfil casual
+- perfil comercial
+- comprimento da resposta
+- override de posicionamento da UI
+- modo comercial por host
+- contexto e tom comercial
+
+O provedor padrão atual é `nvidia`.
+
+## Desenvolvimento
+
+### Scripts
+
+```bash
+npm test
+npm run lint
+npm run format
+npm run format:check
+npm run ci
 ```
 
-## Como Funciona
+`npm run ci` executa testes, lint e verificação de formatação.
 
-1. **Análise de Contexto**: O script analisa as últimas 5 mensagens da conversa
-2. **Extração de Tópicos**: Identifica tópicos como trabalho, localização, saudações, etc.
-3. **Geração de Sugestões**: Cria sugestões relevantes baseadas no contexto
-4. **Atualização Automática**: Observa mudanças no DOM e atualiza sugestões a cada 2 segundos
+## Qualidade
 
-## Estrutura do HTML Esperada
-
-O script espera encontrar mensagens com a estrutura:
-
-- Container: `.csms-chat-messages`
-- Mensagens: `[data-qa="chat-message"]`
-- Direção: `[data-qa-message-direction="in"|"out"]`
-- Texto: `.csms-chat-message-content-text__message`
-
-## Exemplo de Uso
-
-Após incluir o script, as sugestões aparecerão automaticamente acima da caixa de mensagens. Ao clicar em uma sugestão, o texto será inserido na caixa de mensagem.
-
-## Estrutura da Extensão Chrome
-
-A extensão consiste em:
-
-- `manifest.json` - Configuração da extensão (Manifest V3)
-- `content.js` - Script injetado na página do Badoo
-- `chat-suggestions.js` - Versão standalone do script (para uso direto)
-
-## Compatibilidade
-
-- **Extensão Chrome**: Funciona automaticamente no Badoo
-- **Script standalone**: Navegadores modernos (Chrome, Firefox, Safari, Edge)
-- Suporta inputs de texto, textareas e elementos contentEditable
-- Fallback para clipboard se a caixa de mensagem não for encontrada
+- Há testes em `tests/` para `provider-config`, integração do cliente NVIDIA e tooling do repositório.
+- Existe hook de pre-commit com `lint-staged`.
+- O workflow [`./.github/workflows/ci.yml`](./.github/workflows/ci.yml) roda `test`, `lint` e `format:check` no GitHub Actions.
 
 ## Debug
 
-Para ativar logs de debug no console, execute no console do navegador:
+Para ativar logs de debug no navegador:
 
-```javascript
+```js
 window.badooChatSuggestionsDebug = true;
-window.OPENROUTER_API_KEY = 'sua-chave-aqui'; // se quiser testar IA rapidamente
 ```
 
-Isso mostrará logs detalhados sobre a análise de mensagens e geração de sugestões.
+O código também observa a flag `data-bcs-debug` no `documentElement` para habilitar logs em runtime.
+
+## Arquitetura
+
+- `src/core/`
+  Cliente de IA, configuração de provedores e controlador principal.
+- `src/context/`
+  Leitura de mensagens e extração de contexto por plataforma.
+- `src/platforms/`
+  Seletores e defaults específicos de Badoo, Tinder, WhatsApp e Instagram.
+- `src/ui/`
+  Renderização das sugestões e interações com a caixa de mensagem.
+- `src/storage/`
+  Persistência local de contexto e preferências auxiliares.
+- `src/suggestions/`
+  Motor de geração e regras de sugestão.
+- `src/constants/`
+  Palavras-chave e listas auxiliares.
+
+## Standalone
+
+Além da extensão, o repositório ainda mantém `chat-suggestions.js` para uso direto em páginas ou testes manuais. A base principal, porém, está organizada nos módulos dentro de `src/`.
+
+## Observações
+
+- Não há etapa de build.
+- Não faça commit de chaves reais.
+- Se alterar comportamento da extensão distribuída, revise se faz sentido atualizar a versão em `manifest.json`.
