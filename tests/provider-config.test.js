@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const providerConfig = require('../src/core/provider-config.js');
 
 test('provider config exposes NVIDIA free models and picks a stable default', () => {
-    assert.equal(providerConfig.DEFAULT_PROVIDER, 'gemini');
+    assert.equal(providerConfig.DEFAULT_PROVIDER, 'nvidia');
     assert.ok(Array.isArray(providerConfig.NVIDIA_MODELS));
     assert.ok(providerConfig.NVIDIA_MODELS.length > 0);
     assert.equal(

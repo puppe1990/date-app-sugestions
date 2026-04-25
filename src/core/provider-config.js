@@ -44,7 +44,7 @@
         'z-ai/glm-4.7',
     ];
 
-    const DEFAULT_PROVIDER = 'gemini';
+    const DEFAULT_PROVIDER = 'nvidia';
     const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
     const DEFAULT_OPENROUTER_MODEL = OPENROUTER_MODELS[0];
     const DEFAULT_NVIDIA_MODEL = NVIDIA_MODELS[0];
