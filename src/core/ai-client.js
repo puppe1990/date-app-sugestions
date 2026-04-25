@@ -187,7 +187,9 @@
                 return this.callGemini({
                     prompt: `${systemPrompt}\n\n${userPrompt}`,
                     maxOutputTokens: cfg.maxTokens,
-                });
+                }).then((suggestions) =>
+                    this.sanitizeSuggestions(suggestions, userPrompt),
+                );
             }
 
             const payload = {
@@ -231,7 +233,10 @@
             const choice = response?.choices?.[0];
             const content =
                 choice?.message?.content || choice?.message?.reasoning || '';
-            return this.extractSuggestions(content);
+            return this.sanitizeSuggestions(
+                this.extractSuggestions(content),
+                userPrompt,
+            );
         }
 
         async callGemini({ prompt, maxOutputTokens }) {
@@ -404,9 +409,6 @@
             const profileLine = profile
                 ? `\nContexto sobre mim:\n${profile}`
                 : '';
-            const otherPersonProfileLine = otherPersonProfile
-                ? `\nPerfil da outra pessoa:\n${otherPersonProfile}`
-                : '';
             const otherPersonContextLine = otherPersonContextNote
                 ? `\nContexto adicional (anotações):\n${otherPersonContextNote}`
                 : '';
@@ -431,11 +433,16 @@
                 'Use o histórico abaixo (ordem cronológica).',
                 `Gere 3 a 5 respostas em primeira pessoa, naturais e coerentes com o histórico (máx ${cfg.maxChars} caracteres por sugestão).`,
                 'Não cumprimente de novo se já houve cumprimento. Não repita perguntas já feitas. Evite respostas genéricas.',
+                'Nunca abra com saudações genéricas como "oi", "olá", "boa tarde" ou "como você está?" se o chat já está em andamento.',
+                'Se a mensagem pendente for curta e confirmatória (ex.: "sim", "siiim", "super", "perto", "kkk"), continue o assunto em andamento em vez de reiniciar a conversa.',
+                'Quando a conversa já está em um tema concreto, responda em cima desse tema concreto e, se fizer sentido, avance um passo a partir dele.',
+                'Cada sugestão deve se apoiar em pelo menos um detalhe concreto do histórico recente (tema, lugar, pergunta, reação ou fato citado).',
+                'Exemplo ruim para conversa em andamento: "Boa tarde! Tudo bem?", "Como você está?", "Boa tarde! Como está seu dia?".',
+                'Exemplo bom: pegar o último assunto e avançar em cima dele, sem reiniciar o papo.',
                 'Responda APENAS com JSON válido: {"suggestions":["resposta1","resposta2",...]} sem texto extra, sem markdown, sem texto antes/depois. Não inclua saudações a menos que a última mensagem peça. Assim que fechar o JSON, pare.',
                 profileLine,
                 businessContextLine,
                 businessToneLine,
-                otherPersonProfileLine,
                 otherPersonContextLine,
                 otherPersonLine,
                 focusLine,
@@ -513,6 +520,56 @@
 
             // se não conseguiu extrair JSON, devolve vazio para cair no fallback padrão
             return [];
+        }
+
+        sanitizeSuggestions(suggestions, userPrompt) {
+            const unique = [];
+            const seen = new Set();
+            const chatInProgress = this.isChatAlreadyInProgress(userPrompt);
+
+            suggestions.forEach((item) => {
+                const suggestion = String(item || '').trim();
+                if (!suggestion) return;
+
+                if (
+                    chatInProgress &&
+                    this.isGenericConversationRestart(suggestion)
+                ) {
+                    return;
+                }
+
+                const normalized = suggestion.toLowerCase();
+                if (seen.has(normalized)) return;
+                seen.add(normalized);
+                unique.push(suggestion);
+            });
+
+            return unique.slice(0, 5);
+        }
+
+        isChatAlreadyInProgress(userPrompt) {
+            const prompt = String(userPrompt || '');
+            if (!prompt) return false;
+
+            const historyMatches =
+                prompt.match(/\n\d+\.\s+(?:EU|[^\n:]+):\s+/g) || [];
+            return historyMatches.length >= 3;
+        }
+
+        isGenericConversationRestart(text) {
+            const normalized = String(text || '')
+                .trim()
+                .toLowerCase();
+            if (!normalized) return false;
+
+            return [
+                /^(oi|olá|ola|bom dia|boa tarde|boa noite)[!,. ]*/,
+                /\bcomo você está\b/,
+                /\bcomo vc está\b/,
+                /\btudo bem\b/,
+                /\bcomo está seu dia\b/,
+                /\bcomo foi seu dia\b/,
+            ].some((pattern) => pattern.test(normalized));
         }
     }
 

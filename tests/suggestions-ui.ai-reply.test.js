@@ -151,7 +151,7 @@ function loadSuggestionsUI({ document }) {
     return sandbox.window.ChatSuggestions.SuggestionsUI;
 }
 
-test('Responder com IA usa o texto retornado pela IA para preencher o composer', async () => {
+test('Responder com IA gera sugestões clicáveis sem preencher o composer automaticamente', async () => {
     const document = new FakeDocument();
     const input = document.createElement('textarea');
     document.selectorMap.set('#composer', input);
@@ -159,7 +159,7 @@ test('Responder com IA usa o texto retornado pela IA para preencher o composer',
     const SuggestionsUI = loadSuggestionsUI({ document });
     const ui = new SuggestionsUI({
         inputSelector: '#composer',
-        onAiReply: async () => 'Resposta gerada pela IA',
+        onAiReply: async () => ['Resposta 1', 'Resposta 2', 'Resposta 3'],
     });
 
     const button = ui.createAiReplyButton();
@@ -169,5 +169,11 @@ test('Responder com IA usa o texto retornado pela IA para preencher o composer',
     button.click();
     await new Promise((resolve) => setImmediate(resolve));
 
-    assert.equal(input.value, 'Resposta gerada pela IA');
+    assert.equal(input.value, '');
+    assert.deepEqual(Array.from(ui.aiSuggestions), [
+        'Resposta 1',
+        'Resposta 2',
+        'Resposta 3',
+    ]);
+    assert.equal(ui.suggestionsCollapsed, false);
 });

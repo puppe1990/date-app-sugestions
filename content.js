@@ -91,9 +91,15 @@
             if (platform === 'tinder') return path.startsWith('/app/messages');
             if (platform === 'whatsapp') return true;
             if (platform === 'instagram') return path.startsWith('/direct/');
-            return path.startsWith('/messages');
+            return (
+                path.startsWith('/messages') || path.startsWith('/connections')
+            );
         } catch (e) {
-            return url.includes('/messages/') || url.includes('/direct/');
+            return (
+                url.includes('/messages/') ||
+                url.includes('/connections/') ||
+                url.includes('/direct/')
+            );
         }
     };
 

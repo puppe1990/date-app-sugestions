@@ -24,6 +24,7 @@
         {
             "matches": [
                 "https://badoo.com/messages/*",
+                "https://badoo.com/connections/*",
                 "https://tinder.com/app/messages/*",
                 "https://web.whatsapp.com/*",
                 "https://www.instagram.com/direct/*"

@@ -1740,12 +1740,20 @@
                 if (this.aiLoading) return;
 
                 try {
-                    const text = await this.onAiReply({
+                    const suggestions = await this.onAiReply({
                         personality: this.selectedPersonality,
                     });
-                    const trimmed = String(text || '').trim();
-                    if (trimmed) {
-                        this.insertSuggestion(trimmed);
+                    const next = Array.isArray(suggestions)
+                        ? suggestions
+                              .map((item) => String(item || '').trim())
+                              .filter(Boolean)
+                              .slice(0, 3)
+                        : [];
+                    if (next.length > 0) {
+                        this.aiSuggestions = next;
+                        this.suggestionsCollapsed = false;
+                        this.renderSections();
+                        this.ensureGoodPlacement();
                     }
                 } catch (error) {
                     console.error(

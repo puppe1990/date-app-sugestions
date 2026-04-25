@@ -108,7 +108,7 @@
                     ? 'business'
                     : 'casual',
                 onAiGenerate: (opts) => this.openAIPromptModal(opts),
-                onAiReply: () => this.generateAIReplyIntoInput(),
+                onAiReply: (opts) => this.generateAIReplySuggestions(opts),
                 onAiCopyPrompt: (opts) => this.buildAIPrompts(opts),
                 onResponseLengthChange: ({ responseLength }) =>
                     this.setAIResponseLength(responseLength),
@@ -1057,11 +1057,12 @@
         extractProfileText() {
             const badooText = this.extractBadooProfileTextFromPortal();
             if (badooText) {
-                this.cachedOtherPersonProfileText = badooText;
+                const sanitized = this.sanitizeProfileText(badooText);
+                this.cachedOtherPersonProfileText = sanitized;
                 this.cachedOtherPersonProfileUpdatedAt = Date.now();
                 const name = this.extractOtherPersonName();
                 if (name) this.cachedOtherPersonProfileName = name;
-                return badooText;
+                return sanitized;
             }
 
             if (this.cachedOtherPersonProfileText) {
@@ -1082,6 +1083,8 @@
             const selectors = [];
             if (this.profileContainerSelector)
                 selectors.push(this.profileContainerSelector);
+            selectors.push('.mini-profile__user-info');
+            selectors.push('[data-qa="mini-profile-user-info"]');
             selectors.push('#main-content [data-testid="profileCard"]');
             selectors.push('#main-content [data-testid="profile"]');
 
@@ -1100,9 +1103,81 @@
             const raw = (el.innerText || el.textContent || '').trim();
             if (!raw) return '';
 
-            const cleaned = raw
+            return this.sanitizeProfileText(raw);
+        }
+
+        sanitizeProfileText(raw) {
+            const text = String(raw || '').trim();
+            if (!text) return '';
+
+            const normalized = text
                 .split('\n')
                 .map((l) => l.trim())
+                .filter(Boolean)
+                .map((line) => line.replace(/\s+/g, ' ').trim())
+                .filter(
+                    (line) =>
+                        line &&
+                        !/^abrir perfil$/i.test(line) &&
+                        !/^educa[cç][aã]o$/i.test(line) &&
+                        !/^conectados hoje$/i.test(line),
+                );
+
+            const unique = [];
+            const seen = new Set();
+            for (const line of normalized) {
+                const key = line.toLowerCase();
+                if (seen.has(key)) continue;
+                seen.add(key);
+                unique.push(line);
+            }
+
+            const name = this.extractOtherPersonName();
+            const ageMatch = text.match(/\b(\d{2})\b/);
+            const merged = [];
+            let insertedSummary = false;
+            let hasLocation = false;
+
+            for (const line of unique) {
+                if (
+                    name &&
+                    ageMatch &&
+                    !insertedSummary &&
+                    (line === name || line === `, ${ageMatch[1]}`)
+                ) {
+                    merged.push(`${name}, ${ageMatch[1]} anos`);
+                    insertedSummary = true;
+                    continue;
+                }
+                if (
+                    /^profiss[aã]o:\s*s[aã]o paulo$/i.test(line) ||
+                    /^educa[cç][aã]o:\s*$/i.test(line)
+                ) {
+                    continue;
+                }
+                if (/^s[aã]o paulo$/i.test(line)) {
+                    hasLocation = true;
+                }
+                if (
+                    name &&
+                    /online agora|rolou uma conex[aã]o|curtiu voc[eê]/i.test(
+                        line,
+                    )
+                ) {
+                    if (!insertedSummary && ageMatch) {
+                        merged.push(`${name}, ${ageMatch[1]} anos`);
+                        insertedSummary = true;
+                    }
+                    continue;
+                }
+                merged.push(line);
+            }
+
+            if (!hasLocation && /s[aã]o paulo/i.test(text)) {
+                merged.push('São Paulo');
+            }
+
+            const cleaned = merged
                 .filter(Boolean)
                 .join('\n')
                 .replace(/\s+\n/g, '\n')
@@ -1208,7 +1283,7 @@
             }
         }
 
-        async generateAIReplyIntoInput() {
+        async generateAIReplySuggestions({ personality } = {}) {
             if (this.aiLoading) return '';
             if (!this.aiClient) {
                 const provider = this.aiClientConfig?.provider || 'gemini';
@@ -1220,39 +1295,29 @@
             }
 
             try {
+                const prompts = this.buildAIPrompts({ personality });
+                if (!prompts || !prompts.systemPrompt || !prompts.userPrompt) {
+                    return '';
+                }
                 this.aiLoading = true;
                 this.ui.setAiLoading(true);
-                const context = this.contextExtractor.extract(
-                    this.chatContainer,
-                    { fullHistory: true },
-                );
-                const messages =
-                    context?.allMessages || context?.lastMessages || [];
-                const configuredProfile =
-                    (this.aiClientConfig && this.aiClientConfig.profile) ||
-                    (window.badooChatSuggestionsConfig &&
-                        window.badooChatSuggestionsConfig.openRouterProfile);
-                const profile = [configuredProfile]
-                    .filter(Boolean)
-                    .join('\n\n');
-                const otherPersonProfile = this.extractProfileText();
-                const otherPersonName = this.extractOtherPersonName();
-                const otherPersonContextNote =
-                    this.getCurrentContactContextForPrompt();
-
-                const aiSuggestions = await this.aiClient.generateSuggestions({
-                    messages,
-                    profile,
-                    otherPersonName,
-                    otherPersonProfile,
-                    otherPersonContextNote,
-                });
+                const aiSuggestions =
+                    await this.aiClient.generateSuggestionsWithPrompts({
+                        systemPrompt: this.applyPersonalityToSystemPrompt(
+                            prompts.systemPrompt,
+                            personality,
+                        ),
+                        userPrompt: prompts.userPrompt,
+                    });
                 const safe =
                     aiSuggestions && aiSuggestions.length
                         ? aiSuggestions
                         : this.suggestionEngine.getDefaultSuggestions();
                 this.ui.render(safe, { isAI: true });
-                return safe[0] || '';
+                return safe
+                    .map((item) => String(item || '').trim())
+                    .filter(Boolean)
+                    .slice(0, 3);
             } catch (error) {
                 console.error(
                     '[Chat Suggestions] Erro ao responder com IA',
@@ -1266,6 +1331,16 @@
                 this.aiLoading = false;
                 this.ui.setAiLoading(false);
             }
+        }
+
+        applyPersonalityToSystemPrompt(systemPrompt, personality) {
+            const base = String(systemPrompt || '').trim();
+            if (!base) return '';
+            const addon =
+                typeof this.ui?.buildPersonalityAddon === 'function'
+                    ? this.ui.buildPersonalityAddon(personality)
+                    : '';
+            return `${base}${addon}`.trim();
         }
 
         buildAIPrompts({ personality } = {}) {

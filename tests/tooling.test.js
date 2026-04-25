@@ -24,3 +24,13 @@ test('repository contains a pre-commit hook and github actions workflow', () => 
     assert.equal(fs.existsSync(preCommitPath), true);
     assert.equal(fs.existsSync(workflowPath), true);
 });
+
+test('manifest loads the extension on Badoo messages and connections routes', () => {
+    const manifest = JSON.parse(
+        fs.readFileSync(path.join(repoRoot, 'manifest.json'), 'utf8'),
+    );
+    const matches = manifest.content_scripts?.[0]?.matches || [];
+
+    assert.equal(matches.includes('https://badoo.com/messages/*'), true);
+    assert.equal(matches.includes('https://badoo.com/connections/*'), true);
+});
