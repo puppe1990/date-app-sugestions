@@ -18,9 +18,13 @@
 
         read(container) {
             if (!container) return [];
-            let nodes = Array.from(
-                container.querySelectorAll(this.config.messageSelector),
-            );
+            let nodes = this.queryNodes(container, this.config.messageSelector);
+            if (nodes.length === 0 && this.config.fallbackMessageSelector) {
+                nodes = this.queryNodes(
+                    container,
+                    this.config.fallbackMessageSelector,
+                );
+            }
             if (typeof this.config.nodeFilter === 'function') {
                 nodes = nodes.filter((node) => {
                     try {
@@ -31,6 +35,11 @@
                 });
             }
             return nodes.map((node) => this.parseMessage(node)).filter(Boolean);
+        }
+
+        queryNodes(container, selector) {
+            if (!container || !selector) return [];
+            return Array.from(container.querySelectorAll(selector));
         }
 
         parseMessage(node) {

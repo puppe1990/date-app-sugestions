@@ -16,6 +16,7 @@
             inputSelector,
             placement = 'inline',
             onAiGenerate,
+            onAiReply,
             onAiCopyPrompt,
             responseLength = 'short',
             onResponseLengthChange,
@@ -31,6 +32,7 @@
             this.container = null;
             this.domObserver = null;
             this.onAiGenerate = onAiGenerate;
+            this.onAiReply = onAiReply;
             this.onAiCopyPrompt = onAiCopyPrompt;
             this.getContactContextMeta = getContactContextMeta;
             this.onContactContextSave = onContactContextSave;
@@ -38,6 +40,7 @@
             this.onCopyOtherPersonProfile = onCopyOtherPersonProfile;
             this.aiLoading = false;
             this.aiButton = null;
+            this.aiReplyButton = null;
             this.aiSuggestions = [];
             this.normalSuggestions = [];
             this.suggestionsCollapsed = true;
@@ -1719,6 +1722,50 @@
             return button;
         }
 
+        createAiReplyButton() {
+            if (typeof this.onAiReply !== 'function') return null;
+
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className =
+                'chat-suggestion-button chat-suggestion-button--ai-reply';
+            button.textContent = this.aiLoading
+                ? 'Respondendo...'
+                : 'Responder com IA';
+            button.disabled = this.aiLoading;
+
+            button.addEventListener('click', async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (this.aiLoading) return;
+
+                try {
+                    const suggestions = await this.onAiReply({
+                        personality: this.selectedPersonality,
+                    });
+                    const next = Array.isArray(suggestions)
+                        ? suggestions
+                              .map((item) => String(item || '').trim())
+                              .filter(Boolean)
+                              .slice(0, 3)
+                        : [];
+                    if (next.length > 0) {
+                        this.aiSuggestions = next;
+                        this.suggestionsCollapsed = false;
+                        this.renderSections();
+                        this.ensureGoodPlacement();
+                    }
+                } catch (error) {
+                    console.error(
+                        '[Chat Suggestions] Erro ao responder com IA',
+                        error,
+                    );
+                }
+            });
+
+            return button;
+        }
+
         createInlinePersonalitySelect() {
             if (typeof this.onAiGenerate !== 'function') return null;
 
@@ -2078,6 +2125,13 @@
                 this.aiButton.disabled = this.aiLoading;
                 this.aiButton.style.opacity = this.aiLoading ? '0.7' : '1';
             }
+            if (this.aiReplyButton) {
+                this.aiReplyButton.textContent = this.aiLoading
+                    ? 'Respondendo...'
+                    : 'Responder com IA';
+                this.aiReplyButton.disabled = this.aiLoading;
+                this.aiReplyButton.style.opacity = this.aiLoading ? '0.7' : '1';
+            }
         }
 
         setContactContextState({ hasContext } = {}) {
@@ -2125,6 +2179,12 @@
             const copyPromptButton = this.createCopyPromptButton();
             if (copyPromptButton) {
                 container.appendChild(copyPromptButton);
+            }
+
+            const aiReplyButton = this.createAiReplyButton();
+            if (aiReplyButton) {
+                container.appendChild(aiReplyButton);
+                this.aiReplyButton = aiReplyButton;
             }
 
             const dragButton = this.createDragToggleButton();
