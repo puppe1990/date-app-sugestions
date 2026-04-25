@@ -219,7 +219,7 @@
                 );
             }
 
-            const response = await fetch(this.endpoint, {
+            const response = await this.requestJson(this.endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -228,27 +228,7 @@
                 body: JSON.stringify(payload),
             });
 
-            if (!response.ok) {
-                let errorText = response.statusText;
-                try {
-                    const raw = await response.text();
-                    errorText = raw || response.statusText;
-                    const json = JSON.parse(raw);
-                    if (json?.error?.message) {
-                        errorText = json.error.message;
-                    }
-                } catch (e) {
-                    // ignore parse error
-                }
-                const label =
-                    this.provider === 'nvidia' ? 'NVIDIA' : 'OpenRouter';
-                throw new Error(
-                    `Erro ${label} (${response.status}): ${errorText}`,
-                );
-            }
-
-            const data = await response.json();
-            const choice = data?.choices?.[0];
+            const choice = response?.choices?.[0];
             const content =
                 choice?.message?.content || choice?.message?.reasoning || '';
             return this.extractSuggestions(content);
@@ -273,14 +253,76 @@
                 },
             };
 
-            const response = await fetch(url, {
+            const data = await this.requestJson(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(body),
             });
+            const text =
+                data?.candidates?.[0]?.content?.parts
+                    ?.map((p) => p.text)
+                    .filter(Boolean)
+                    .join('\n') || '';
+            return this.extractSuggestions(text);
+        }
 
+        hasExtensionRuntime() {
+            try {
+                return Boolean(
+                    typeof chrome !== 'undefined' &&
+                    chrome?.runtime?.sendMessage,
+                );
+            } catch (e) {
+                return false;
+            }
+        }
+
+        async requestJson(url, options) {
+            if (this.hasExtensionRuntime()) {
+                return this.requestJsonViaRuntime(url, options);
+            }
+            return this.requestJsonViaFetch(url, options);
+        }
+
+        async requestJsonViaRuntime(url, options) {
+            return new Promise((resolve, reject) => {
+                try {
+                    chrome.runtime.sendMessage(
+                        {
+                            type: 'CHAT_SUGGESTIONS_FETCH',
+                            url,
+                            options,
+                        },
+                        (response) => {
+                            const runtimeError = chrome?.runtime?.lastError;
+                            if (runtimeError) {
+                                reject(new Error(runtimeError.message));
+                                return;
+                            }
+                            if (!response?.ok) {
+                                reject(
+                                    new Error(
+                                        this.buildRequestErrorMessage(
+                                            response,
+                                            url,
+                                        ),
+                                    ),
+                                );
+                                return;
+                            }
+                            resolve(response.data);
+                        },
+                    );
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        }
+
+        async requestJsonViaFetch(url, options) {
+            const response = await fetch(url, options);
             if (!response.ok) {
                 let errorText = response.statusText;
                 try {
@@ -294,17 +336,28 @@
                     // ignore parse error
                 }
                 throw new Error(
-                    `Erro Gemini (${response.status}): ${errorText}`,
+                    this.buildRequestErrorMessage(
+                        {
+                            status: response.status,
+                            errorText,
+                        },
+                        url,
+                    ),
                 );
             }
+            return response.json();
+        }
 
-            const data = await response.json();
-            const text =
-                data?.candidates?.[0]?.content?.parts
-                    ?.map((p) => p.text)
-                    .filter(Boolean)
-                    .join('\n') || '';
-            return this.extractSuggestions(text);
+        buildRequestErrorMessage(response, url) {
+            const status = Number(response?.status || 0);
+            const errorText = String(
+                response?.errorText || response?.error || 'Falha na requisição',
+            );
+            if (url.includes('generativelanguage.googleapis.com')) {
+                return `Erro Gemini (${status || 'sem status'}): ${errorText}`;
+            }
+            const label = this.provider === 'nvidia' ? 'NVIDIA' : 'OpenRouter';
+            return `Erro ${label} (${status || 'sem status'}): ${errorText}`;
         }
 
         buildUserPrompt(

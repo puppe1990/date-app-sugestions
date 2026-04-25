@@ -9,12 +9,13 @@ const aiClientSource = fs.readFileSync(
     'utf8',
 );
 
-const loadAIClient = ({ fetchImpl } = {}) => {
+const loadAIClient = ({ fetchImpl, chromeImpl } = {}) => {
     const context = {
         window: {
             ChatSuggestions: {},
             badooChatSuggestionsDebug: false,
         },
+        chrome: chromeImpl,
         fetch:
             fetchImpl ||
             (async () => {
@@ -78,4 +79,52 @@ test('AIClient uses NVIDIA chat completions endpoint for nvidia provider', async
         'Bearer nvapi-test',
     );
     assert.equal(requests[0].options.body.model, 'meta/llama-3.1-8b-instruct');
+});
+
+test('AIClient routes network calls through extension runtime when available', async () => {
+    const requests = [];
+    const AIClient = loadAIClient({
+        fetchImpl: async () => {
+            throw new Error('fetch direto não deveria ser chamado');
+        },
+        chromeImpl: {
+            runtime: {
+                sendMessage(payload, callback) {
+                    requests.push(payload);
+                    callback({
+                        ok: true,
+                        status: 200,
+                        data: {
+                            choices: [
+                                {
+                                    message: {
+                                        content:
+                                            '{"suggestions":["Resposta via runtime"]}',
+                                    },
+                                },
+                            ],
+                        },
+                    });
+                },
+            },
+        },
+    });
+
+    const client = new AIClient({
+        apiKey: 'nvapi-test',
+        provider: 'nvidia',
+        model: 'meta/llama-3.1-8b-instruct',
+    });
+
+    const suggestions = await client.generateSuggestions({
+        messages: [{ direction: 'in', sender: 'Ana', text: 'Tudo bem?' }],
+    });
+
+    assert.deepEqual(Array.from(suggestions), ['Resposta via runtime']);
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].type, 'CHAT_SUGGESTIONS_FETCH');
+    assert.equal(
+        requests[0].url,
+        'https://integrate.api.nvidia.com/v1/chat/completions',
+    );
 });
