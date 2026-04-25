@@ -1,24 +1,24 @@
 # Chat Suggestions
 
-Extensão Chrome para sugerir respostas curtas com base no contexto da conversa em plataformas de chat. O projeto injeta uma UI acima ou ao lado da caixa de mensagem, lê o histórico recente da conversa e usa um provedor de IA configurável para gerar sugestões em português.
+Chrome extension that suggests short replies based on the conversation context across chat platforms. The project injects a UI above or beside the message box, reads recent message history, and uses a configurable AI provider to generate suggestions in Portuguese.
 
-Hoje a extensão está preparada para:
+The extension currently supports:
 
 - Badoo
 - Tinder
 - WhatsApp Web
 - Instagram Direct
 
-## O que o projeto faz
+## What the project does
 
-- Detecta automaticamente a plataforma aberta.
-- Lê as mensagens recentes e extrai contexto da conversa.
-- Gera sugestões com `Gemini`, `OpenRouter` ou `NVIDIA`.
-- Permite ajustar modelo, tamanho de resposta e modo da conversa pelo popup da extensão.
-- Suporta modo casual e modo comercial, com configuração por host.
-- Mantém uma arquitetura modular em `src/` e uma versão standalone em `chat-suggestions.js`.
+- Detects the active platform automatically.
+- Reads recent messages and extracts conversation context.
+- Generates suggestions with `Gemini`, `OpenRouter`, or `NVIDIA`.
+- Lets you adjust model, response length, and conversation mode through the extension popup.
+- Supports casual mode and business mode, with per-host configuration.
+- Keeps a modular architecture in `src/` and a standalone version in `chat-suggestions.js`.
 
-## Estrutura
+## Structure
 
 ```text
 .
@@ -40,19 +40,19 @@ Hoje a extensão está preparada para:
 └── suggestions-library-example.json
 ```
 
-## Instalação
+## Installation
 
-### 1. Instale dependências de desenvolvimento
+### 1. Install development dependencies
 
 ```bash
 npm install
 ```
 
-As dependências são usadas para lint, formatação, hooks e testes locais. A extensão em si é carregada direto no Chrome, sem etapa de build.
+Dependencies are used for linting, formatting, hooks, and local tests. The extension itself is loaded directly into Chrome, with no build step.
 
-### 2. Configure as chaves de IA
+### 2. Configure AI keys
 
-O projeto espera chaves em um arquivo `.env` na raiz. Os nomes reconhecidos pelo código são:
+The project expects keys in a `.env` file at the repository root. The code recognizes these names:
 
 ```env
 OPENROUTER_API_KEY=...
@@ -60,56 +60,56 @@ GEMINI_API_KEY=...
 NVIDIA_API_KEY=...
 ```
 
-Você pode configurar uma ou mais chaves e depois escolher o provedor no popup da extensão.
+You can configure one or more keys and then choose the provider in the extension popup.
 
-### 3. Carregue a extensão no Chrome
+### 3. Load the extension in Chrome
 
-1. Abra `chrome://extensions/`.
-2. Ative `Developer mode`.
-3. Clique em `Load unpacked`.
-4. Selecione a raiz deste repositório.
+1. Open `chrome://extensions/`.
+2. Enable `Developer mode`.
+3. Click `Load unpacked`.
+4. Select the root of this repository.
 
-## Plataformas e permissões
+## Platforms and permissions
 
-Os content scripts são carregados nestes hosts:
+Content scripts are loaded on these hosts:
 
 - `https://badoo.com/messages/*`
 - `https://tinder.com/app/messages/*`
 - `https://web.whatsapp.com/*`
 - `https://www.instagram.com/direct/*`
 
-Também existem permissões de host para chamadas aos provedores:
+There are also host permissions for provider API calls:
 
 - `https://openrouter.ai/*`
 - `https://generativelanguage.googleapis.com/*`
 - `https://integrate.api.nvidia.com/*`
 
-## Como usar
+## Usage
 
-1. Abra uma conversa em uma das plataformas suportadas.
-2. Abra o popup da extensão.
-3. Escolha o provedor e o modelo.
-4. Ajuste o tamanho da resposta e o modo da conversa, se necessário.
-5. Volte para o chat e use as sugestões renderizadas pela extensão.
+1. Open a conversation on one of the supported platforms.
+2. Open the extension popup.
+3. Choose the provider and model.
+4. Adjust response length and conversation mode if needed.
+5. Return to the chat and use the suggestions rendered by the extension.
 
-As sugestões são inseridas no campo de mensagem ao clicar. Em algumas plataformas, a UI também pode respeitar o ajuste de posicionamento salvo no popup.
+Suggestions are inserted into the message field when clicked. On some platforms, the UI may also respect the placement override saved in the popup.
 
-## Popup e configuração
+## Popup and configuration
 
-O popup salva preferências em `chrome.storage.local`, incluindo:
+The popup stores preferences in `chrome.storage.local`, including:
 
-- provedor de IA
-- modelo selecionado
-- perfil casual
-- perfil comercial
-- comprimento da resposta
-- override de posicionamento da UI
-- modo comercial por host
-- contexto e tom comercial
+- AI provider
+- selected model
+- casual profile
+- business profile
+- response length
+- UI placement override
+- business mode per host
+- business context and tone
 
-O provedor padrão atual é `nvidia`.
+The current default provider is `nvidia`.
 
-## Desenvolvimento
+## Development
 
 ### Scripts
 
@@ -121,47 +121,47 @@ npm run format:check
 npm run ci
 ```
 
-`npm run ci` executa testes, lint e verificação de formatação.
+`npm run ci` runs tests, linting, and format checks.
 
-## Qualidade
+## Quality
 
-- Há testes em `tests/` para `provider-config`, integração do cliente NVIDIA e tooling do repositório.
-- Existe hook de pre-commit com `lint-staged`.
-- O workflow [`./.github/workflows/ci.yml`](./.github/workflows/ci.yml) roda `test`, `lint` e `format:check` no GitHub Actions.
+- There are tests in `tests/` for `provider-config`, NVIDIA client integration, and repository tooling.
+- A pre-commit hook is configured with `lint-staged`.
+- The workflow [`./.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs `test`, `lint`, and `format:check` in GitHub Actions.
 
 ## Debug
 
-Para ativar logs de debug no navegador:
+To enable debug logs in the browser:
 
 ```js
 window.badooChatSuggestionsDebug = true;
 ```
 
-O código também observa a flag `data-bcs-debug` no `documentElement` para habilitar logs em runtime.
+The code also watches the `data-bcs-debug` flag on `documentElement` to enable logs at runtime.
 
-## Arquitetura
+## Architecture
 
 - `src/core/`
-  Cliente de IA, configuração de provedores e controlador principal.
+  AI client, provider configuration, and main controller.
 - `src/context/`
-  Leitura de mensagens e extração de contexto por plataforma.
+  Message reading and context extraction per platform.
 - `src/platforms/`
-  Seletores e defaults específicos de Badoo, Tinder, WhatsApp e Instagram.
+  Selectors and defaults specific to Badoo, Tinder, WhatsApp, and Instagram.
 - `src/ui/`
-  Renderização das sugestões e interações com a caixa de mensagem.
+  Suggestion rendering and message box interactions.
 - `src/storage/`
-  Persistência local de contexto e preferências auxiliares.
+  Local persistence for context and auxiliary preferences.
 - `src/suggestions/`
-  Motor de geração e regras de sugestão.
+  Suggestion engine and generation rules.
 - `src/constants/`
-  Palavras-chave e listas auxiliares.
+  Keywords and helper lists.
 
 ## Standalone
 
-Além da extensão, o repositório ainda mantém `chat-suggestions.js` para uso direto em páginas ou testes manuais. A base principal, porém, está organizada nos módulos dentro de `src/`.
+Besides the extension, the repository still keeps `chat-suggestions.js` for direct use in pages or manual tests. The main codebase, however, is organized in the modules inside `src/`.
 
-## Observações
+## Notes
 
-- Não há etapa de build.
-- Não faça commit de chaves reais.
-- Se alterar comportamento da extensão distribuída, revise se faz sentido atualizar a versão em `manifest.json`.
+- There is no build step.
+- Do not commit real API keys.
+- If you change distributed extension behavior, review whether `manifest.json` version should be updated.
