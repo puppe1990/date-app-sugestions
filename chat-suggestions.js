@@ -4,7 +4,10 @@
  */
 
 class ChatSuggestions {
-    constructor(chatContainerSelector = '.csms-chat-messages', inputSelector = null) {
+    constructor(
+        chatContainerSelector = '.csms-chat-messages',
+        inputSelector = null,
+    ) {
         this.chatContainer = document.querySelector(chatContainerSelector);
         this.inputSelector = inputSelector || '#chat-composer-input-message';
         this.suggestionsContainer = null;
@@ -24,7 +27,9 @@ class ChatSuggestions {
             return null;
         }
 
-        const messages = this.chatContainer.querySelectorAll('[data-qa="chat-message"]');
+        const messages = this.chatContainer.querySelectorAll(
+            '[data-qa="chat-message"]',
+        );
         const context = {
             allMessages: [],
             lastMessages: [],
@@ -37,63 +42,79 @@ class ChatSuggestions {
             lastSender: null,
             conversationLength: 0,
             hasQuestions: false,
-            hasElogios: false
+            hasElogios: false,
         };
 
         // Analisa TODAS as mensagens para ter contexto completo
         const allMessagesArray = Array.from(messages);
         context.conversationLength = allMessagesArray.length;
-        
+
         // Analisa as últimas 10 mensagens para contexto recente
         const recentMessages = allMessagesArray.slice(-10);
-        
-        recentMessages.forEach(message => {
+
+        recentMessages.forEach((message) => {
             const direction = message.getAttribute('data-qa-message-direction');
-            const contentText = message.querySelector('.csms-chat-message-content-text__message');
-            const audioButton = message.querySelector('[data-qa-message-content-type="audio"]');
-            
+            const contentText = message.querySelector(
+                '.csms-chat-message-content-text__message',
+            );
+            const audioButton = message.querySelector(
+                '[data-qa-message-content-type="audio"]',
+            );
+
             if (contentText) {
                 const text = contentText.textContent.trim();
-                const sender = message.querySelector('.csms-a11y-visually-hidden')?.textContent || 
-                              (direction === 'out' ? 'Você' : 'Outro');
-                
+                const sender =
+                    message.querySelector('.csms-a11y-visually-hidden')
+                        ?.textContent ||
+                    (direction === 'out' ? 'Você' : 'Outro');
+
                 const messageObj = {
                     sender: sender,
                     text: text,
                     direction: direction,
-                    type: 'text'
+                    type: 'text',
                 };
-                
+
                 context.allMessages.push(messageObj);
                 context.lastMessages.push(messageObj);
                 context.participants.add(sender);
                 context.lastSender = sender;
-                
+
                 // Extrai informações detalhadas da mensagem
                 this.extractTopics(text, context.topics);
                 this.extractMentionedPlaces(text, context.mentionedPlaces);
                 this.extractMentionedJobs(text, context.mentionedJobs);
                 this.extractMentionedHobbies(text, context.mentionedHobbies);
-                
+
                 // Detecta perguntas
-                if (text.includes('?') || text.match(/\b(qual|quando|onde|como|quem|por que|porque)\b/i)) {
+                if (
+                    text.includes('?') ||
+                    text.match(
+                        /\b(qual|quando|onde|como|quem|por que|porque)\b/i,
+                    )
+                ) {
                     context.hasQuestions = true;
                     context.questions.push(text);
                 }
-                
+
                 // Detecta elogios
-                if (text.match(/\b(gostei|legal|interessante|bonito|lindo|adoro|amo|curto|incrível|maravilhoso)\b/i)) {
+                if (
+                    text.match(
+                        /\b(gostei|legal|interessante|bonito|lindo|adoro|amo|curto|incrível|maravilhoso)\b/i,
+                    )
+                ) {
                     context.hasElogios = true;
                 }
-                
             } else if (audioButton) {
-                const sender = message.querySelector('.csms-a11y-visually-hidden')?.textContent || 
-                              (direction === 'out' ? 'Você' : 'Outro');
+                const sender =
+                    message.querySelector('.csms-a11y-visually-hidden')
+                        ?.textContent ||
+                    (direction === 'out' ? 'Você' : 'Outro');
                 const messageObj = {
                     sender: sender,
                     text: 'Mensagem de voz',
                     direction: direction,
-                    type: 'audio'
+                    type: 'audio',
                 };
                 context.allMessages.push(messageObj);
                 context.lastMessages.push(messageObj);
@@ -107,7 +128,9 @@ class ChatSuggestions {
         console.log(`Últimas ${context.lastMessages.length} mensagens:`);
         context.lastMessages.forEach((msg, index) => {
             const direction = msg.direction === 'out' ? 'VOCÊ' : 'OUTRO';
-            console.log(`${index + 1}. [${direction}] ${msg.sender}: "${msg.text}"`);
+            console.log(
+                `${index + 1}. [${direction}] ${msg.sender}: "${msg.text}"`,
+            );
         });
         console.log(`Tópicos detectados:`, context.topics);
         console.log(`Lugares mencionados:`, context.mentionedPlaces);
@@ -123,107 +146,307 @@ class ChatSuggestions {
      */
     extractTopics(text, topics) {
         const lowerText = text.toLowerCase();
-        
+
         // Tópicos comuns em conversas de relacionamento
         const topicKeywords = {
-            'trabalho': [
-                'trabalho', 'trabalha', 'trabalho com', 'trabalho na', 'trabalho no', 'trabalho em',
-                'emprego', 'empregada', 'empregado',
-                'profissão', 'profissional',
-                'faz o que', 'faz da vida', 'o que faz', 'trabalha com o quê',
-                'engenheiro', 'engenheira', 'engenharia',
-                'desenvolvedor', 'desenvolvedora', 'desenvolve', 'desenvolvimento',
-                'programador', 'programadora', 'programa', 'programação',
-                'software', 'tecnologia', 'tech', 'ti', 'sistemas',
-                'pedágio', 'pedagio',
-                'loja', 'lojista', 'vendedor', 'vendedora',
-                'porcelanato', 'cerâmica',
-                'startup', 'empresa', 'escritório', 'escritorio',
-                'consultoria', 'consultor', 'consultora',
-                'carreira', 'cliente', 'chefe', 'patrão',
-                'mês', 'mes', 'meses', 'ano', 'anos', 'tempo de trabalho',
-                'área', 'area', 'setor', 'ramo'
+            trabalho: [
+                'trabalho',
+                'trabalha',
+                'trabalho com',
+                'trabalho na',
+                'trabalho no',
+                'trabalho em',
+                'emprego',
+                'empregada',
+                'empregado',
+                'profissão',
+                'profissional',
+                'faz o que',
+                'faz da vida',
+                'o que faz',
+                'trabalha com o quê',
+                'engenheiro',
+                'engenheira',
+                'engenharia',
+                'desenvolvedor',
+                'desenvolvedora',
+                'desenvolve',
+                'desenvolvimento',
+                'programador',
+                'programadora',
+                'programa',
+                'programação',
+                'software',
+                'tecnologia',
+                'tech',
+                'ti',
+                'sistemas',
+                'pedágio',
+                'pedagio',
+                'loja',
+                'lojista',
+                'vendedor',
+                'vendedora',
+                'porcelanato',
+                'cerâmica',
+                'startup',
+                'empresa',
+                'escritório',
+                'escritorio',
+                'consultoria',
+                'consultor',
+                'consultora',
+                'carreira',
+                'cliente',
+                'chefe',
+                'patrão',
+                'mês',
+                'mes',
+                'meses',
+                'ano',
+                'anos',
+                'tempo de trabalho',
+                'área',
+                'area',
+                'setor',
+                'ramo',
             ],
-            'localização': [
-                'moro', 'mora', 'moramos', 'morar',
-                'onde', 'onde mora', 'onde você mora', 'onde vc mora',
-                'cidade', 'bairro', 'bairros',
-                'capital', 'interior',
-                'são paulo', 'sao paulo', 'sp',
-                'tatuapé', 'tatuape',
-                'santo andré', 'santo andre', 'abc',
-                'paulista', 'paulistas',
-                'perto', 'próximo', 'proximo', 'próxima', 'proxima',
-                'zona', 'zona norte', 'zona sul', 'zona leste', 'zona oeste',
-                'zn', 'zs', 'zl', 'zo',
-                'região', 'regiao', 'regiões', 'regioes',
-                'endereço', 'endereco', 'local', 'lugar',
-                'mauá', 'maua', 'sbc', 'são bernardo', 'sao bernardo',
-                'guarulhos', 'osasco', 'campinas'
+            localização: [
+                'moro',
+                'mora',
+                'moramos',
+                'morar',
+                'onde',
+                'onde mora',
+                'onde você mora',
+                'onde vc mora',
+                'cidade',
+                'bairro',
+                'bairros',
+                'capital',
+                'interior',
+                'são paulo',
+                'sao paulo',
+                'sp',
+                'tatuapé',
+                'tatuape',
+                'santo andré',
+                'santo andre',
+                'abc',
+                'paulista',
+                'paulistas',
+                'perto',
+                'próximo',
+                'proximo',
+                'próxima',
+                'proxima',
+                'zona',
+                'zona norte',
+                'zona sul',
+                'zona leste',
+                'zona oeste',
+                'zn',
+                'zs',
+                'zl',
+                'zo',
+                'região',
+                'regiao',
+                'regiões',
+                'regioes',
+                'endereço',
+                'endereco',
+                'local',
+                'lugar',
+                'mauá',
+                'maua',
+                'sbc',
+                'são bernardo',
+                'sao bernardo',
+                'guarulhos',
+                'osasco',
+                'campinas',
             ],
-            'saudação': [
-                'bom dia', 'boa tarde', 'boa noite',
-                'tudo bem', 'td bem', 'tudo bom', 'td bom',
-                'como vai', 'como está', 'como esta', 'como ta',
-                'olá', 'ola', 'oi', 'e aí', 'e ai', 'eai',
-                'opa', 'eae', 'fala'
+            saudação: [
+                'bom dia',
+                'boa tarde',
+                'boa noite',
+                'tudo bem',
+                'td bem',
+                'tudo bom',
+                'td bom',
+                'como vai',
+                'como está',
+                'como esta',
+                'como ta',
+                'olá',
+                'ola',
+                'oi',
+                'e aí',
+                'e ai',
+                'eai',
+                'opa',
+                'eae',
+                'fala',
             ],
-            'interesse': [
-                'gostei', 'gostou', 'gosta',
-                'fotos', 'foto', 'fotografia',
-                'legal', 'bacana', 'daora', 'massa',
-                'interessante', 'interessou',
-                'bonito', 'bonita', 'lindo', 'linda',
-                'adoro', 'adorei', 'amo', 'amei',
-                'curto', 'curti', 'curtir'
+            interesse: [
+                'gostei',
+                'gostou',
+                'gosta',
+                'fotos',
+                'foto',
+                'fotografia',
+                'legal',
+                'bacana',
+                'daora',
+                'massa',
+                'interessante',
+                'interessou',
+                'bonito',
+                'bonita',
+                'lindo',
+                'linda',
+                'adoro',
+                'adorei',
+                'amo',
+                'amei',
+                'curto',
+                'curti',
+                'curtir',
             ],
-            'pergunta': [
-                '?', 'vc', 'você', 'voce',
-                'faz o que', 'faz da vida', 'o que faz',
-                'qual', 'quais', 'quando', 'onde', 'como',
-                'quem', 'por que', 'porque', 'por quê',
-                'e vc', 'e você', 'e voce', 'e tu'
+            pergunta: [
+                '?',
+                'vc',
+                'você',
+                'voce',
+                'faz o que',
+                'faz da vida',
+                'o que faz',
+                'qual',
+                'quais',
+                'quando',
+                'onde',
+                'como',
+                'quem',
+                'por que',
+                'porque',
+                'por quê',
+                'e vc',
+                'e você',
+                'e voce',
+                'e tu',
             ],
-            'hobby': [
-                'hobby', 'hobbies',
-                'gosto', 'gosta de', 'gostar',
-                'curto', 'curte', 'curtir',
-                'interesse', 'interesses',
-                'fazer', 'fazer no tempo livre',
-                'tempo livre', 'horas vagas',
-                'lazer', 'diversão', 'diversao',
-                'academia', 'treino', 'treinar',
-                'caminhar', 'caminhada', 'correr', 'corrida',
-                'ler', 'leitura', 'livro', 'livros',
-                'youtube', 'netflix', 'filme', 'filmes', 'série', 'series',
-                'restaurante', 'cafeteria', 'café', 'cafe',
-                'música', 'musica', 'cinema', 'teatro',
-                'esporte', 'esportes', 'futebol', 'natação', 'natacao',
-                'viagem', 'viajar', 'fotografia', 'cozinhar', 'dança', 'danca'
+            hobby: [
+                'hobby',
+                'hobbies',
+                'gosto',
+                'gosta de',
+                'gostar',
+                'curto',
+                'curte',
+                'curtir',
+                'interesse',
+                'interesses',
+                'fazer',
+                'fazer no tempo livre',
+                'tempo livre',
+                'horas vagas',
+                'lazer',
+                'diversão',
+                'diversao',
+                'academia',
+                'treino',
+                'treinar',
+                'caminhar',
+                'caminhada',
+                'correr',
+                'corrida',
+                'ler',
+                'leitura',
+                'livro',
+                'livros',
+                'youtube',
+                'netflix',
+                'filme',
+                'filmes',
+                'série',
+                'series',
+                'restaurante',
+                'cafeteria',
+                'café',
+                'cafe',
+                'música',
+                'musica',
+                'cinema',
+                'teatro',
+                'esporte',
+                'esportes',
+                'futebol',
+                'natação',
+                'natacao',
+                'viagem',
+                'viajar',
+                'fotografia',
+                'cozinhar',
+                'dança',
+                'danca',
             ],
-            'encontro': [
-                'encontrar', 'encontro', 'encontros',
-                'ver', 'ver você', 'ver vc',
-                'conhecer', 'conhecer pessoalmente',
-                'sair', 'sair junto', 'sairmos',
-                'marcar', 'marcar algo', 'marcarmos',
-                'combinar', 'combinado',
-                'quando', 'quando você pode', 'quando vc pode',
-                'semana', 'fim de semana', 'fds',
-                'hoje', 'amanhã', 'amanha', 'depois'
+            encontro: [
+                'encontrar',
+                'encontro',
+                'encontros',
+                'ver',
+                'ver você',
+                'ver vc',
+                'conhecer',
+                'conhecer pessoalmente',
+                'sair',
+                'sair junto',
+                'sairmos',
+                'marcar',
+                'marcar algo',
+                'marcarmos',
+                'combinar',
+                'combinado',
+                'quando',
+                'quando você pode',
+                'quando vc pode',
+                'semana',
+                'fim de semana',
+                'fds',
+                'hoje',
+                'amanhã',
+                'amanha',
+                'depois',
             ],
-            'reação': [
-                'oloko', 'oloco', 'nossa', 'caramba',
-                'rs', 'rsrs', 'kkk', 'kkkk', 'haha', 'hahaha',
-                'que legal', 'que massa', 'que daora',
-                'entendi', 'entendeu', 'compreendi',
-                'ah sim', 'ah não', 'ah nao',
-                'tá', 'ta', 'ok', 'okay'
-            ]
+            reação: [
+                'oloko',
+                'oloco',
+                'nossa',
+                'caramba',
+                'rs',
+                'rsrs',
+                'kkk',
+                'kkkk',
+                'haha',
+                'hahaha',
+                'que legal',
+                'que massa',
+                'que daora',
+                'entendi',
+                'entendeu',
+                'compreendi',
+                'ah sim',
+                'ah não',
+                'ah nao',
+                'tá',
+                'ta',
+                'ok',
+                'okay',
+            ],
         };
 
         for (const [topic, keywords] of Object.entries(topicKeywords)) {
-            if (keywords.some(keyword => lowerText.includes(keyword))) {
+            if (keywords.some((keyword) => lowerText.includes(keyword))) {
                 if (!topics.includes(topic)) {
                     topics.push(topic);
                 }
@@ -240,14 +463,16 @@ class ChatSuggestions {
             /\b(são paulo|sao paulo|sp|capital|tatuapé|tatuape|santo andré|santo andre|abc|paulista|zona sul|zona norte|zona leste|zona oeste|zn|zs|zl|zo|berrini|vila|bairro|região|regiao|regiões|regioes|metropolitana|mauá|maua|sbc|são bernardo|sao bernardo|guarulhos|osasco|campinas)\b/gi,
             /\bmoro (em|no|na) ([^,.!?]+)/gi,
             /\b(em|no|na) ([A-Z][a-z]+(?: [A-Z][a-z]+)*)\b/g,
-            /\b(moro|mora) (no|na|em) ([^,.!?]+)/gi
+            /\b(moro|mora) (no|na|em) ([^,.!?]+)/gi,
         ];
-        
-        placePatterns.forEach(pattern => {
+
+        placePatterns.forEach((pattern) => {
             const matches = text.match(pattern);
             if (matches) {
-                matches.forEach(match => {
-                    let place = match.replace(/\b(moro|mora|em|no|na|e vc|e você)\b/gi, '').trim();
+                matches.forEach((match) => {
+                    let place = match
+                        .replace(/\b(moro|mora|em|no|na|e vc|e você)\b/gi, '')
+                        .trim();
                     // Remove pontuação e espaços extras
                     place = place.replace(/[.,!?;:]/g, '').trim();
                     if (place && place.length > 2 && !places.includes(place)) {
@@ -256,10 +481,27 @@ class ChatSuggestions {
                 });
             }
         });
-        
+
         // Detecta lugares específicos mencionados diretamente
-        const specificPlaces = ['tatuapé', 'tatuape', 'são paulo', 'sao paulo', 'sp', 'capital', 'santo andré', 'santo andre', 'abc', 'mauá', 'maua', 'zn', 'zona norte', 'zona sul', 'zona leste', 'zona oeste'];
-        specificPlaces.forEach(place => {
+        const specificPlaces = [
+            'tatuapé',
+            'tatuape',
+            'são paulo',
+            'sao paulo',
+            'sp',
+            'capital',
+            'santo andré',
+            'santo andre',
+            'abc',
+            'mauá',
+            'maua',
+            'zn',
+            'zona norte',
+            'zona sul',
+            'zona leste',
+            'zona oeste',
+        ];
+        specificPlaces.forEach((place) => {
             if (lowerText.includes(place) && !places.includes(place)) {
                 places.push(place);
             }
@@ -275,14 +517,19 @@ class ChatSuggestions {
             /\b(engenheiro|engenheira|desenvolvedor|desenvolvedora|programador|programadora|médico|medica|professor|professora|advogado|advogada|designer|arquiteto|arquiteta|psicólogo|psicologa|enfermeiro|enfermeira|dentista|veterinário|veterinaria|fotógrafo|fotografa|jornalista|publicitário|publicitaria|contador|contadora|administrador|administradora)\b/gi,
             /\bsou ([^,.!?]+)\b/gi,
             /\btrabalho (com|como|no|na|em) ([^,.!?]+)\b/gi,
-            /\b(no|na|em) (pedágio|pedagio|loja|porcelanato|cerâmica|ceramica|startup|empresa|escritório|escritorio|consultoria)\b/gi
+            /\b(no|na|em) (pedágio|pedagio|loja|porcelanato|cerâmica|ceramica|startup|empresa|escritório|escritorio|consultoria)\b/gi,
         ];
-        
-        jobPatterns.forEach(pattern => {
+
+        jobPatterns.forEach((pattern) => {
             const matches = text.match(pattern);
             if (matches) {
-                matches.forEach(match => {
-                    let job = match.replace(/\b(sou|trabalho|com|como|no|na|em|e vc|e você)\b/gi, '').trim();
+                matches.forEach((match) => {
+                    let job = match
+                        .replace(
+                            /\b(sou|trabalho|com|como|no|na|em|e vc|e você)\b/gi,
+                            '',
+                        )
+                        .trim();
                     // Remove pontuação e espaços extras
                     job = job.replace(/[.,!?;:]/g, '').trim();
                     if (job && job.length > 2 && !jobs.includes(job)) {
@@ -291,10 +538,22 @@ class ChatSuggestions {
                 });
             }
         });
-        
+
         // Detecta profissões específicas mencionadas diretamente
-        const specificJobs = ['pedágio', 'pedagio', 'loja', 'porcelanato', 'cerâmica', 'ceramica', 'desenvolvedor', 'desenvolvedora', 'engenheiro', 'engenheira', 'software'];
-        specificJobs.forEach(job => {
+        const specificJobs = [
+            'pedágio',
+            'pedagio',
+            'loja',
+            'porcelanato',
+            'cerâmica',
+            'ceramica',
+            'desenvolvedor',
+            'desenvolvedora',
+            'engenheiro',
+            'engenheira',
+            'software',
+        ];
+        specificJobs.forEach((job) => {
             if (lowerText.includes(job) && !jobs.includes(job)) {
                 jobs.push(job);
             }
@@ -307,23 +566,71 @@ class ChatSuggestions {
     extractMentionedHobbies(text, hobbies) {
         const lowerText = text.toLowerCase();
         const hobbyKeywords = [
-            'academia', 'treino', 'treinar', 'malhar', 'malhação',
-            'caminhar', 'caminhada', 'correr', 'corrida',
-            'ler', 'leitura', 'livro', 'livros',
-            'youtube', 'netflix', 'filme', 'filmes', 'série', 'series', 'seriado',
-            'restaurante', 'cafeteria', 'café', 'cafe',
-            'cinema', 'teatro', 'show', 'shows',
-            'música', 'musica', 'ouvir música', 'ouvir musica',
-            'esporte', 'esportes', 'futebol', 'natação', 'natacao', 'basquete', 'vôlei', 'volei',
-            'viagem', 'viajar', 'turismo',
-            'fotografia', 'foto', 'fotos',
-            'cozinhar', 'culinária', 'culinaria',
-            'dança', 'danca', 'dançar', 'dancar',
-            'hobby', 'hobbies', 'passatempo', 'passatempos',
-            'tempo livre', 'horas vagas', 'lazer', 'diversão', 'diversao'
+            'academia',
+            'treino',
+            'treinar',
+            'malhar',
+            'malhação',
+            'caminhar',
+            'caminhada',
+            'correr',
+            'corrida',
+            'ler',
+            'leitura',
+            'livro',
+            'livros',
+            'youtube',
+            'netflix',
+            'filme',
+            'filmes',
+            'série',
+            'series',
+            'seriado',
+            'restaurante',
+            'cafeteria',
+            'café',
+            'cafe',
+            'cinema',
+            'teatro',
+            'show',
+            'shows',
+            'música',
+            'musica',
+            'ouvir música',
+            'ouvir musica',
+            'esporte',
+            'esportes',
+            'futebol',
+            'natação',
+            'natacao',
+            'basquete',
+            'vôlei',
+            'volei',
+            'viagem',
+            'viajar',
+            'turismo',
+            'fotografia',
+            'foto',
+            'fotos',
+            'cozinhar',
+            'culinária',
+            'culinaria',
+            'dança',
+            'danca',
+            'dançar',
+            'dancar',
+            'hobby',
+            'hobbies',
+            'passatempo',
+            'passatempos',
+            'tempo livre',
+            'horas vagas',
+            'lazer',
+            'diversão',
+            'diversao',
         ];
-        
-        hobbyKeywords.forEach(keyword => {
+
+        hobbyKeywords.forEach((keyword) => {
             if (lowerText.includes(keyword) && !hobbies.includes(keyword)) {
                 hobbies.push(keyword);
             }
@@ -335,57 +642,141 @@ class ChatSuggestions {
      */
     hasTopicBeenDiscussed(context, topic) {
         const topicKeywords = {
-            'trabalho': [
-                'trabalho', 'trabalha', 'trabalho com', 'trabalho na', 'trabalho no', 'trabalho em',
-                'emprego', 'empregada', 'empregado',
-                'profissão', 'profissional',
-                'faz o que', 'faz da vida', 'o que faz', 'trabalha com o quê',
-                'engenheiro', 'engenheira', 'engenharia',
-                'desenvolvedor', 'desenvolvedora', 'desenvolve', 'desenvolvimento',
-                'programador', 'programadora', 'programa', 'programação',
-                'software', 'tecnologia', 'tech', 'ti', 'sistemas',
-                'pedágio', 'pedagio',
-                'loja', 'lojista', 'vendedor', 'vendedora',
-                'porcelanato', 'cerâmica',
-                'startup', 'empresa', 'escritório', 'escritorio',
-                'consultoria', 'consultor', 'consultora',
-                'carreira', 'cliente', 'chefe', 'patrão',
-                'mês', 'mes', 'meses', 'ano', 'anos', 'tempo de trabalho',
-                'área', 'area', 'setor', 'ramo'
+            trabalho: [
+                'trabalho',
+                'trabalha',
+                'trabalho com',
+                'trabalho na',
+                'trabalho no',
+                'trabalho em',
+                'emprego',
+                'empregada',
+                'empregado',
+                'profissão',
+                'profissional',
+                'faz o que',
+                'faz da vida',
+                'o que faz',
+                'trabalha com o quê',
+                'engenheiro',
+                'engenheira',
+                'engenharia',
+                'desenvolvedor',
+                'desenvolvedora',
+                'desenvolve',
+                'desenvolvimento',
+                'programador',
+                'programadora',
+                'programa',
+                'programação',
+                'software',
+                'tecnologia',
+                'tech',
+                'ti',
+                'sistemas',
+                'pedágio',
+                'pedagio',
+                'loja',
+                'lojista',
+                'vendedor',
+                'vendedora',
+                'porcelanato',
+                'cerâmica',
+                'startup',
+                'empresa',
+                'escritório',
+                'escritorio',
+                'consultoria',
+                'consultor',
+                'consultora',
+                'carreira',
+                'cliente',
+                'chefe',
+                'patrão',
+                'mês',
+                'mes',
+                'meses',
+                'ano',
+                'anos',
+                'tempo de trabalho',
+                'área',
+                'area',
+                'setor',
+                'ramo',
             ],
-            'localização': [
-                'moro', 'mora', 'moramos', 'morar',
-                'onde', 'onde mora', 'onde você mora', 'onde vc mora',
-                'cidade', 'bairro', 'bairros',
-                'capital', 'interior',
-                'são paulo', 'sao paulo', 'sp',
-                'tatuapé', 'tatuape',
-                'santo andré', 'santo andre', 'abc',
-                'paulista', 'paulistas',
-                'perto', 'próximo', 'proximo', 'próxima', 'proxima',
-                'zona', 'zona norte', 'zona sul', 'zona leste', 'zona oeste',
-                'zn', 'zs', 'zl', 'zo',
-                'região', 'regiao', 'regiões', 'regioes',
-                'endereço', 'endereco', 'local', 'lugar',
-                'mauá', 'maua', 'sbc', 'são bernardo', 'sao bernardo',
-                'guarulhos', 'osasco', 'campinas'
-            ]
+            localização: [
+                'moro',
+                'mora',
+                'moramos',
+                'morar',
+                'onde',
+                'onde mora',
+                'onde você mora',
+                'onde vc mora',
+                'cidade',
+                'bairro',
+                'bairros',
+                'capital',
+                'interior',
+                'são paulo',
+                'sao paulo',
+                'sp',
+                'tatuapé',
+                'tatuape',
+                'santo andré',
+                'santo andre',
+                'abc',
+                'paulista',
+                'paulistas',
+                'perto',
+                'próximo',
+                'proximo',
+                'próxima',
+                'proxima',
+                'zona',
+                'zona norte',
+                'zona sul',
+                'zona leste',
+                'zona oeste',
+                'zn',
+                'zs',
+                'zl',
+                'zo',
+                'região',
+                'regiao',
+                'regiões',
+                'regioes',
+                'endereço',
+                'endereco',
+                'local',
+                'lugar',
+                'mauá',
+                'maua',
+                'sbc',
+                'são bernardo',
+                'sao bernardo',
+                'guarulhos',
+                'osasco',
+                'campinas',
+            ],
         };
-        
+
         const keywords = topicKeywords[topic] || [];
         if (keywords.length === 0) return false;
-        
+
         // Verifica se alguma mensagem contém palavras-chave do tópico
         // Considera que foi comentado se:
         // 1. Há uma pergunta sobre o tópico (contém ? e palavras-chave)
         // 2. Há uma resposta/afirmação sobre o tópico (contém palavras-chave sem ser apenas uma pergunta genérica)
         let hasQuestion = false;
         let hasAnswer = false;
-        
-        context.lastMessages.forEach(message => {
+
+        context.lastMessages.forEach((message) => {
             const text = message.text.toLowerCase();
-            const containsKeyword = keywords.some(keyword => text.includes(keyword));
-            
+            const containsKeyword = keywords.some((keyword) =>
+                text.includes(keyword),
+            );
+
             if (containsKeyword) {
                 // Se contém ? e palavras-chave, é uma pergunta sobre o tópico
                 if (text.includes('?')) {
@@ -397,7 +788,7 @@ class ChatSuggestions {
                 }
             }
         });
-        
+
         // Retorna true se houve pergunta OU resposta sobre o tópico
         return hasQuestion || hasAnswer;
     }
@@ -412,15 +803,16 @@ class ChatSuggestions {
         }
 
         const suggestions = [];
-        
+
         // Se não há mensagens, retorna sugestões padrão
         if (context.lastMessages.length === 0) {
             return this.getDefaultSuggestions();
         }
 
-        const lastMessage = context.lastMessages[context.lastMessages.length - 1];
+        const lastMessage =
+            context.lastMessages[context.lastMessages.length - 1];
         const isLastFromMe = lastMessage.direction === 'out';
-        
+
         // PRIORIDADE 1: Sugestões baseadas na última mensagem (mais relevante)
         if (isLastFromMe) {
             // Você enviou a última mensagem - sugere continuidade
@@ -459,7 +851,7 @@ class ChatSuggestions {
                 if (uniqueSuggestions.length >= 5) break;
             }
         }
-        
+
         // Log das sugestões no console
         console.log('=== SUGESTÕES GERADAS ===');
         console.log(`Total de sugestões geradas: ${uniqueSuggestions.length}`);
@@ -467,7 +859,7 @@ class ChatSuggestions {
             console.log(`${index + 1}. "${suggestion}"`);
         });
         console.log('==========================');
-        
+
         return uniqueSuggestions;
     }
 
@@ -476,7 +868,7 @@ class ChatSuggestions {
      */
     getPersonalizedSuggestions(context) {
         const suggestions = [];
-        
+
         // Se mencionaram lugares específicos
         if (context.mentionedPlaces.length > 0) {
             const place = context.mentionedPlaces[0];
@@ -484,37 +876,48 @@ class ChatSuggestions {
             suggestions.push(`É uma região bem legal`);
             suggestions.push(`Já visitou ${place}?`);
         }
-        
+
         // Se mencionaram profissões
         if (context.mentionedJobs.length > 0) {
             const job = context.mentionedJobs[0];
-            suggestions.push(`Que interessante! Trabalha com ${job} há quanto tempo?`);
+            suggestions.push(
+                `Que interessante! Trabalha com ${job} há quanto tempo?`,
+            );
             suggestions.push(`Adoro pessoas que trabalham com ${job}`);
         }
-        
+
         // Se mencionaram hobbies
         if (context.mentionedHobbies.length > 0) {
             const hobbies = context.mentionedHobbies.slice(0, 2).join(' e ');
             suggestions.push(`Que legal! Também gosto de ${hobbies}`);
             suggestions.push(`Adoro ${hobbies}!`);
         }
-        
+
         // Se há perguntas não respondidas
         if (context.hasQuestions && context.questions.length > 0) {
-            const lastQuestion = context.questions[context.questions.length - 1];
-            if (lastQuestion.includes('onde') || lastQuestion.includes('mora')) {
+            const lastQuestion =
+                context.questions[context.questions.length - 1];
+            if (
+                lastQuestion.includes('onde') ||
+                lastQuestion.includes('mora')
+            ) {
                 suggestions.push('Moro em São Paulo');
-                suggestions.push('Moro no bairro de Tatuapé, São Paulo capital');
+                suggestions.push(
+                    'Moro no bairro de Tatuapé, São Paulo capital',
+                );
                 suggestions.push('Moro no bairro de Tatuapé');
                 suggestions.push('Sou da capital');
-            } else if (lastQuestion.includes('faz') || lastQuestion.includes('trabalho')) {
+            } else if (
+                lastQuestion.includes('faz') ||
+                lastQuestion.includes('trabalho')
+            ) {
                 suggestions.push('Sou desenvolvedor de software');
                 suggestions.push('Sou desenvolvedor de software numa startup');
                 suggestions.push('Tenho um consultoria de tecnologia');
                 suggestions.push('Trabalho com tecnologia');
             }
         }
-        
+
         return suggestions;
     }
 
@@ -526,7 +929,7 @@ class ChatSuggestions {
         const hour = new Date().getHours();
         let timeGreeting = '';
         let timeBasedSuggestions = [];
-        
+
         // Determina a saudação baseada no horário
         if (hour >= 5 && hour < 12) {
             // Manhã: 5h às 11h59
@@ -536,7 +939,7 @@ class ChatSuggestions {
                 'Bom dia! Tudo bem?',
                 'Bom dia! Como foi seu despertar?',
                 'Bom dia! Espero que tenha um ótimo dia',
-                'Bom dia! Que tal conversarmos?'
+                'Bom dia! Que tal conversarmos?',
             ];
         } else if (hour >= 12 && hour < 18) {
             // Tarde: 12h às 17h59
@@ -546,7 +949,7 @@ class ChatSuggestions {
                 'Boa tarde! Tudo bem?',
                 'Boa tarde! Como está seu dia?',
                 'Boa tarde! Espero que esteja tendo um bom dia',
-                'Boa tarde! Que tal conversarmos?'
+                'Boa tarde! Que tal conversarmos?',
             ];
         } else {
             // Noite: 18h às 4h59
@@ -556,16 +959,16 @@ class ChatSuggestions {
                 'Boa noite! Tudo bem?',
                 'Boa noite! Como foi seu dia?',
                 'Boa noite! Espero que tenha tido um bom dia',
-                'Boa noite! Que tal conversarmos?'
+                'Boa noite! Que tal conversarmos?',
             ];
         }
-        
+
         // Combina sugestões baseadas no horário com sugestões genéricas
         return [
             ...timeBasedSuggestions,
             `${timeGreeting}! Prazer em te conhecer`,
             `${timeGreeting}! Como vai?`,
-            `${timeGreeting}! Tudo certo?`
+            `${timeGreeting}! Tudo certo?`,
         ];
     }
 
@@ -574,33 +977,46 @@ class ChatSuggestions {
      */
     getContinuationSuggestions(context) {
         const suggestions = [];
-        
+
         // Pega a última mensagem que você enviou
-        const myLastMessage = context.lastMessages.filter(m => m.direction === 'out').slice(-1)[0];
-        const myLastText = myLastMessage ? myLastMessage.text.toLowerCase() : '';
-        
+        const myLastMessage = context.lastMessages
+            .filter((m) => m.direction === 'out')
+            .slice(-1)[0];
+        const myLastText = myLastMessage
+            ? myLastMessage.text.toLowerCase()
+            : '';
+
         // Verifica se estão falando de trabalho no contexto
-        const isTalkingAboutWork = context.topics.includes('trabalho') || 
-                                  myLastText.includes('trabalho') || 
-                                  myLastText.includes('trabalha') ||
-                                  myLastText.includes('pedágio') ||
-                                  myLastText.includes('loja') ||
-                                  myLastText.includes('porcelanato') ||
-                                  myLastText.includes('engenheiro') ||
-                                  myLastText.includes('desenvolvedor') ||
-                                  myLastText.includes('software') ||
-                                  context.lastMessages.some(m => 
-                                      m.text.toLowerCase().includes('trabalho') || 
-                                      m.text.toLowerCase().includes('trabalha') ||
-                                      m.text.toLowerCase().includes('pedágio') ||
-                                      m.text.toLowerCase().includes('faz o que') ||
-                                      m.text.toLowerCase().includes('profissão')
-                                  );
-        
+        const isTalkingAboutWork =
+            context.topics.includes('trabalho') ||
+            myLastText.includes('trabalho') ||
+            myLastText.includes('trabalha') ||
+            myLastText.includes('pedágio') ||
+            myLastText.includes('loja') ||
+            myLastText.includes('porcelanato') ||
+            myLastText.includes('engenheiro') ||
+            myLastText.includes('desenvolvedor') ||
+            myLastText.includes('software') ||
+            context.lastMessages.some(
+                (m) =>
+                    m.text.toLowerCase().includes('trabalho') ||
+                    m.text.toLowerCase().includes('trabalha') ||
+                    m.text.toLowerCase().includes('pedágio') ||
+                    m.text.toLowerCase().includes('faz o que') ||
+                    m.text.toLowerCase().includes('profissão'),
+            );
+
         // Se você fez uma pergunta, sugere outras perguntas relacionadas ou comentários
         if (myLastText.includes('?')) {
             // Se perguntou sobre trabalho (incluindo "trabalha", "tempo", etc)
-            if (isTalkingAboutWork || myLastText.includes('faz') || myLastText.includes('trabalho') || myLastText.includes('trabalha') || myLastText.includes('profissão') || myLastText.includes('tempo')) {
+            if (
+                isTalkingAboutWork ||
+                myLastText.includes('faz') ||
+                myLastText.includes('trabalho') ||
+                myLastText.includes('trabalha') ||
+                myLastText.includes('profissão') ||
+                myLastText.includes('tempo')
+            ) {
                 // Se você perguntou sobre o trabalho dela, sugere comentários ou novas perguntas sobre trabalho
                 suggestions.push('Que interessante!');
                 suggestions.push('Gosta do que faz?');
@@ -609,7 +1025,12 @@ class ChatSuggestions {
                 suggestions.push('É uma área que sempre te interessou?');
             }
             // Se perguntou sobre localização
-            else if (myLastText.includes('onde') || myLastText.includes('mora') || myLastText.includes('bairro') || myLastText.includes('zona')) {
+            else if (
+                myLastText.includes('onde') ||
+                myLastText.includes('mora') ||
+                myLastText.includes('bairro') ||
+                myLastText.includes('zona')
+            ) {
                 suggestions.push('Que legal!');
                 suggestions.push('É perto daqui?');
                 suggestions.push('Já conhece a região?');
@@ -632,10 +1053,17 @@ class ChatSuggestions {
             // Se estão falando de trabalho
             if (isTalkingAboutWork) {
                 // Se você mencionou seu trabalho (afirmação sobre você mesmo)
-                if (myLastText.includes('sou') || myLastText.includes('eu sou') || myLastText.includes('eu trabalho') || 
-                    myLastText.includes('engenheiro') || myLastText.includes('desenvolvedor') || 
-                    myLastText.includes('software') || myLastText.includes('tecnologia') ||
-                    myLastText.includes('trabalho com') || myLastText.includes('trabalho na')) {
+                if (
+                    myLastText.includes('sou') ||
+                    myLastText.includes('eu sou') ||
+                    myLastText.includes('eu trabalho') ||
+                    myLastText.includes('engenheiro') ||
+                    myLastText.includes('desenvolvedor') ||
+                    myLastText.includes('software') ||
+                    myLastText.includes('tecnologia') ||
+                    myLastText.includes('trabalho com') ||
+                    myLastText.includes('trabalho na')
+                ) {
                     // Só sugere perguntas sobre trabalho se ainda não foi perguntado
                     if (!this.hasTopicBeenDiscussed(context, 'trabalho')) {
                         suggestions.push('E você, trabalha com o quê?');
@@ -645,11 +1073,15 @@ class ChatSuggestions {
                     }
                     // Se já foi perguntado, sugere outros tópicos
                     else {
-                        if (!this.hasTopicBeenDiscussed(context, 'localização')) {
+                        if (
+                            !this.hasTopicBeenDiscussed(context, 'localização')
+                        ) {
                             suggestions.push('E você, mora onde?');
                             suggestions.push('Que bairro você mora?');
                         }
-                        suggestions.push('O que você gosta de fazer no tempo livre?');
+                        suggestions.push(
+                            'O que você gosta de fazer no tempo livre?',
+                        );
                         suggestions.push('Tem algum hobby?');
                         suggestions.push('Quais seus interesses?');
                     }
@@ -664,7 +1096,10 @@ class ChatSuggestions {
                 }
             }
             // Se mencionou trabalho (fallback) - só sugere se ainda não foi perguntado
-            else if (context.topics.includes('trabalho') && !this.hasTopicBeenDiscussed(context, 'trabalho')) {
+            else if (
+                context.topics.includes('trabalho') &&
+                !this.hasTopicBeenDiscussed(context, 'trabalho')
+            ) {
                 suggestions.push('E você, trabalha com o quê?');
                 suggestions.push('Que área você trabalha?');
                 suggestions.push('E você, o que faz da vida?');
@@ -674,7 +1109,10 @@ class ChatSuggestions {
 
             // Se mencionou localização - só sugere se ainda não foi perguntado
             const locationMentioned = context.topics.includes('localização');
-            if (locationMentioned && !this.hasTopicBeenDiscussed(context, 'localização')) {
+            if (
+                locationMentioned &&
+                !this.hasTopicBeenDiscussed(context, 'localização')
+            ) {
                 suggestions.push('E você, mora onde?');
                 suggestions.push('Que bairro você mora?');
                 suggestions.push('É perto daqui?');
@@ -704,41 +1142,55 @@ class ChatSuggestions {
     getResponseSuggestions(context, lastMessage) {
         const suggestions = [];
         const text = lastMessage.text.toLowerCase();
-        
+
         // Verifica se o tópico de trabalho está ativo na conversa
-        const isTalkingAboutWork = context.topics.includes('trabalho') || 
-                                   text.includes('trabalho') || 
-                                   text.includes('trabalha') ||
-                                   text.includes('pedágio') ||
-                                   text.includes('pedagio') ||
-                                   text.includes('loja') ||
-                                   text.includes('porcelanato') ||
-                                   text.includes('meses') ||
-                                   text.includes('anos') ||
-                                   context.lastMessages.some(m => 
-                                       m.text.toLowerCase().includes('trabalho') || 
-                                       m.text.toLowerCase().includes('trabalha') ||
-                                       m.text.toLowerCase().includes('faz o que') ||
-                                       m.text.toLowerCase().includes('profissão')
-                                   );
-        
+        const isTalkingAboutWork =
+            context.topics.includes('trabalho') ||
+            text.includes('trabalho') ||
+            text.includes('trabalha') ||
+            text.includes('pedágio') ||
+            text.includes('pedagio') ||
+            text.includes('loja') ||
+            text.includes('porcelanato') ||
+            text.includes('meses') ||
+            text.includes('anos') ||
+            context.lastMessages.some(
+                (m) =>
+                    m.text.toLowerCase().includes('trabalho') ||
+                    m.text.toLowerCase().includes('trabalha') ||
+                    m.text.toLowerCase().includes('faz o que') ||
+                    m.text.toLowerCase().includes('profissão'),
+            );
+
         // Verifica qual foi a última pergunta que VOCÊ fez
         const myLastQuestion = context.lastMessages
-            .filter(m => m.direction === 'out' && m.text.includes('?'))
+            .filter((m) => m.direction === 'out' && m.text.includes('?'))
             .slice(-1)[0];
-        const myLastQuestionText = myLastQuestion ? myLastQuestion.text.toLowerCase() : '';
-        
+        const myLastQuestionText = myLastQuestion
+            ? myLastQuestion.text.toLowerCase()
+            : '';
+
         // Analisa a última mensagem da outra pessoa para entender o contexto
         const isQuestion = text.includes('?');
-        const isReaction = text.match(/\b(oloko|rs|kkk|haha|nossa|caramba|entendi|ah sim|ok|tá)\b/i);
+        const isReaction = text.match(
+            /\b(oloko|rs|kkk|haha|nossa|caramba|entendi|ah sim|ok|tá)\b/i,
+        );
         const mentionsTime = text.match(/\b(\d+)\s*(meses?|anos?|anos)\b/i);
-        const mentionsWork = text.match(/\b(pedágio|pedagio|loja|porcelanato|trabalho|trabalha|faz o que|profissão)\b/i);
-        const mentionsLocation = text.match(/\b(onde|mora|moro|bairro|zona|são paulo|sp|tatuapé)\b/i);
+        const mentionsWork = text.match(
+            /\b(pedágio|pedagio|loja|porcelanato|trabalho|trabalha|faz o que|profissão)\b/i,
+        );
 
         // PRIORIDADE 1: Se a outra pessoa fez uma pergunta
         if (isQuestion) {
             // Pergunta sobre trabalho
-            if (text.includes('faz o que') || text.includes('trabalho') || text.includes('profissão') || text.includes('emprego') || text.includes('trabalha') || text.includes('e vc')) {
+            if (
+                text.includes('faz o que') ||
+                text.includes('trabalho') ||
+                text.includes('profissão') ||
+                text.includes('emprego') ||
+                text.includes('trabalha') ||
+                text.includes('e vc')
+            ) {
                 suggestions.push('Sou desenvolvedor de software');
                 suggestions.push('Sou desenvolvedor de software numa startup');
                 suggestions.push('Tenho um consultoria de tecnologia');
@@ -747,8 +1199,15 @@ class ChatSuggestions {
                 return suggestions; // Retorna imediatamente para priorizar
             }
             // Pergunta sobre localização
-            else if (text.includes('onde') || text.includes('mora') || text.includes('bairro') || text.includes('zona')) {
-                suggestions.push('Moro no bairro de Tatuapé, São Paulo capital');
+            else if (
+                text.includes('onde') ||
+                text.includes('mora') ||
+                text.includes('bairro') ||
+                text.includes('zona')
+            ) {
+                suggestions.push(
+                    'Moro no bairro de Tatuapé, São Paulo capital',
+                );
                 suggestions.push('Moro no bairro de Tatuapé');
                 suggestions.push('Moro em São Paulo');
                 suggestions.push('Sou da capital');
@@ -763,7 +1222,7 @@ class ChatSuggestions {
                 return suggestions;
             }
         }
-        
+
         // PRIORIDADE 2: Se estão falando de trabalho
         if (isTalkingAboutWork) {
             // Se a outra pessoa respondeu sobre tempo de trabalho (ex: "10 meses", "10 anos")
@@ -787,7 +1246,12 @@ class ChatSuggestions {
                 return suggestions;
             }
             // Se você perguntou sobre trabalho e ela respondeu
-            else if (myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho') || myLastQuestionText.includes('profissão') || myLastQuestionText.includes('tempo')) {
+            else if (
+                myLastQuestionText.includes('faz') ||
+                myLastQuestionText.includes('trabalho') ||
+                myLastQuestionText.includes('profissão') ||
+                myLastQuestionText.includes('tempo')
+            ) {
                 suggestions.push('Que interessante!');
                 suggestions.push('Gosta do que faz?');
                 suggestions.push('Como é trabalhar nisso?');
@@ -799,9 +1263,14 @@ class ChatSuggestions {
                 return suggestions;
             }
         }
-        
+
         // PRIORIDADE 3: Se a outra pessoa está respondendo uma pergunta sua sobre localização
-        if (myLastQuestionText.includes('onde') || myLastQuestionText.includes('mora') || myLastQuestionText.includes('bairro') || myLastQuestionText.includes('zona')) {
+        if (
+            myLastQuestionText.includes('onde') ||
+            myLastQuestionText.includes('mora') ||
+            myLastQuestionText.includes('bairro') ||
+            myLastQuestionText.includes('zona')
+        ) {
             suggestions.push('Que legal!');
             suggestions.push('É perto daqui?');
             suggestions.push('Já conhece a região?');
@@ -812,7 +1281,7 @@ class ChatSuggestions {
             suggestions.push('O que você gosta de fazer por lá?');
             return suggestions;
         }
-        
+
         // PRIORIDADE 4: Reações (oloko, rs, kkk, etc)
         if (isReaction) {
             suggestions.push('Rsrs');
@@ -834,15 +1303,21 @@ class ChatSuggestions {
             }
             return suggestions;
         }
-        
+
         // PRIORIDADE 5: Elogios
-        if (text.includes('gostei') || text.includes('legal') || text.includes('interessante') || text.includes('bonito') || text.includes('lindo')) {
+        if (
+            text.includes('gostei') ||
+            text.includes('legal') ||
+            text.includes('interessante') ||
+            text.includes('bonito') ||
+            text.includes('lindo')
+        ) {
             suggestions.push('Obrigado! 😊');
             suggestions.push('Que bom que gostou!');
             suggestions.push('Fico feliz!');
             return suggestions;
         }
-        
+
         // PRIORIDADE 6: Respostas genéricas para informações
         if (!text.includes('?') && myLastQuestionText) {
             suggestions.push('Que legal!');
@@ -857,7 +1332,7 @@ class ChatSuggestions {
             suggestions.push('O que você gosta de fazer no tempo livre?');
             return suggestions;
         }
-        
+
         // Se chegou até aqui, retorna sugestões genéricas
         if (suggestions.length === 0) {
             suggestions.push('Que legal!');
@@ -1036,7 +1511,7 @@ class ChatSuggestions {
             '[data-qa="message-input"]',
             '.message-input',
             'input[placeholder*="mensagem" i]',
-            'input[placeholder*="message" i]'
+            'input[placeholder*="message" i]',
         ];
 
         let input = null;
@@ -1049,47 +1524,80 @@ class ChatSuggestions {
             try {
                 // Foca no input primeiro
                 input.focus();
-                
+
                 // Para inputs e textareas normais
                 if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
                     // Limpa o valor atual
                     input.value = '';
-                    
+
                     // Define o novo valor
                     input.value = text;
-                    
+
                     // Tenta múltiplas abordagens para garantir que o app detecte
-                    
+
                     // 1. Dispara evento input com InputEvent
                     try {
                         const inputEvent = new InputEvent('input', {
                             bubbles: true,
                             cancelable: true,
                             inputType: 'insertText',
-                            data: text
+                            data: text,
                         });
                         input.dispatchEvent(inputEvent);
                     } catch (e) {
                         // Fallback para navegadores que não suportam InputEvent
-                        input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                        input.dispatchEvent(
+                            new Event('input', {
+                                bubbles: true,
+                                cancelable: true,
+                            }),
+                        );
                     }
-                    
+
                     // 2. Dispara evento change
-                    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
-                    
+                    input.dispatchEvent(
+                        new Event('change', {
+                            bubbles: true,
+                            cancelable: true,
+                        }),
+                    );
+
                     // 3. Dispara eventos de teclado
-                    input.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'a' }));
-                    input.dispatchEvent(new KeyboardEvent('keypress', { bubbles: true, cancelable: true, key: 'a' }));
-                    input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, cancelable: true, key: 'a' }));
-                    
+                    input.dispatchEvent(
+                        new KeyboardEvent('keydown', {
+                            bubbles: true,
+                            cancelable: true,
+                            key: 'a',
+                        }),
+                    );
+                    input.dispatchEvent(
+                        new KeyboardEvent('keypress', {
+                            bubbles: true,
+                            cancelable: true,
+                            key: 'a',
+                        }),
+                    );
+                    input.dispatchEvent(
+                        new KeyboardEvent('keyup', {
+                            bubbles: true,
+                            cancelable: true,
+                            key: 'a',
+                        }),
+                    );
+
                     // 4. Tenta definir o valor novamente após os eventos
                     setTimeout(() => {
                         if (input.value !== text) {
                             input.value = text;
-                            input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                            input.dispatchEvent(
+                                new Event('input', {
+                                    bubbles: true,
+                                    cancelable: true,
+                                }),
+                            );
                         }
                     }, 10);
-                    
+
                     // 5. Tenta acessar propriedades internas (se disponível)
                     try {
                         if (input._valueTracker) {
@@ -1102,33 +1610,45 @@ class ChatSuggestions {
                     } catch (e) {
                         // Ignora se não disponível
                     }
-                    
-                } 
+                }
                 // Para elementos contentEditable (divs editáveis)
-                else if (input.contentEditable === 'true' || input.isContentEditable) {
+                else if (
+                    input.contentEditable === 'true' ||
+                    input.isContentEditable
+                ) {
                     // Limpa o conteúdo existente
                     input.textContent = '';
                     input.innerText = '';
-                    
+
                     // Insere o novo texto
                     input.textContent = text;
                     input.innerText = text;
-                    
+
                     // Dispara eventos para contentEditable
                     try {
                         const inputEvent = new InputEvent('input', {
                             bubbles: true,
                             cancelable: true,
                             inputType: 'insertText',
-                            data: text
+                            data: text,
                         });
                         input.dispatchEvent(inputEvent);
                     } catch (e) {
-                        input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                        input.dispatchEvent(
+                            new Event('input', {
+                                bubbles: true,
+                                cancelable: true,
+                            }),
+                        );
                     }
-                    
-                    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
-                    
+
+                    input.dispatchEvent(
+                        new Event('change', {
+                            bubbles: true,
+                            cancelable: true,
+                        }),
+                    );
+
                     // Move o cursor para o final
                     try {
                         const range = document.createRange();
@@ -1148,19 +1668,30 @@ class ChatSuggestions {
                         console.warn('Não foi possível mover o cursor:', e);
                     }
                 }
-                
+
                 // Força o foco novamente
                 input.focus();
-                
-                console.log('Texto inserido:', text, 'Valor atual do input:', input.value || input.textContent);
+
+                console.log(
+                    'Texto inserido:',
+                    text,
+                    'Valor atual do input:',
+                    input.value || input.textContent,
+                );
             } catch (error) {
                 console.error('Erro ao inserir texto:', error);
                 // Fallback: tenta apenas definir o valor
                 try {
-                    if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
+                    if (
+                        input.tagName === 'INPUT' ||
+                        input.tagName === 'TEXTAREA'
+                    ) {
                         input.value = text;
                         input.focus();
-                    } else if (input.contentEditable === 'true' || input.isContentEditable) {
+                    } else if (
+                        input.contentEditable === 'true' ||
+                        input.isContentEditable
+                    ) {
                         input.textContent = text;
                         input.focus();
                     }
@@ -1169,7 +1700,10 @@ class ChatSuggestions {
                 }
             }
         } else {
-            console.warn('Caixa de mensagem não encontrada. Texto sugerido:', text);
+            console.warn(
+                'Caixa de mensagem não encontrada. Texto sugerido:',
+                text,
+            );
             // Fallback: copia para clipboard
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(text).then(() => {
@@ -1202,7 +1736,7 @@ class ChatSuggestions {
         }
 
         // Adiciona novas sugestões
-        this.suggestions.forEach(suggestion => {
+        this.suggestions.forEach((suggestion) => {
             const button = this.createSuggestionButton(suggestion);
             this.suggestionsContainer.appendChild(button);
         });
@@ -1231,76 +1765,115 @@ class ChatSuggestions {
         const tryInsertSuggestions = () => {
             // Prioriza encontrar o input específico
             const inputElement = document.querySelector(this.inputSelector);
-            
+
             if (inputElement) {
                 // Encontra o container do input que contém o textarea
                 // Procura pelo container específico do Badoo
-                const inputWrapper = inputElement.closest('.csms-chat-controls-base-input-message') ||
-                                    inputElement.closest('.csms-chat-composer-input-wrapper__content') ||
-                                    inputElement.closest('[class*="input-wrapper"]') ||
-                                    inputElement.closest('[class*="composer-input"]') ||
-                                    inputElement.parentElement;
-                
+                const inputWrapper =
+                    inputElement.closest(
+                        '.csms-chat-controls-base-input-message',
+                    ) ||
+                    inputElement.closest(
+                        '.csms-chat-composer-input-wrapper__content',
+                    ) ||
+                    inputElement.closest('[class*="input-wrapper"]') ||
+                    inputElement.closest('[class*="composer-input"]') ||
+                    inputElement.parentElement;
+
                 if (inputWrapper && inputWrapper.parentElement) {
                     // Remove o container se já estiver em outro lugar
                     if (this.suggestionsContainer.parentElement) {
-                        this.suggestionsContainer.parentElement.removeChild(this.suggestionsContainer);
+                        this.suggestionsContainer.parentElement.removeChild(
+                            this.suggestionsContainer,
+                        );
                     }
                     // Insere antes do container do input, não dentro dele
-                    inputWrapper.parentElement.insertBefore(this.suggestionsContainer, inputWrapper);
-                    console.log('Sugestões inseridas antes do container do input');
+                    inputWrapper.parentElement.insertBefore(
+                        this.suggestionsContainer,
+                        inputWrapper,
+                    );
+                    console.log(
+                        'Sugestões inseridas antes do container do input',
+                    );
                     return true;
                 }
-                
+
                 // Fallback: se não encontrou o wrapper, tenta inserir antes do input diretamente
                 if (inputElement.parentElement) {
                     // Verifica se o parent não é o container que queremos evitar
                     const parent = inputElement.parentElement;
-                    if (!parent.classList.contains('csms-chat-controls-base-input-message')) {
+                    if (
+                        !parent.classList.contains(
+                            'csms-chat-controls-base-input-message',
+                        )
+                    ) {
                         if (this.suggestionsContainer.parentElement) {
-                            this.suggestionsContainer.parentElement.removeChild(this.suggestionsContainer);
+                            this.suggestionsContainer.parentElement.removeChild(
+                                this.suggestionsContainer,
+                            );
                         }
-                        parent.insertBefore(this.suggestionsContainer, inputElement);
-                        console.log('Sugestões inseridas antes do input (fallback)');
+                        parent.insertBefore(
+                            this.suggestionsContainer,
+                            inputElement,
+                        );
+                        console.log(
+                            'Sugestões inseridas antes do input (fallback)',
+                        );
                         return true;
                     } else {
                         // Se o parent é o container do input, insere antes dele
                         if (parent.parentElement) {
                             if (this.suggestionsContainer.parentElement) {
-                                this.suggestionsContainer.parentElement.removeChild(this.suggestionsContainer);
+                                this.suggestionsContainer.parentElement.removeChild(
+                                    this.suggestionsContainer,
+                                );
                             }
-                            parent.parentElement.insertBefore(this.suggestionsContainer, parent);
-                            console.log('Sugestões inseridas antes do container do input (parent)');
+                            parent.parentElement.insertBefore(
+                                this.suggestionsContainer,
+                                parent,
+                            );
+                            console.log(
+                                'Sugestões inseridas antes do container do input (parent)',
+                            );
                             return true;
                         }
                     }
                 }
             }
-            
+
             // Fallback: tenta encontrar o input por outros seletores
             const fallbackSelectors = [
                 '.csms-chat-controls-base-input-message',
                 '.csms-chat-composer-input-wrapper__content',
                 'textarea',
                 'input[type="text"]',
-                '[contenteditable="true"]'
+                '[contenteditable="true"]',
             ];
-            
+
             for (const selector of fallbackSelectors) {
                 const element = document.querySelector(selector);
                 if (element && element.parentElement) {
                     if (this.suggestionsContainer.parentElement) {
-                        this.suggestionsContainer.parentElement.removeChild(this.suggestionsContainer);
+                        this.suggestionsContainer.parentElement.removeChild(
+                            this.suggestionsContainer,
+                        );
                     }
-                    element.parentElement.insertBefore(this.suggestionsContainer, element);
-                    console.log(`Sugestões inseridas antes do elemento: ${selector}`);
+                    element.parentElement.insertBefore(
+                        this.suggestionsContainer,
+                        element,
+                    );
+                    console.log(
+                        `Sugestões inseridas antes do elemento: ${selector}`,
+                    );
                     return true;
                 }
             }
-            
+
             // Último recurso: insere no final do body
             if (this.suggestionsContainer.parentElement) {
-                this.suggestionsContainer.parentElement.removeChild(this.suggestionsContainer);
+                this.suggestionsContainer.parentElement.removeChild(
+                    this.suggestionsContainer,
+                );
             }
             document.body.appendChild(this.suggestionsContainer);
             console.log('Sugestões inseridas no final do body (fallback)');
@@ -1319,31 +1892,46 @@ class ChatSuggestions {
                     clearInterval(retryInterval);
                 }
             }, 300);
-            
+
             // Para de tentar após 5 segundos
             setTimeout(() => {
                 clearInterval(retryInterval);
             }, 5000);
         }
-        
+
         // Observa mudanças no DOM para reposicionar se necessário
         const domObserver = new MutationObserver(() => {
             const inputElement = document.querySelector(this.inputSelector);
             if (inputElement && this.suggestionsContainer) {
                 const currentParent = this.suggestionsContainer.parentElement;
-                
+
                 // Verifica se as sugestões estão dentro do container do input (não deveriam estar)
-                const inputWrapper = inputElement.closest('.csms-chat-controls-base-input-message') ||
-                                    inputElement.closest('.csms-chat-composer-input-wrapper__content');
-                
+                const inputWrapper =
+                    inputElement.closest(
+                        '.csms-chat-controls-base-input-message',
+                    ) ||
+                    inputElement.closest(
+                        '.csms-chat-composer-input-wrapper__content',
+                    );
+
                 // Se as sugestões estão dentro do wrapper do input, move para fora
-                if (inputWrapper && inputWrapper.contains(this.suggestionsContainer)) {
+                if (
+                    inputWrapper &&
+                    inputWrapper.contains(this.suggestionsContainer)
+                ) {
                     if (inputWrapper.parentElement) {
                         if (currentParent) {
-                            currentParent.removeChild(this.suggestionsContainer);
+                            currentParent.removeChild(
+                                this.suggestionsContainer,
+                            );
                         }
-                        inputWrapper.parentElement.insertBefore(this.suggestionsContainer, inputWrapper);
-                        console.log('Sugestões reposicionadas para fora do container do input');
+                        inputWrapper.parentElement.insertBefore(
+                            this.suggestionsContainer,
+                            inputWrapper,
+                        );
+                        console.log(
+                            'Sugestões reposicionadas para fora do container do input',
+                        );
                     }
                 }
                 // Se o input mudou de posição, reposiciona as sugestões
@@ -1351,18 +1939,25 @@ class ChatSuggestions {
                     const expectedParent = inputWrapper.parentElement;
                     if (currentParent !== expectedParent) {
                         if (currentParent) {
-                            currentParent.removeChild(this.suggestionsContainer);
+                            currentParent.removeChild(
+                                this.suggestionsContainer,
+                            );
                         }
-                        expectedParent.insertBefore(this.suggestionsContainer, inputWrapper);
-                        console.log('Sugestões reposicionadas para acompanhar o input');
+                        expectedParent.insertBefore(
+                            this.suggestionsContainer,
+                            inputWrapper,
+                        );
+                        console.log(
+                            'Sugestões reposicionadas para acompanhar o input',
+                        );
                     }
                 }
             }
         });
-        
+
         domObserver.observe(document.body, {
             childList: true,
-            subtree: true
+            subtree: true,
         });
 
         // Garante que o container está visível
@@ -1370,15 +1965,17 @@ class ChatSuggestions {
 
         // Armazena o número de mensagens para detectar mudanças
         this.lastMessageCount = 0;
-        
+
         // Atualiza sugestões inicialmente
         this.updateSuggestions();
 
         // Função para verificar se há novas mensagens
         const checkForNewMessages = () => {
-            const currentMessages = this.chatContainer.querySelectorAll('[data-qa="chat-message"]');
+            const currentMessages = this.chatContainer.querySelectorAll(
+                '[data-qa="chat-message"]',
+            );
             const currentCount = currentMessages.length;
-            
+
             // Se o número de mensagens mudou, atualiza as sugestões
             if (currentCount !== this.lastMessageCount) {
                 this.lastMessageCount = currentCount;
@@ -1391,30 +1988,39 @@ class ChatSuggestions {
         const chatObserver = new MutationObserver((mutations) => {
             // Verifica se alguma mutação adicionou uma nova mensagem
             let hasNewMessage = false;
-            
-            mutations.forEach(mutation => {
+
+            mutations.forEach((mutation) => {
                 if (mutation.type === 'childList') {
                     // Verifica se algum nó adicionado é uma mensagem
-                    mutation.addedNodes.forEach(node => {
-                        if (node.nodeType === 1) { // Element node
+                    mutation.addedNodes.forEach((node) => {
+                        if (node.nodeType === 1) {
+                            // Element node
                             // Verifica se é uma mensagem ou contém mensagens
-                            if (node.matches && node.matches('[data-qa="chat-message"]')) {
+                            if (
+                                node.matches &&
+                                node.matches('[data-qa="chat-message"]')
+                            ) {
                                 hasNewMessage = true;
-                            } else if (node.querySelector && node.querySelector('[data-qa="chat-message"]')) {
+                            } else if (
+                                node.querySelector &&
+                                node.querySelector('[data-qa="chat-message"]')
+                            ) {
                                 hasNewMessage = true;
                             }
                         }
                     });
                 }
             });
-            
+
             // Se detectou nova mensagem, atualiza imediatamente
             if (hasNewMessage) {
                 // Usa debounce para evitar múltiplas atualizações muito rápidas
                 clearTimeout(this.updateTimeout);
                 this.updateTimeout = setTimeout(() => {
                     this.updateSuggestions();
-                    this.lastMessageCount = this.chatContainer.querySelectorAll('[data-qa="chat-message"]').length;
+                    this.lastMessageCount = this.chatContainer.querySelectorAll(
+                        '[data-qa="chat-message"]',
+                    ).length;
                     console.log('Sugestões atualizadas devido a nova mensagem');
                 }, 300);
             } else {
@@ -1428,7 +2034,7 @@ class ChatSuggestions {
             childList: true,
             subtree: true,
             attributes: false,
-            characterData: false
+            characterData: false,
         });
 
         // Verifica periodicamente se há novas mensagens (backup)
@@ -1442,7 +2048,9 @@ class ChatSuggestions {
             this.updateSuggestions();
         }, 3000);
 
-        console.log('ChatSuggestions inicializado com sucesso - Escutando novas mensagens');
+        console.log(
+            'ChatSuggestions inicializado com sucesso - Escutando novas mensagens',
+        );
     }
 }
 
@@ -1463,4 +2071,3 @@ if (typeof document !== 'undefined') {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = ChatSuggestions;
 }
-

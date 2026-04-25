@@ -5,22 +5,32 @@
 (() => {
     'use strict';
 
-    window.chatSuggestionsInitialized = window.chatSuggestionsInitialized || window.badooChatSuggestionsInitialized;
+    window.chatSuggestionsInitialized =
+        window.chatSuggestionsInitialized ||
+        window.badooChatSuggestionsInitialized;
     if (window.chatSuggestionsInitialized) {
         return;
     }
     window.chatSuggestionsInitialized = true;
     window.badooChatSuggestionsInitialized = true;
 
-    const defaultProvider = 'gemini';
-    const defaultGeminiModel = 'gemini-2.0-flash-exp';
-    const defaultOpenRouterModel = 'google/gemini-2.0-flash-exp:free';
+    const providerConfig = window.ChatSuggestions?.ProviderConfig || {};
+    const defaultProvider = providerConfig.DEFAULT_PROVIDER || 'gemini';
+    const defaultGeminiModel =
+        providerConfig.DEFAULT_GEMINI_MODEL || 'gemini-2.0-flash-exp';
+    const defaultOpenRouterModel =
+        providerConfig.DEFAULT_OPENROUTER_MODEL ||
+        'google/gemini-2.0-flash-exp:free';
+    const defaultNvidiaModel =
+        providerConfig.DEFAULT_NVIDIA_MODEL || 'minimaxai/minimax-m2.7';
 
     const detectChatPlatform = () => {
         const host = (location.hostname || '').toLowerCase();
-        if (host === 'tinder.com' || host.endsWith('.tinder.com')) return 'tinder';
+        if (host === 'tinder.com' || host.endsWith('.tinder.com'))
+            return 'tinder';
         if (host === 'web.whatsapp.com') return 'whatsapp';
-        if (host === 'www.instagram.com' || host.endsWith('.instagram.com')) return 'instagram';
+        if (host === 'www.instagram.com' || host.endsWith('.instagram.com'))
+            return 'instagram';
         return 'badoo';
     };
 
@@ -35,7 +45,11 @@
     const isDebugEnabled = () => {
         try {
             const domFlag = document.documentElement?.dataset?.bcsDebug;
-            return Boolean(window.badooChatSuggestionsDebug || domFlag === '1' || domFlag === 'true');
+            return Boolean(
+                window.badooChatSuggestionsDebug ||
+                domFlag === '1' ||
+                domFlag === 'true',
+            );
         } catch (e) {
             return Boolean(window.badooChatSuggestionsDebug);
         }
@@ -56,7 +70,10 @@
             updateFlag();
             new MutationObserver((mutations) => {
                 for (const mutation of mutations) {
-                    if (mutation.type === 'attributes' && mutation.attributeName === 'data-bcs-debug') {
+                    if (
+                        mutation.type === 'attributes' &&
+                        mutation.attributeName === 'data-bcs-debug'
+                    ) {
                         updateFlag();
                         break;
                     }
@@ -80,9 +97,12 @@
         }
     };
 
-    const waitForTinderMessageList = ({ timeoutMs = 10000, intervalMs = 300 } = {}) => {
+    const waitForTinderMessageList = ({
+        timeoutMs = 10000,
+        intervalMs = 300,
+    } = {}) => {
         const startAt = Date.now();
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             const check = () => {
                 const list = document.querySelector('.messageList');
                 if (list) {
@@ -101,21 +121,24 @@
 
     const initTinderRealtimeSearch = async () => {
         console.info('[Chat Suggestions] Tinder search init start', {
-            href: location.href
+            href: location.href,
         });
         if (document.getElementById('tinder-search-input')) return;
 
         const list = await waitForTinderMessageList();
         if (!list) {
-            console.warn('[Chat Suggestions] Lista de mensagens nao encontrada apos aguardar.', {
-                selectorTried: '.messageList'
-            });
+            console.warn(
+                '[Chat Suggestions] Lista de mensagens nao encontrada apos aguardar.',
+                {
+                    selectorTried: '.messageList',
+                },
+            );
             return;
         }
 
         console.info('[Chat Suggestions] Lista de mensagens encontrada', {
             tag: list.tagName,
-            className: list.className
+            className: list.className,
         });
 
         const input = document.createElement('input');
@@ -149,10 +172,10 @@
             const items = document.querySelectorAll('.messageListItem');
             console.info('[Chat Suggestions] Filtrando lista', {
                 termo,
-                items: items.length
+                items: items.length,
             });
 
-            items.forEach(item => {
+            items.forEach((item) => {
                 const nameEl = item.querySelector('.messageListItem__name');
                 const name = (nameEl?.textContent || '').trim().toLowerCase();
 
@@ -173,71 +196,100 @@
     };
 
     const loadConfig = () => {
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
             if (!chrome?.storage?.local) {
                 resolve({});
                 return;
             }
-            chrome.storage.local.get([
-                'llmProvider',
-                'openRouterModel',
-                'openRouterApiKey',
-                'openRouterProfile',
-                'openRouterProfileCasual',
-                'openRouterProfileBusiness',
-                'geminiApiKey',
-                'geminiModel',
-                'uiPlacementOverride',
-                'aiResponseLength',
-                'businessModeEnabled',
-                'businessModeByHost',
-                'businessContext',
-                'businessTone'
-            ], (result) => {
-                const host = getCurrentHost();
-                const hostMode = host ? (result.businessModeByHost || {})[host] : undefined;
-                const businessModeEnabled = typeof hostMode === 'boolean'
-                    ? hostMode
-                    : Boolean(result.businessModeEnabled);
-                resolve({
-                    llmProvider: result.llmProvider || defaultProvider,
-                    openRouterModel: result.openRouterModel || defaultOpenRouterModel,
-                    openRouterApiKey: result.openRouterApiKey,
-                    openRouterProfile: result.openRouterProfile,
-                    openRouterProfileCasual: result.openRouterProfileCasual || result.openRouterProfile || '',
-                    openRouterProfileBusiness: result.openRouterProfileBusiness || '',
-                    geminiApiKey: result.geminiApiKey,
-                    geminiModel: result.geminiModel || defaultGeminiModel,
-                    uiPlacementOverride: result.uiPlacementOverride || 'floating',
-                    aiResponseLength: result.aiResponseLength || 'short',
-                    businessModeEnabled,
-                    businessContext: result.businessContext || '',
-                    businessTone: result.businessTone || 'consultivo'
-                });
-            });
+            chrome.storage.local.get(
+                [
+                    'llmProvider',
+                    'openRouterModel',
+                    'openRouterProfile',
+                    'openRouterProfileCasual',
+                    'openRouterProfileBusiness',
+                    'geminiModel',
+                    'nvidiaModel',
+                    'uiPlacementOverride',
+                    'aiResponseLength',
+                    'businessModeEnabled',
+                    'businessModeByHost',
+                    'businessContext',
+                    'businessTone',
+                ],
+                (result) => {
+                    const host = getCurrentHost();
+                    const hostMode = host
+                        ? (result.businessModeByHost || {})[host]
+                        : undefined;
+                    const businessModeEnabled =
+                        typeof hostMode === 'boolean'
+                            ? hostMode
+                            : Boolean(result.businessModeEnabled);
+                    resolve({
+                        llmProvider: result.llmProvider || defaultProvider,
+                        openRouterModel:
+                            result.openRouterModel || defaultOpenRouterModel,
+                        openRouterProfile: result.openRouterProfile,
+                        openRouterProfileCasual:
+                            result.openRouterProfileCasual ||
+                            result.openRouterProfile ||
+                            '',
+                        openRouterProfileBusiness:
+                            result.openRouterProfileBusiness || '',
+                        geminiModel: result.geminiModel || defaultGeminiModel,
+                        nvidiaModel: result.nvidiaModel || defaultNvidiaModel,
+                        uiPlacementOverride:
+                            result.uiPlacementOverride || 'floating',
+                        aiResponseLength: result.aiResponseLength || 'short',
+                        businessModeEnabled,
+                        businessContext: result.businessContext || '',
+                        businessTone: result.businessTone || 'consultivo',
+                    });
+                },
+            );
         });
     };
 
     const loadEnvKey = async () => {
         try {
-            const envUrl = chrome?.runtime?.getURL ? chrome.runtime.getURL('.env') : null;
-            if (!envUrl) return { openrouterKey: null, geminiKey: null };
+            const envUrl = chrome?.runtime?.getURL
+                ? chrome.runtime.getURL('.env')
+                : null;
+            if (!envUrl)
+                return {
+                    openrouterKey: null,
+                    geminiKey: null,
+                    nvidiaKey: null,
+                };
             const res = await fetch(envUrl);
-            if (!res.ok) return { openrouterKey: null, geminiKey: null };
+            if (!res.ok)
+                return {
+                    openrouterKey: null,
+                    geminiKey: null,
+                    nvidiaKey: null,
+                };
             const text = await res.text();
+            if (typeof providerConfig.parseEnvKeys === 'function') {
+                return providerConfig.parseEnvKeys(text);
+            }
             const orMatch = text.match(/OPENROUTER_API_KEY\s*=\s*(.+)/i);
             const gemMatch = text.match(/GEMINI_API_KEY\s*=\s*(.+)/i);
+            const nvMatch = text.match(/NVIDIA_API_KEY\s*=\s*(.+)/i);
             return {
                 openrouterKey: orMatch ? orMatch[1].trim() : null,
-                geminiKey: gemMatch ? gemMatch[1].trim() : null
+                geminiKey: gemMatch ? gemMatch[1].trim() : null,
+                nvidiaKey: nvMatch ? nvMatch[1].trim() : null,
             };
         } catch (e) {
-            return { openrouterKey: null, geminiKey: null };
+            return { openrouterKey: null, geminiKey: null, nvidiaKey: null };
         }
     };
 
     const start = async () => {
-        window.chatSuggestionsInstance = window.chatSuggestionsInstance || window.badooChatSuggestionsInstance;
+        window.chatSuggestionsInstance =
+            window.chatSuggestionsInstance ||
+            window.badooChatSuggestionsInstance;
         if (window.chatSuggestionsInstance) {
             return;
         }
@@ -249,7 +301,7 @@
         const platform = detectChatPlatform();
         console.info('[Chat Suggestions] Platform detectada', {
             platform,
-            href: location.href
+            href: location.href,
         });
         const platformDefaults = getPlatformDefaults(platform);
 
@@ -258,7 +310,9 @@
         const config = {
             ...stored,
             ...platformDefaults,
-            ...(window.ChatSuggestionsConfig || window.badooChatSuggestionsConfig || {})
+            ...(window.ChatSuggestionsConfig ||
+                window.badooChatSuggestionsConfig ||
+                {}),
         };
         let messageReader = null;
         if (typeof config.messageReaderFactory === 'function') {
@@ -266,16 +320,26 @@
         }
         if (!messageReader) {
             messageReader = config.messageReaderConfig
-                ? new window.ChatSuggestions.MessageReader(config.messageReaderConfig)
+                ? new window.ChatSuggestions.MessageReader(
+                      config.messageReaderConfig,
+                  )
                 : config.messageReader;
         }
         const provider = config.llmProvider || defaultProvider;
-        const apiKey = provider === 'gemini'
-            ? (config.geminiApiKey || envKeys.geminiKey)
-            : (config.openRouterApiKey || envKeys.openrouterKey || (typeof window !== 'undefined' && window.OPENROUTER_API_KEY));
-        const model = provider === 'gemini'
-            ? (config.geminiModel || defaultGeminiModel)
-            : (config.openRouterModel || defaultOpenRouterModel);
+        const apiKey =
+            typeof providerConfig.getApiKeyForProvider === 'function'
+                ? providerConfig.getApiKeyForProvider(provider, envKeys)
+                : provider === 'gemini'
+                  ? envKeys.geminiKey
+                  : provider === 'nvidia'
+                    ? envKeys.nvidiaKey
+                    : envKeys.openrouterKey;
+        const model =
+            provider === 'gemini'
+                ? config.geminiModel || defaultGeminiModel
+                : provider === 'nvidia'
+                  ? config.nvidiaModel || defaultNvidiaModel
+                  : config.openRouterModel || defaultOpenRouterModel;
 
         const profileByMode = config.businessModeEnabled
             ? config.openRouterProfileBusiness
@@ -288,39 +352,53 @@
             responseLength: config.aiResponseLength || 'short',
             businessModeEnabled: Boolean(config.businessModeEnabled),
             businessContext: config.businessContext || '',
-            businessTone: config.businessTone || 'consultivo'
+            businessTone: config.businessTone || 'consultivo',
         };
 
         let effectiveUiPlacement = config.uiPlacement;
-        if (config.uiPlacementOverride && config.uiPlacementOverride !== 'auto') {
+        if (
+            config.uiPlacementOverride &&
+            config.uiPlacementOverride !== 'auto'
+        ) {
             effectiveUiPlacement = config.uiPlacementOverride;
         }
 
         console.info('[Chat Suggestions] Iniciando content script', {
             platform,
-            chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
-            inputSelector: config.inputSelector || '#chat-composer-input-message'
+            chatContainerSelector:
+                config.chatContainerSelector || '.csms-chat-messages',
+            inputSelector:
+                config.inputSelector || '#chat-composer-input-message',
         });
 
-	        const controller = new window.ChatSuggestions.ChatSuggestionsController({
-	            chatContainerSelector: config.chatContainerSelector || '.csms-chat-messages',
-	            inputSelector: config.inputSelector || '#chat-composer-input-message',
-	            messageSelector: config.messageReaderConfig?.messageSelector,
-	            uiPlacement: effectiveUiPlacement,
-	            profileContainerSelector: config.profileContainerSelector,
-	            otherPersonNameSelector: config.otherPersonNameSelector,
-	            platform,
-	            messageReader,
-	            aiClientConfig,
-	            debug
-	        });
+        const controller = new window.ChatSuggestions.ChatSuggestionsController(
+            {
+                chatContainerSelector:
+                    config.chatContainerSelector || '.csms-chat-messages',
+                inputSelector:
+                    config.inputSelector || '#chat-composer-input-message',
+                messageSelector: config.messageReaderConfig?.messageSelector,
+                uiPlacement: effectiveUiPlacement,
+                profileContainerSelector: config.profileContainerSelector,
+                otherPersonNameSelector: config.otherPersonNameSelector,
+                platform,
+                messageReader,
+                aiClientConfig,
+                debug,
+            },
+        );
 
         window.chatSuggestionsInstance = controller;
         window.badooChatSuggestionsInstance = controller;
         controller.init();
-        if (platform === 'tinder' && isMessagesUrlForPlatform(platform, location.href)) {
+        if (
+            platform === 'tinder' &&
+            isMessagesUrlForPlatform(platform, location.href)
+        ) {
             setTimeout(() => {
-                console.info('[Chat Suggestions] Tentando iniciar busca Tinder apos init');
+                console.info(
+                    '[Chat Suggestions] Tentando iniciar busca Tinder apos init',
+                );
                 initTinderRealtimeSearch();
             }, 1000);
         }
@@ -331,14 +409,19 @@
         chrome.runtime.onMessage.addListener((message) => {
             if (!message || message.type !== 'bcs:modeUpdated') return;
             const payload = message.payload || {};
-            const instance = window.chatSuggestionsInstance || window.badooChatSuggestionsInstance;
-            if (instance && typeof instance.updateBusinessModeConfig === 'function') {
+            const instance =
+                window.chatSuggestionsInstance ||
+                window.badooChatSuggestionsInstance;
+            if (
+                instance &&
+                typeof instance.updateBusinessModeConfig === 'function'
+            ) {
                 instance.updateBusinessModeConfig({
                     businessModeEnabled: Boolean(payload.businessModeEnabled),
                     businessContext: payload.businessContext || '',
                     businessTone: payload.businessTone || 'consultivo',
                     profileCasual: payload.profileCasual || '',
-                    profileBusiness: payload.profileBusiness || ''
+                    profileBusiness: payload.profileBusiness || '',
                 });
             }
         });
@@ -362,13 +445,18 @@
             const platform = detectChatPlatform();
             console.info('[Chat Suggestions] URL mudou', {
                 platform,
-                url
+                url,
             });
             if (isMessagesUrlForPlatform(platform, url)) {
                 setTimeout(() => {
-                    window.chatSuggestionsInstance = window.chatSuggestionsInstance || window.badooChatSuggestionsInstance;
+                    window.chatSuggestionsInstance =
+                        window.chatSuggestionsInstance ||
+                        window.badooChatSuggestionsInstance;
                     if (window.chatSuggestionsInstance) {
-                        if (typeof window.chatSuggestionsInstance.cleanup === 'function') {
+                        if (
+                            typeof window.chatSuggestionsInstance.cleanup ===
+                            'function'
+                        ) {
                             window.chatSuggestionsInstance.cleanup();
                         }
                         window.chatSuggestionsInstance = null;
@@ -376,7 +464,9 @@
                     }
                     window.chatSuggestionsInitialized = false;
                     window.badooChatSuggestionsInitialized = false;
-                    console.info('[Chat Suggestions] URL de mensagens detectada, reinicializando...');
+                    console.info(
+                        '[Chat Suggestions] URL de mensagens detectada, reinicializando...',
+                    );
                     start();
                     if (platform === 'tinder') {
                         initTinderRealtimeSearch();

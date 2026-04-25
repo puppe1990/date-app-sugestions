@@ -1,5 +1,5 @@
 (() => {
-    const root = window.ChatSuggestions = window.ChatSuggestions || {};
+    const root = (window.ChatSuggestions = window.ChatSuggestions || {});
     const registry = {};
 
     const register = (platform, defaults) => {
@@ -13,6 +13,6 @@
 
     root.PlatformRegistry = {
         register,
-        getDefaults
+        getDefaults,
     };
 })();

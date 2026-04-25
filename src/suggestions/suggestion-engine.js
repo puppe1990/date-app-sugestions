@@ -10,13 +10,16 @@
             }
 
             const suggestions = [];
-            const lastMessage = context.lastMessages[context.lastMessages.length - 1];
+            const lastMessage =
+                context.lastMessages[context.lastMessages.length - 1];
             const isLastFromMe = lastMessage.direction === 'out';
 
             if (isLastFromMe) {
                 suggestions.push(...this.getContinuationSuggestions(context));
             } else {
-                suggestions.push(...this.getResponseSuggestions(context, lastMessage));
+                suggestions.push(
+                    ...this.getResponseSuggestions(context, lastMessage),
+                );
             }
 
             suggestions.push(...this.getPersonalizedSuggestions(context));
@@ -46,15 +49,20 @@
 
         getPersonalizedSuggestions(context) {
             const suggestions = [];
-            const normalizedPlaces = (context.mentionedPlaces || []).map(p => p.toLowerCase());
+            const normalizedPlaces = (context.mentionedPlaces || []).map((p) =>
+                p.toLowerCase(),
+            );
 
             const findPlaceByDirection = (direction) => {
-                if (!context.lastMessages || normalizedPlaces.length === 0) return null;
+                if (!context.lastMessages || normalizedPlaces.length === 0)
+                    return null;
                 for (let i = context.lastMessages.length - 1; i >= 0; i--) {
                     const msg = context.lastMessages[i];
                     if (msg.direction !== direction || !msg.text) continue;
                     const lower = msg.text.toLowerCase();
-                    const matchIndex = normalizedPlaces.findIndex(place => lower.includes(place));
+                    const matchIndex = normalizedPlaces.findIndex((place) =>
+                        lower.includes(place),
+                    );
                     if (matchIndex !== -1) {
                         return context.mentionedPlaces[matchIndex];
                     }
@@ -62,16 +70,31 @@
                 return null;
             };
 
-            const lastMessage = context.lastMessages[context.lastMessages.length - 1];
-            const lastOutbound = context.lastMessages.filter(m => m.direction === 'out').slice(-1)[0];
+            const lastMessage =
+                context.lastMessages[context.lastMessages.length - 1];
+            const lastOutbound = context.lastMessages
+                .filter((m) => m.direction === 'out')
+                .slice(-1)[0];
 
             const inboundPlace = findPlaceByDirection('in');
             const myPlace = findPlaceByDirection('out');
             const myPlaceLower = myPlace ? myPlace.toLowerCase() : '';
-            const lastOutboundHasMyPlace = Boolean(lastOutbound && myPlaceLower && lastOutbound.text.toLowerCase().includes(myPlaceLower));
-            const lastIsOutWithPlace = Boolean(lastMessage && lastMessage.direction === 'out' && myPlaceLower && lastMessage.text.toLowerCase().includes(myPlaceLower));
+            const lastOutboundHasMyPlace = Boolean(
+                lastOutbound &&
+                myPlaceLower &&
+                lastOutbound.text.toLowerCase().includes(myPlaceLower),
+            );
+            const lastIsOutWithPlace = Boolean(
+                lastMessage &&
+                lastMessage.direction === 'out' &&
+                myPlaceLower &&
+                lastMessage.text.toLowerCase().includes(myPlaceLower),
+            );
 
-            if (inboundPlace && !(lastIsOutWithPlace && lastOutboundHasMyPlace)) {
+            if (
+                inboundPlace &&
+                !(lastIsOutWithPlace && lastOutboundHasMyPlace)
+            ) {
                 const place = inboundPlace;
                 suggestions.push(`Legal, ${place}!`);
                 suggestions.push(`${place} é uma região bem legal.`);
@@ -84,26 +107,41 @@
 
             if (context.mentionedJobs.length > 0) {
                 const job = context.mentionedJobs[0];
-                suggestions.push(`Que interessante! Trabalha com ${job} há quanto tempo?`);
+                suggestions.push(
+                    `Que interessante! Trabalha com ${job} há quanto tempo?`,
+                );
                 suggestions.push(`Adoro pessoas que trabalham com ${job}`);
             }
 
             if (context.mentionedHobbies.length > 0) {
-                const hobbies = context.mentionedHobbies.slice(0, 2).join(' e ');
+                const hobbies = context.mentionedHobbies
+                    .slice(0, 2)
+                    .join(' e ');
                 suggestions.push(`Que legal! Também gosto de ${hobbies}`);
                 suggestions.push(`Adoro ${hobbies}!`);
             }
 
             if (context.hasQuestions && context.questions.length > 0) {
-                const lastQuestion = context.questions[context.questions.length - 1];
-                if (lastQuestion.includes('onde') || lastQuestion.includes('mora')) {
+                const lastQuestion =
+                    context.questions[context.questions.length - 1];
+                if (
+                    lastQuestion.includes('onde') ||
+                    lastQuestion.includes('mora')
+                ) {
                     suggestions.push('Moro em São Paulo');
-                    suggestions.push('Moro no bairro de Tatuapé, São Paulo capital');
+                    suggestions.push(
+                        'Moro no bairro de Tatuapé, São Paulo capital',
+                    );
                     suggestions.push('Moro no bairro de Tatuapé');
                     suggestions.push('Sou da capital');
-                } else if (lastQuestion.includes('faz') || lastQuestion.includes('trabalho')) {
+                } else if (
+                    lastQuestion.includes('faz') ||
+                    lastQuestion.includes('trabalho')
+                ) {
                     suggestions.push('Sou desenvolvedor de software');
-                    suggestions.push('Sou desenvolvedor de software numa startup');
+                    suggestions.push(
+                        'Sou desenvolvedor de software numa startup',
+                    );
                     suggestions.push('Tenho um consultoria de tecnologia');
                     suggestions.push('Trabalho com tecnologia');
                 }
@@ -124,7 +162,7 @@
                     'Bom dia! Tudo bem?',
                     'Bom dia! Como foi seu despertar?',
                     'Bom dia! Espero que tenha um ótimo dia',
-                    'Bom dia! Que tal conversarmos?'
+                    'Bom dia! Que tal conversarmos?',
                 ];
             } else if (hour >= 12 && hour < 18) {
                 timeGreeting = 'Boa tarde';
@@ -133,7 +171,7 @@
                     'Boa tarde! Tudo bem?',
                     'Boa tarde! Como está seu dia?',
                     'Boa tarde! Espero que esteja tendo um bom dia',
-                    'Boa tarde! Que tal conversarmos?'
+                    'Boa tarde! Que tal conversarmos?',
                 ];
             } else {
                 timeGreeting = 'Boa noite';
@@ -142,7 +180,7 @@
                     'Boa noite! Tudo bem?',
                     'Boa noite! Como foi seu dia?',
                     'Boa noite! Espero que tenha tido um bom dia',
-                    'Boa noite! Que tal conversarmos?'
+                    'Boa noite! Que tal conversarmos?',
                 ];
             }
 
@@ -150,58 +188,83 @@
                 ...timeBasedSuggestions,
                 `${timeGreeting}! Prazer em te conhecer`,
                 `${timeGreeting}! Como vai?`,
-                `${timeGreeting}! Tudo certo?`
+                `${timeGreeting}! Tudo certo?`,
             ];
         }
 
         getContinuationSuggestions(context) {
             const suggestions = [];
 
-            const myLastMessage = context.lastMessages.filter(m => m.direction === 'out').slice(-1)[0];
-            const myLastText = myLastMessage ? myLastMessage.text.toLowerCase() : '';
-            const normalizedLastText = myLastText.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const myLastMessage = context.lastMessages
+                .filter((m) => m.direction === 'out')
+                .slice(-1)[0];
+            const myLastText = myLastMessage
+                ? myLastMessage.text.toLowerCase()
+                : '';
+            const normalizedLastText = myLastText
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
 
-            const isTalkingAboutWork = context.topics.includes('trabalho') ||
-                                      myLastText.includes('trabalho') ||
-                                      myLastText.includes('trabalha') ||
-                                      myLastText.includes('pedágio') ||
-                                      myLastText.includes('loja') ||
-                                      myLastText.includes('porcelanato') ||
-                                      myLastText.includes('engenheiro') ||
-                                      myLastText.includes('desenvolvedor') ||
-                                      myLastText.includes('software') ||
-                                      context.lastMessages.some(m =>
-                                          m.text.toLowerCase().includes('trabalho') ||
-                                          m.text.toLowerCase().includes('trabalha') ||
-                                          m.text.toLowerCase().includes('pedágio') ||
-                                          m.text.toLowerCase().includes('faz o que') ||
-                                          m.text.toLowerCase().includes('profissão')
-                                      );
+            const isTalkingAboutWork =
+                context.topics.includes('trabalho') ||
+                myLastText.includes('trabalho') ||
+                myLastText.includes('trabalha') ||
+                myLastText.includes('pedágio') ||
+                myLastText.includes('loja') ||
+                myLastText.includes('porcelanato') ||
+                myLastText.includes('engenheiro') ||
+                myLastText.includes('desenvolvedor') ||
+                myLastText.includes('software') ||
+                context.lastMessages.some(
+                    (m) =>
+                        m.text.toLowerCase().includes('trabalho') ||
+                        m.text.toLowerCase().includes('trabalha') ||
+                        m.text.toLowerCase().includes('pedágio') ||
+                        m.text.toLowerCase().includes('faz o que') ||
+                        m.text.toLowerCase().includes('profissão'),
+                );
 
             if (myLastText.includes('?')) {
-                const isWellbeingQuestion = normalizedLastText.includes('tudo bem') ||
-                                            normalizedLastText.includes('tudo certo') ||
-                                            normalizedLastText.includes('como voce esta') ||
-                                            normalizedLastText.includes('como vc esta') ||
-                                            normalizedLastText.includes('como voce ta') ||
-                                            normalizedLastText.includes('como vc ta') ||
-                                            normalizedLastText.includes('como vai') ||
-                                            normalizedLastText.includes('como esta');
+                const isWellbeingQuestion =
+                    normalizedLastText.includes('tudo bem') ||
+                    normalizedLastText.includes('tudo certo') ||
+                    normalizedLastText.includes('como voce esta') ||
+                    normalizedLastText.includes('como vc esta') ||
+                    normalizedLastText.includes('como voce ta') ||
+                    normalizedLastText.includes('como vc ta') ||
+                    normalizedLastText.includes('como vai') ||
+                    normalizedLastText.includes('como esta');
 
                 if (isWellbeingQuestion) {
                     suggestions.push('Tudo ótimo por aqui! E você, como está?');
-                    suggestions.push('Estou bem, obrigado por perguntar! Como foi seu dia?');
-                    suggestions.push('Tudo certo! O que você tem feito de bom hoje?');
+                    suggestions.push(
+                        'Estou bem, obrigado por perguntar! Como foi seu dia?',
+                    );
+                    suggestions.push(
+                        'Tudo certo! O que você tem feito de bom hoje?',
+                    );
                     suggestions.push('Tudo bem, e você? Como está seu dia?');
                     suggestions.push('Estou ótimo! O que tem feito hoje?');
                     return suggestions;
-                } else if (isTalkingAboutWork || myLastText.includes('faz') || myLastText.includes('trabalho') || myLastText.includes('trabalha') || myLastText.includes('profissão') || myLastText.includes('tempo')) {
+                } else if (
+                    isTalkingAboutWork ||
+                    myLastText.includes('faz') ||
+                    myLastText.includes('trabalho') ||
+                    myLastText.includes('trabalha') ||
+                    myLastText.includes('profissão') ||
+                    myLastText.includes('tempo')
+                ) {
                     suggestions.push('Que interessante!');
                     suggestions.push('Gosta do que faz?');
                     suggestions.push('Como é trabalhar nisso?');
                     suggestions.push('É desafiador?');
                     suggestions.push('É uma área que sempre te interessou?');
-                } else if (myLastText.includes('onde') || myLastText.includes('mora') || myLastText.includes('bairro') || myLastText.includes('zona')) {
+                } else if (
+                    myLastText.includes('onde') ||
+                    myLastText.includes('mora') ||
+                    myLastText.includes('bairro') ||
+                    myLastText.includes('zona')
+                ) {
                     suggestions.push('Que legal!');
                     suggestions.push('É perto daqui?');
                     suggestions.push('Já conhece a região?');
@@ -217,21 +280,35 @@
                 }
             } else {
                 if (isTalkingAboutWork) {
-                    if (myLastText.includes('sou') || myLastText.includes('eu sou') || myLastText.includes('eu trabalho') ||
-                        myLastText.includes('engenheiro') || myLastText.includes('desenvolvedor') ||
-                        myLastText.includes('software') || myLastText.includes('tecnologia') ||
-                        myLastText.includes('trabalho com') || myLastText.includes('trabalho na')) {
+                    if (
+                        myLastText.includes('sou') ||
+                        myLastText.includes('eu sou') ||
+                        myLastText.includes('eu trabalho') ||
+                        myLastText.includes('engenheiro') ||
+                        myLastText.includes('desenvolvedor') ||
+                        myLastText.includes('software') ||
+                        myLastText.includes('tecnologia') ||
+                        myLastText.includes('trabalho com') ||
+                        myLastText.includes('trabalho na')
+                    ) {
                         if (!this.hasTopicBeenDiscussed(context, 'trabalho')) {
                             suggestions.push('E você, trabalha com o quê?');
                             suggestions.push('Que área você trabalha?');
                             suggestions.push('Qual sua profissão?');
                             suggestions.push('Trabalha com o quê?');
                         } else {
-                            if (!this.hasTopicBeenDiscussed(context, 'localização')) {
+                            if (
+                                !this.hasTopicBeenDiscussed(
+                                    context,
+                                    'localização',
+                                )
+                            ) {
                                 suggestions.push('E você, mora onde?');
                                 suggestions.push('Que bairro você mora?');
                             }
-                            suggestions.push('O que você gosta de fazer no tempo livre?');
+                            suggestions.push(
+                                'O que você gosta de fazer no tempo livre?',
+                            );
                             suggestions.push('Tem algum hobby?');
                             suggestions.push('Quais seus interesses?');
                         }
@@ -242,7 +319,10 @@
                         suggestions.push('Como é trabalhar nisso?');
                         suggestions.push('É desafiador?');
                     }
-                } else if (context.topics.includes('trabalho') && !this.hasTopicBeenDiscussed(context, 'trabalho')) {
+                } else if (
+                    context.topics.includes('trabalho') &&
+                    !this.hasTopicBeenDiscussed(context, 'trabalho')
+                ) {
                     suggestions.push('E você, trabalha com o quê?');
                     suggestions.push('Que área você trabalha?');
                     suggestions.push('E você, o que faz da vida?');
@@ -250,8 +330,12 @@
                     suggestions.push('Trabalha com o quê?');
                 }
 
-                const locationMentioned = context.topics.includes('localização');
-                if (locationMentioned && !this.hasTopicBeenDiscussed(context, 'localização')) {
+                const locationMentioned =
+                    context.topics.includes('localização');
+                if (
+                    locationMentioned &&
+                    !this.hasTopicBeenDiscussed(context, 'localização')
+                ) {
                     suggestions.push('E você, mora onde?');
                     suggestions.push('Que bairro você mora?');
                     suggestions.push('É perto daqui?');
@@ -276,62 +360,103 @@
         getResponseSuggestions(context, lastMessage) {
             const suggestions = [];
             const text = lastMessage.text.toLowerCase();
-            const normalizedText = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const normalizedText = text
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
 
-            const isTalkingAboutWork = context.topics.includes('trabalho') ||
-                                       text.includes('trabalho') ||
-                                       text.includes('trabalha') ||
-                                       text.includes('pedágio') ||
-                                       text.includes('pedagio') ||
-                                       text.includes('loja') ||
-                                       text.includes('porcelanato') ||
-                                       text.includes('meses') ||
-                                       text.includes('anos') ||
-                                       context.lastMessages.some(m =>
-                                           m.text.toLowerCase().includes('trabalho') ||
-                                           m.text.toLowerCase().includes('trabalha') ||
-                                           m.text.toLowerCase().includes('faz o que') ||
-                                           m.text.toLowerCase().includes('profissão')
-                                       );
+            const isTalkingAboutWork =
+                context.topics.includes('trabalho') ||
+                text.includes('trabalho') ||
+                text.includes('trabalha') ||
+                text.includes('pedágio') ||
+                text.includes('pedagio') ||
+                text.includes('loja') ||
+                text.includes('porcelanato') ||
+                text.includes('meses') ||
+                text.includes('anos') ||
+                context.lastMessages.some(
+                    (m) =>
+                        m.text.toLowerCase().includes('trabalho') ||
+                        m.text.toLowerCase().includes('trabalha') ||
+                        m.text.toLowerCase().includes('faz o que') ||
+                        m.text.toLowerCase().includes('profissão'),
+                );
 
-            const isWellbeingQuestion = normalizedText.includes('tudo bem') ||
-                                        normalizedText.includes('tudo certo') ||
-                                        normalizedText.includes('como voce esta') ||
-                                        normalizedText.includes('como vc esta') ||
-                                        normalizedText.includes('como voce ta') ||
-                                        normalizedText.includes('como vc ta') ||
-                                        normalizedText.includes('como vai') ||
-                                        normalizedText.includes('como esta');
+            const isWellbeingQuestion =
+                normalizedText.includes('tudo bem') ||
+                normalizedText.includes('tudo certo') ||
+                normalizedText.includes('como voce esta') ||
+                normalizedText.includes('como vc esta') ||
+                normalizedText.includes('como voce ta') ||
+                normalizedText.includes('como vc ta') ||
+                normalizedText.includes('como vai') ||
+                normalizedText.includes('como esta');
 
             if (isWellbeingQuestion) {
-                suggestions.push('Estou bem, obrigado por perguntar! Como você está?');
+                suggestions.push(
+                    'Estou bem, obrigado por perguntar! Como você está?',
+                );
                 suggestions.push('Tudo ótimo por aqui. Como está seu dia?');
-                suggestions.push('Tudo certo! O que você tem feito de bom hoje?');
-                suggestions.push('Estou bem, e você? Como foi seu dia até agora?');
+                suggestions.push(
+                    'Tudo certo! O que você tem feito de bom hoje?',
+                );
+                suggestions.push(
+                    'Estou bem, e você? Como foi seu dia até agora?',
+                );
                 return suggestions;
             }
 
             const myLastQuestion = context.lastMessages
-                .filter(m => m.direction === 'out' && m.text.includes('?'))
+                .filter((m) => m.direction === 'out' && m.text.includes('?'))
                 .slice(-1)[0];
-            const myLastQuestionText = myLastQuestion ? myLastQuestion.text.toLowerCase() : '';
+            const myLastQuestionText = myLastQuestion
+                ? myLastQuestion.text.toLowerCase()
+                : '';
 
             const isQuestion = text.includes('?');
-            const isReaction = text.match(/\b(oloko|rs|kkk|haha|nossa|caramba|entendi|ah sim|ok|tá)\b/i);
+            const isReaction = text.match(
+                /\b(oloko|rs|kkk|haha|nossa|caramba|entendi|ah sim|ok|tá)\b/i,
+            );
             const mentionsTime = text.match(/\b(\d+)\s*(meses?|anos?|anos)\b/i);
-            const mentionsWork = text.match(/\b(pedágio|pedagio|loja|porcelanato|trabalho|trabalha|faz o que|profissão)\b/i);
-            const asksLocation = text.includes('onde') || text.includes('mora') || text.includes('bairro') || text.includes('zona') || text.includes('cidade');
-            const isReverseQuestion = text.includes('e vc') || text.includes('e você');
-            const hobbyKeywords = window.ChatSuggestions.constants.HOBBY_KEYWORDS || [];
-            const mentionsHobby = hobbyKeywords.some(keyword => normalizedText.includes(keyword.normalize('NFD').replace(/[\u0300-\u036f]/g, '')));
+            const mentionsWork = text.match(
+                /\b(pedágio|pedagio|loja|porcelanato|trabalho|trabalha|faz o que|profissão)\b/i,
+            );
+            const asksLocation =
+                text.includes('onde') ||
+                text.includes('mora') ||
+                text.includes('bairro') ||
+                text.includes('zona') ||
+                text.includes('cidade');
+            const isReverseQuestion =
+                text.includes('e vc') || text.includes('e você');
+            const hobbyKeywords =
+                window.ChatSuggestions.constants.HOBBY_KEYWORDS || [];
+            const mentionsHobby = hobbyKeywords.some((keyword) =>
+                normalizedText.includes(
+                    keyword.normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+                ),
+            );
             const myHobbies = (context.mentionedHobbies || []).filter(Boolean);
             const myHobbiesJoined = myHobbies.slice(0, 3).join(', ');
 
             if (isQuestion) {
-                const lastQuestionWasWork = myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho') || myLastQuestionText.includes('profissão') || myLastQuestionText.includes('emprego') || myLastQuestionText.includes('trabalha');
-                const lastQuestionWasLocation = myLastQuestionText.includes('onde') || myLastQuestionText.includes('mora') || myLastQuestionText.includes('bairro') || myLastQuestionText.includes('zona') || myLastQuestionText.includes('cidade');
+                const lastQuestionWasWork =
+                    myLastQuestionText.includes('faz') ||
+                    myLastQuestionText.includes('trabalho') ||
+                    myLastQuestionText.includes('profissão') ||
+                    myLastQuestionText.includes('emprego') ||
+                    myLastQuestionText.includes('trabalha');
+                const lastQuestionWasLocation =
+                    myLastQuestionText.includes('onde') ||
+                    myLastQuestionText.includes('mora') ||
+                    myLastQuestionText.includes('bairro') ||
+                    myLastQuestionText.includes('zona') ||
+                    myLastQuestionText.includes('cidade');
 
-                if (mentionsHobby || (isReverseQuestion && myHobbies.length > 0)) {
+                if (
+                    mentionsHobby ||
+                    (isReverseQuestion && myHobbies.length > 0)
+                ) {
                     if (myHobbiesJoined) {
                         suggestions.push(`Eu curto ${myHobbiesJoined}.`);
                     } else {
@@ -343,17 +468,33 @@
                     return suggestions;
                 }
 
-                if (asksLocation || (isReverseQuestion && (lastQuestionWasLocation || context.topics.includes('localização')))) {
-                    suggestions.push('Moro no bairro de Tatuapé, São Paulo capital');
+                if (
+                    asksLocation ||
+                    (isReverseQuestion &&
+                        (lastQuestionWasLocation ||
+                            context.topics.includes('localização')))
+                ) {
+                    suggestions.push(
+                        'Moro no bairro de Tatuapé, São Paulo capital',
+                    );
                     suggestions.push('Moro no bairro de Tatuapé');
                     suggestions.push('Moro em São Paulo');
                     suggestions.push('Sou da capital');
                     return suggestions;
                 }
 
-                if (text.includes('faz o que') || text.includes('trabalho') || text.includes('profissão') || text.includes('emprego') || text.includes('trabalha') || (isReverseQuestion && lastQuestionWasWork)) {
+                if (
+                    text.includes('faz o que') ||
+                    text.includes('trabalho') ||
+                    text.includes('profissão') ||
+                    text.includes('emprego') ||
+                    text.includes('trabalha') ||
+                    (isReverseQuestion && lastQuestionWasWork)
+                ) {
                     suggestions.push('Sou desenvolvedor de software');
-                    suggestions.push('Sou desenvolvedor de software numa startup');
+                    suggestions.push(
+                        'Sou desenvolvedor de software numa startup',
+                    );
                     suggestions.push('Tenho um consultoria de tecnologia');
                     suggestions.push('Trabalho com tecnologia');
                     suggestions.push('Sou engenheiro de software, e você?');
@@ -375,7 +516,9 @@
                     if (!this.hasTopicBeenDiscussed(context, 'localização')) {
                         suggestions.push('E você, mora onde?');
                     }
-                    suggestions.push('O que você gosta de fazer no tempo livre?');
+                    suggestions.push(
+                        'O que você gosta de fazer no tempo livre?',
+                    );
                     return suggestions;
                 } else if (mentionsWork && !isQuestion) {
                     suggestions.push('Que interessante!');
@@ -383,19 +526,31 @@
                     suggestions.push('Gosta do que faz?');
                     suggestions.push('Como é trabalhar nisso?');
                     return suggestions;
-                } else if (myLastQuestionText.includes('faz') || myLastQuestionText.includes('trabalho') || myLastQuestionText.includes('profissão') || myLastQuestionText.includes('tempo')) {
+                } else if (
+                    myLastQuestionText.includes('faz') ||
+                    myLastQuestionText.includes('trabalho') ||
+                    myLastQuestionText.includes('profissão') ||
+                    myLastQuestionText.includes('tempo')
+                ) {
                     suggestions.push('Que interessante!');
                     suggestions.push('Gosta do que faz?');
                     suggestions.push('Como é trabalhar nisso?');
                     if (!this.hasTopicBeenDiscussed(context, 'localização')) {
                         suggestions.push('E você, mora onde?');
                     }
-                    suggestions.push('O que você gosta de fazer no tempo livre?');
+                    suggestions.push(
+                        'O que você gosta de fazer no tempo livre?',
+                    );
                     return suggestions;
                 }
             }
 
-            if (myLastQuestionText.includes('onde') || myLastQuestionText.includes('mora') || myLastQuestionText.includes('bairro') || myLastQuestionText.includes('zona')) {
+            if (
+                myLastQuestionText.includes('onde') ||
+                myLastQuestionText.includes('mora') ||
+                myLastQuestionText.includes('bairro') ||
+                myLastQuestionText.includes('zona')
+            ) {
                 suggestions.push('Que legal!');
                 suggestions.push('É perto daqui?');
                 suggestions.push('Já conhece a região?');
@@ -424,7 +579,13 @@
                 return suggestions;
             }
 
-            if (text.includes('gostei') || text.includes('legal') || text.includes('interessante') || text.includes('bonito') || text.includes('lindo')) {
+            if (
+                text.includes('gostei') ||
+                text.includes('legal') ||
+                text.includes('interessante') ||
+                text.includes('bonito') ||
+                text.includes('lindo')
+            ) {
                 suggestions.push('Obrigado! 😊');
                 suggestions.push('Que bom que gostou!');
                 suggestions.push('Fico feliz!');
@@ -520,15 +681,18 @@
         }
 
         hasTopicBeenDiscussed(context, topic) {
-            const keywords = window.ChatSuggestions.constants.TOPIC_KEYWORDS[topic] || [];
+            const keywords =
+                window.ChatSuggestions.constants.TOPIC_KEYWORDS[topic] || [];
             if (keywords.length === 0) return false;
 
             let hasQuestion = false;
             let hasAnswer = false;
 
-            context.lastMessages.forEach(message => {
+            context.lastMessages.forEach((message) => {
                 const text = message.text.toLowerCase();
-                const containsKeyword = keywords.some(keyword => text.includes(keyword));
+                const containsKeyword = keywords.some((keyword) =>
+                    text.includes(keyword),
+                );
 
                 if (containsKeyword) {
                     if (text.includes('?')) {
@@ -546,9 +710,13 @@
             if (!this.debug) return;
 
             console.log('[Badoo Chat Suggestions] === SUGESTÕES GERADAS ===');
-            console.log(`[Badoo Chat Suggestions] Total de sugestões geradas: ${uniqueSuggestions.length}`);
+            console.log(
+                `[Badoo Chat Suggestions] Total de sugestões geradas: ${uniqueSuggestions.length}`,
+            );
             uniqueSuggestions.forEach((suggestion, index) => {
-                console.log(`[Badoo Chat Suggestions] ${index + 1}. "${suggestion}"`);
+                console.log(
+                    `[Badoo Chat Suggestions] ${index + 1}. "${suggestion}"`,
+                );
             });
             console.log('[Badoo Chat Suggestions] ==========================');
         }

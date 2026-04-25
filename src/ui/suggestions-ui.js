@@ -1,44 +1,15 @@
 (() => {
-    const OPENROUTER_MODELS = [
-        'google/gemini-2.0-flash-exp:free',
-        'openai/gpt-oss-120b:free',
-        'qwen/qwen3-235b-a22b:free',
-        'tngtech/deepseek-r1t2-chimera:free',
-        'kwaipilot/kat-coder-pro:free',
-        'nousresearch/hermes-3-llama-3.1-405b:free',
-        'z-ai/glm-4.5-air:free',
-        'qwen/qwen3-coder:free',
-        'moonshotai/kimi-k2:free',
-        'meta-llama/llama-3.3-70b-instruct:free',
-        'amazon/nova-2-lite-v1:free',
-        'allenai/olmo-3-32b-think:free',
-        'tngtech/deepseek-r1t-chimera:free',
-        'tngtech/tng-r1t-chimera:free',
-        'cognitivecomputations/dolphin-mistral-24b-venice-edition:free',
-        'mistralai/mistral-small-3.1-24b-instruct:free',
-        'mistralai/mistral-7b-instruct:free',
-        'google/gemma-3-27b-it:free',
-        'google/gemma-3-12b-it:free',
-        'zgoogle/gemma-3-4b-it:free',
-        'google/gemma-3n-e4b-it:free',
-        'google/gemma-3n-e2b-it:free',
-        'qwen/qwen3-4b:free',
-        'meta-llama/llama-3.2-3b-instruct:free',
-        'meituan/longcat-flash-chat:free',
-        'arcee-ai/trinity-mini:free',
-        'nvidia/nemotron-nano-12b-v2-vl:free',
-        'nvidia/nemotron-nano-9b-v2:free'
-    ];
-
-    const GEMINI_MODELS = [
-        'gemini-2.5-flash',
-        'gemini-2.0-flash-exp',
-        'gemini-2.0-flash'
-    ];
-
-    const DEFAULT_PROVIDER = 'gemini';
-    const DEFAULT_GEMINI_MODEL = GEMINI_MODELS[0];
-    const DEFAULT_OPENROUTER_MODEL = OPENROUTER_MODELS[0];
+    const providerConfig = window.ChatSuggestions?.ProviderConfig || {};
+    const OPENROUTER_MODELS = providerConfig.OPENROUTER_MODELS || [];
+    const GEMINI_MODELS = providerConfig.GEMINI_MODELS || [];
+    const NVIDIA_MODELS = providerConfig.NVIDIA_MODELS || [];
+    const DEFAULT_PROVIDER = providerConfig.DEFAULT_PROVIDER || 'gemini';
+    const DEFAULT_GEMINI_MODEL =
+        providerConfig.DEFAULT_GEMINI_MODEL || GEMINI_MODELS[0];
+    const DEFAULT_OPENROUTER_MODEL =
+        providerConfig.DEFAULT_OPENROUTER_MODEL || OPENROUTER_MODELS[0];
+    const DEFAULT_NVIDIA_MODEL =
+        providerConfig.DEFAULT_NVIDIA_MODEL || NVIDIA_MODELS[0];
 
     class SuggestionsUI {
         constructor({
@@ -52,9 +23,10 @@
             onContactContextSave,
             onContactContextClear,
             onCopyOtherPersonProfile,
-            conversationMode = 'casual'
+            conversationMode = 'casual',
         } = {}) {
-            this.inputSelector = inputSelector || '#chat-composer-input-message';
+            this.inputSelector =
+                inputSelector || '#chat-composer-input-message';
             this.placement = placement || 'inline';
             this.container = null;
             this.domObserver = null;
@@ -139,7 +111,8 @@
             this.configBusinessToneSelect = null;
             this.configProfileByMode = { casual: '', business: '' };
             this.configCurrentMode = 'casual';
-            this.conversationMode = conversationMode === 'business' ? 'business' : 'casual';
+            this.conversationMode =
+                conversationMode === 'business' ? 'business' : 'casual';
         }
 
         getCurrentHost() {
@@ -155,8 +128,9 @@
                 return this.container;
             }
 
-            const existing = document.getElementById('chat-suggestions-container') ||
-                            document.getElementById('badoo-chat-suggestions-container');
+            const existing =
+                document.getElementById('chat-suggestions-container') ||
+                document.getElementById('badoo-chat-suggestions-container');
             if (existing) {
                 this.container = existing;
                 return existing;
@@ -165,7 +139,10 @@
             const container = document.createElement('div');
             container.className = 'chat-suggestions-container';
             container.id = 'chat-suggestions-container';
-            container.setAttribute('data-bcs-legacy-id', 'badoo-chat-suggestions-container');
+            container.setAttribute(
+                'data-bcs-legacy-id',
+                'badoo-chat-suggestions-container',
+            );
             container.style.cssText = `
                 display: flex;
                 align-items: center;
@@ -191,7 +168,10 @@
 
             const styleId = 'chat-suggestions-styles';
             const legacyStyleId = 'badoo-chat-suggestions-styles';
-            if (!document.getElementById(styleId) && !document.getElementById(legacyStyleId)) {
+            if (
+                !document.getElementById(styleId) &&
+                !document.getElementById(legacyStyleId)
+            ) {
                 const style = document.createElement('style');
                 style.id = styleId;
                 style.textContent = `
@@ -765,7 +745,10 @@
             this.loadManualPosition();
             this.applyManualPositionIfAny();
             this.ensureGoodPlacement();
-            console.info('[Chat Suggestions] UI montada', { inserted, inputSelector: this.inputSelector });
+            console.info('[Chat Suggestions] UI montada', {
+                inserted,
+                inputSelector: this.inputSelector,
+            });
             return inserted;
         }
 
@@ -783,36 +766,54 @@
             const inputElement = document.querySelector(this.inputSelector);
 
             if (inputElement) {
-                const inputWrapper = inputElement.closest('.csms-chat-controls-base-input-message') ||
-                                    inputElement.closest('.csms-chat-composer-input-wrapper__content') ||
-                                    inputElement.closest('[class*="input-wrapper"]') ||
-                                    inputElement.closest('[class*="composer-input"]') ||
-                                    inputElement.parentElement;
+                const inputWrapper =
+                    inputElement.closest(
+                        '.csms-chat-controls-base-input-message',
+                    ) ||
+                    inputElement.closest(
+                        '.csms-chat-composer-input-wrapper__content',
+                    ) ||
+                    inputElement.closest('[class*="input-wrapper"]') ||
+                    inputElement.closest('[class*="composer-input"]') ||
+                    inputElement.parentElement;
 
                 if (inputWrapper && inputWrapper.parentElement) {
                     if (container.parentElement) {
                         container.parentElement.removeChild(container);
                     }
-                    inputWrapper.parentElement.insertBefore(container, inputWrapper);
-                    console.info('[Chat Suggestions] Sugestões inseridas antes do wrapper do input');
+                    inputWrapper.parentElement.insertBefore(
+                        container,
+                        inputWrapper,
+                    );
+                    console.info(
+                        '[Chat Suggestions] Sugestões inseridas antes do wrapper do input',
+                    );
                     return true;
                 }
 
                 if (inputElement.parentElement) {
                     const parent = inputElement.parentElement;
-                    if (!parent.classList.contains('csms-chat-controls-base-input-message')) {
+                    if (
+                        !parent.classList.contains(
+                            'csms-chat-controls-base-input-message',
+                        )
+                    ) {
                         if (container.parentElement) {
                             container.parentElement.removeChild(container);
                         }
                         parent.insertBefore(container, inputElement);
-                        console.info('[Chat Suggestions] Sugestões inseridas antes do input (fallback no parent imediato)');
+                        console.info(
+                            '[Chat Suggestions] Sugestões inseridas antes do input (fallback no parent imediato)',
+                        );
                         return true;
                     } else if (parent.parentElement) {
                         if (container.parentElement) {
                             container.parentElement.removeChild(container);
                         }
                         parent.parentElement.insertBefore(container, parent);
-                        console.info('[Chat Suggestions] Sugestões inseridas antes do container do input (parent)');
+                        console.info(
+                            '[Chat Suggestions] Sugestões inseridas antes do container do input (parent)',
+                        );
                         return true;
                     }
                 }
@@ -823,7 +824,7 @@
                 '.csms-chat-composer-input-wrapper__content',
                 'textarea',
                 'input[type="text"]',
-                '[contenteditable="true"]'
+                '[contenteditable="true"]',
             ];
 
             for (const selector of fallbackSelectors) {
@@ -833,7 +834,10 @@
                         container.parentElement.removeChild(container);
                     }
                     element.parentElement.insertBefore(container, element);
-                    console.info('[Chat Suggestions] Sugestões inseridas via seletor alternativo', { selector });
+                    console.info(
+                        '[Chat Suggestions] Sugestões inseridas via seletor alternativo',
+                        { selector },
+                    );
                     return true;
                 }
             }
@@ -842,7 +846,9 @@
                 container.parentElement.removeChild(container);
             }
             document.body.appendChild(container);
-            console.info('[Chat Suggestions] Sugestões inseridas no body (fallback final)');
+            console.info(
+                '[Chat Suggestions] Sugestões inseridas no body (fallback final)',
+            );
             return false;
         }
 
@@ -855,7 +861,10 @@
                 const container = this.getContainer();
                 if (!container) return;
 
-                if (this.placement === 'overlay' || this.placement === 'floating') {
+                if (
+                    this.placement === 'overlay' ||
+                    this.placement === 'floating'
+                ) {
                     if (container.parentElement !== document.body) {
                         if (container.parentElement) {
                             container.parentElement.removeChild(container);
@@ -879,15 +888,23 @@
                 if (!inputElement) return;
 
                 const currentParent = container.parentElement;
-                const inputWrapper = inputElement.closest('.csms-chat-controls-base-input-message') ||
-                                    inputElement.closest('.csms-chat-composer-input-wrapper__content');
+                const inputWrapper =
+                    inputElement.closest(
+                        '.csms-chat-controls-base-input-message',
+                    ) ||
+                    inputElement.closest(
+                        '.csms-chat-composer-input-wrapper__content',
+                    );
 
                 if (inputWrapper && inputWrapper.contains(container)) {
                     if (inputWrapper.parentElement) {
                         if (currentParent) {
                             currentParent.removeChild(container);
                         }
-                        inputWrapper.parentElement.insertBefore(container, inputWrapper);
+                        inputWrapper.parentElement.insertBefore(
+                            container,
+                            inputWrapper,
+                        );
                     }
                 } else if (inputWrapper && inputWrapper.parentElement) {
                     const expectedParent = inputWrapper.parentElement;
@@ -905,18 +922,24 @@
 
             this.domObserver.observe(document.body, {
                 childList: true,
-                subtree: true
+                subtree: true,
             });
         }
 
         ensureFloatingLauncher() {
             if (this.placement !== 'floating') return null;
 
-            const existingWrap = document.getElementById('bcs-floating-launcher-wrap');
+            const existingWrap = document.getElementById(
+                'bcs-floating-launcher-wrap',
+            );
             if (existingWrap) {
                 this.floatingLauncherWrap = existingWrap;
-                this.floatingLauncher = existingWrap.querySelector('#bcs-floating-launcher');
-                this.floatingConfigButton = existingWrap.querySelector('#bcs-floating-config');
+                this.floatingLauncher = existingWrap.querySelector(
+                    '#bcs-floating-launcher',
+                );
+                this.floatingConfigButton = existingWrap.querySelector(
+                    '#bcs-floating-config',
+                );
                 return this.floatingLauncher;
             }
 
@@ -946,7 +969,10 @@
             configButton.textContent = '⚙';
 
             button.addEventListener('click', (e) => {
-                if (this.floatingDragEndedAt && Date.now() - this.floatingDragEndedAt < 250) {
+                if (
+                    this.floatingDragEndedAt &&
+                    Date.now() - this.floatingDragEndedAt < 250
+                ) {
                     this.floatingDragEndedAt = 0;
                     return;
                 }
@@ -995,18 +1021,35 @@
                 if (!this.floatingOpen) return;
 
                 const container = this.getContainer();
-                const launcher = this.floatingLauncherWrap || this.floatingLauncher;
+                const launcher =
+                    this.floatingLauncherWrap || this.floatingLauncher;
                 const target = e.target;
 
-                if (launcher && (launcher === target || launcher.contains(target))) return;
-                if (container && (container === target || container.contains(target))) return;
+                if (
+                    launcher &&
+                    (launcher === target || launcher.contains(target))
+                )
+                    return;
+                if (
+                    container &&
+                    (container === target || container.contains(target))
+                )
+                    return;
 
                 this.floatingOpen = false;
                 this.updateFloatingVisibility();
             };
 
-            document.addEventListener('keydown', this.boundFloatingKeydown, true);
-            document.addEventListener('pointerdown', this.boundFloatingDocPointerDown, true);
+            document.addEventListener(
+                'keydown',
+                this.boundFloatingKeydown,
+                true,
+            );
+            document.addEventListener(
+                'pointerdown',
+                this.boundFloatingDocPointerDown,
+                true,
+            );
         }
 
         updateFloatingVisibility() {
@@ -1021,26 +1064,41 @@
             }
 
             if (this.floatingLauncher) {
-                this.floatingLauncher.classList.toggle('bcs-floating-launcher--active', this.floatingOpen);
-                this.floatingLauncher.setAttribute('aria-label', this.floatingOpen ? 'Fechar sugestões' : 'Abrir sugestões');
-                this.floatingLauncher.title = this.floatingOpen ? 'Fechar sugestões' : 'Sugestões';
+                this.floatingLauncher.classList.toggle(
+                    'bcs-floating-launcher--active',
+                    this.floatingOpen,
+                );
+                this.floatingLauncher.setAttribute(
+                    'aria-label',
+                    this.floatingOpen ? 'Fechar sugestões' : 'Abrir sugestões',
+                );
+                this.floatingLauncher.title = this.floatingOpen
+                    ? 'Fechar sugestões'
+                    : 'Sugestões';
             }
         }
 
         getFloatingLauncherStorageKey() {
-            const host = (location && location.host) ? location.host : 'unknown';
+            const host = location && location.host ? location.host : 'unknown';
             return `bcs:floatingLauncher:${host}`;
         }
 
         loadFloatingLauncherPosition() {
             try {
-                const raw = localStorage.getItem(this.getFloatingLauncherStorageKey());
+                const raw = localStorage.getItem(
+                    this.getFloatingLauncherStorageKey(),
+                );
                 if (!raw) return;
                 const parsed = JSON.parse(raw);
-                if (!parsed || typeof parsed.left !== 'number' || typeof parsed.top !== 'number') return;
+                if (
+                    !parsed ||
+                    typeof parsed.left !== 'number' ||
+                    typeof parsed.top !== 'number'
+                )
+                    return;
                 this.floatingPosition = {
                     left: parsed.left,
-                    top: parsed.top
+                    top: parsed.top,
                 };
             } catch (e) {
                 // Ignora
@@ -1050,10 +1108,15 @@
         saveFloatingLauncherPosition() {
             try {
                 if (!this.floatingPosition) {
-                    localStorage.removeItem(this.getFloatingLauncherStorageKey());
+                    localStorage.removeItem(
+                        this.getFloatingLauncherStorageKey(),
+                    );
                     return;
                 }
-                localStorage.setItem(this.getFloatingLauncherStorageKey(), JSON.stringify(this.floatingPosition));
+                localStorage.setItem(
+                    this.getFloatingLauncherStorageKey(),
+                    JSON.stringify(this.floatingPosition),
+                );
             } catch (e) {
                 // Ignora
             }
@@ -1080,21 +1143,33 @@
             if (this.floatingLauncher._bcsDragAttached) return;
 
             const onPointerMove = (e) => {
-                if (!this.floatingDragging || e.pointerId !== this.floatingDragPointerId) return;
+                if (
+                    !this.floatingDragging ||
+                    e.pointerId !== this.floatingDragPointerId
+                )
+                    return;
                 const nextLeft = e.clientX - this.floatingDragOffsetX;
                 const nextTop = e.clientY - this.floatingDragOffsetY;
-                const moved = Math.abs(nextLeft - (this.floatingPosition?.left ?? 0)) > 2 ||
+                const moved =
+                    Math.abs(nextLeft - (this.floatingPosition?.left ?? 0)) >
+                        2 ||
                     Math.abs(nextTop - (this.floatingPosition?.top ?? 0)) > 2;
                 if (moved) {
                     this.floatingDragMoved = true;
                 }
-                const maxLeft = Math.max(0, window.innerWidth - this.floatingLauncherWrap.offsetWidth);
-                const maxTop = Math.max(0, window.innerHeight - this.floatingLauncherWrap.offsetHeight);
+                const maxLeft = Math.max(
+                    0,
+                    window.innerWidth - this.floatingLauncherWrap.offsetWidth,
+                );
+                const maxTop = Math.max(
+                    0,
+                    window.innerHeight - this.floatingLauncherWrap.offsetHeight,
+                );
                 const clampedLeft = Math.min(Math.max(0, nextLeft), maxLeft);
                 const clampedTop = Math.min(Math.max(0, nextTop), maxTop);
                 this.floatingPosition = {
                     left: clampedLeft,
-                    top: clampedTop
+                    top: clampedTop,
                 };
                 this.applyFloatingLauncherPosition();
                 if (this.floatingOpen) {
@@ -1103,13 +1178,25 @@
             };
 
             const onPointerUp = (e) => {
-                if (!this.floatingDragging || e.pointerId !== this.floatingDragPointerId) return;
+                if (
+                    !this.floatingDragging ||
+                    e.pointerId !== this.floatingDragPointerId
+                )
+                    return;
                 this.floatingDragging = false;
                 this.floatingDragPointerId = null;
                 this.floatingLauncher.releasePointerCapture?.(e.pointerId);
-                document.removeEventListener('pointermove', onPointerMove, true);
+                document.removeEventListener(
+                    'pointermove',
+                    onPointerMove,
+                    true,
+                );
                 document.removeEventListener('pointerup', onPointerUp, true);
-                document.removeEventListener('pointercancel', onPointerUp, true);
+                document.removeEventListener(
+                    'pointercancel',
+                    onPointerUp,
+                    true,
+                );
                 this.saveFloatingLauncherPosition();
                 if (this.floatingDragMoved) {
                     this.floatingDragEndedAt = Date.now();
@@ -1167,7 +1254,8 @@
             const panelWidth = Math.min(340, maxPanelWidth);
             container.style.width = `${Math.max(220, Math.round(panelWidth))}px`;
 
-            const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+            const clamp = (value, min, max) =>
+                Math.min(Math.max(value, min), max);
 
             if (!launcherRect || !launcherRect.width || !launcherRect.height) {
                 container.style.left = '';
@@ -1179,26 +1267,29 @@
             }
 
             const containerRect = container.getBoundingClientRect();
-            const panelHeight = containerRect.height || Math.min(360, viewportHeight * 0.7);
+            const panelHeight =
+                containerRect.height || Math.min(360, viewportHeight * 0.7);
             const gap = 12;
             const spaceLeft = launcherRect.left;
             const spaceRight = viewportWidth - launcherRect.right;
-            let nextLeft = spaceRight >= panelWidth + gap
-                ? launcherRect.right + gap
-                : launcherRect.left - panelWidth - gap;
-
-            if (spaceRight < panelWidth + gap && spaceLeft < panelWidth + gap) {
-                nextLeft = spaceRight >= spaceLeft
+            let nextLeft =
+                spaceRight >= panelWidth + gap
                     ? launcherRect.right + gap
                     : launcherRect.left - panelWidth - gap;
+
+            if (spaceRight < panelWidth + gap && spaceLeft < panelWidth + gap) {
+                nextLeft =
+                    spaceRight >= spaceLeft
+                        ? launcherRect.right + gap
+                        : launcherRect.left - panelWidth - gap;
             }
 
             const minLeft = 8;
             const maxLeft = Math.max(minLeft, viewportWidth - panelWidth - 8);
             const nextTop = clamp(
-                launcherRect.top + (launcherRect.height / 2) - (panelHeight / 2),
+                launcherRect.top + launcherRect.height / 2 - panelHeight / 2,
                 8,
-                Math.max(8, viewportHeight - panelHeight - 8)
+                Math.max(8, viewportHeight - panelHeight - 8),
             );
 
             container.style.left = `${Math.round(clamp(nextLeft, minLeft, maxLeft))}px`;
@@ -1210,10 +1301,16 @@
 
         findInputElement() {
             const selectorText = String(this.inputSelector || '');
-            const looksLikeWhatsAppFooter = selectorText.includes('#main') && selectorText.includes('footer');
+            const looksLikeWhatsAppFooter =
+                selectorText.includes('#main') &&
+                selectorText.includes('footer');
             const allowGlobalFallback = !looksLikeWhatsAppFooter;
             const selectors = allowGlobalFallback
-                ? [this.inputSelector, ...(window.ChatSuggestions?.constants?.INPUT_SELECTORS || [])]
+                ? [
+                      this.inputSelector,
+                      ...(window.ChatSuggestions?.constants?.INPUT_SELECTORS ||
+                          []),
+                  ]
                 : [this.inputSelector];
 
             const pickCandidate = (nodes) => {
@@ -1227,7 +1324,9 @@
                         footerNodes.push(node);
                     }
                 }
-                const pool = footerNodes.length ? footerNodes : Array.from(nodes);
+                const pool = footerNodes.length
+                    ? footerNodes
+                    : Array.from(nodes);
                 let best = null;
                 let bestScore = -Infinity;
                 for (const node of pool) {
@@ -1258,8 +1357,11 @@
 
             if (looksLikeWhatsAppFooter) {
                 try {
-                    const fallback = document.querySelector('#main footer [contenteditable="true"]') ||
-                                    document.querySelector('#main footer [role="textbox"]');
+                    const fallback =
+                        document.querySelector(
+                            '#main footer [contenteditable="true"]',
+                        ) ||
+                        document.querySelector('#main footer [role="textbox"]');
                     if (fallback) return fallback;
                 } catch (e) {
                     // Ignora
@@ -1272,7 +1374,9 @@
         applyTheme(container) {
             if (!container || !container.classList) return;
             try {
-                const bg = window.getComputedStyle(document.body).backgroundColor || '';
+                const bg =
+                    window.getComputedStyle(document.body).backgroundColor ||
+                    '';
                 const rgb = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
                 if (!rgb) return;
                 const r = Number(rgb[1]) / 255;
@@ -1283,13 +1387,33 @@
                 container.classList.toggle('bcs-theme-dark', isDark);
                 container.classList.toggle('bcs-theme-light', !isDark);
 
-                if (this.placement === 'floating' && this.floatingLauncher && this.floatingLauncher.classList) {
-                    this.floatingLauncher.classList.toggle('bcs-theme-dark', isDark);
-                    this.floatingLauncher.classList.toggle('bcs-theme-light', !isDark);
+                if (
+                    this.placement === 'floating' &&
+                    this.floatingLauncher &&
+                    this.floatingLauncher.classList
+                ) {
+                    this.floatingLauncher.classList.toggle(
+                        'bcs-theme-dark',
+                        isDark,
+                    );
+                    this.floatingLauncher.classList.toggle(
+                        'bcs-theme-light',
+                        !isDark,
+                    );
                 }
-                if (this.placement === 'floating' && this.floatingConfigButton && this.floatingConfigButton.classList) {
-                    this.floatingConfigButton.classList.toggle('bcs-theme-dark', isDark);
-                    this.floatingConfigButton.classList.toggle('bcs-theme-light', !isDark);
+                if (
+                    this.placement === 'floating' &&
+                    this.floatingConfigButton &&
+                    this.floatingConfigButton.classList
+                ) {
+                    this.floatingConfigButton.classList.toggle(
+                        'bcs-theme-dark',
+                        isDark,
+                    );
+                    this.floatingConfigButton.classList.toggle(
+                        'bcs-theme-light',
+                        !isDark,
+                    );
                 }
             } catch (e) {
                 // Ignora
@@ -1297,20 +1421,28 @@
         }
 
         getManualPositionStorageKey() {
-            const host = (location && location.host) ? location.host : 'unknown';
+            const host = location && location.host ? location.host : 'unknown';
             return `bcs:barPosition:${host}`;
         }
 
         loadManualPosition() {
             try {
-                const raw = localStorage.getItem(this.getManualPositionStorageKey());
+                const raw = localStorage.getItem(
+                    this.getManualPositionStorageKey(),
+                );
                 if (!raw) return;
                 const parsed = JSON.parse(raw);
-                if (!parsed || typeof parsed.left !== 'number' || typeof parsed.top !== 'number') return;
+                if (
+                    !parsed ||
+                    typeof parsed.left !== 'number' ||
+                    typeof parsed.top !== 'number'
+                )
+                    return;
                 this.manualPosition = {
                     left: parsed.left,
                     top: parsed.top,
-                    width: typeof parsed.width === 'number' ? parsed.width : null
+                    width:
+                        typeof parsed.width === 'number' ? parsed.width : null,
                 };
             } catch (e) {
                 // Ignora
@@ -1377,7 +1509,7 @@
                     return;
                 }
 
-                const overlap = containerRect.bottom >= (inputRect.top - 4);
+                const overlap = containerRect.bottom >= inputRect.top - 4;
                 if (!overlap) {
                     if (this.fixedPlacementEnabled) {
                         this.disableFixedPlacement();
@@ -1401,7 +1533,10 @@
             try {
                 const style = window.getComputedStyle(composerRow);
                 const flexDirection = style.flexDirection || 'row';
-                if (style.display !== 'flex' || !flexDirection.startsWith('row')) {
+                if (
+                    style.display !== 'flex' ||
+                    !flexDirection.startsWith('row')
+                ) {
                     return;
                 }
 
@@ -1412,7 +1547,9 @@
                     }
                     parent.insertBefore(container, composerRow);
                     container.style.marginBottom = '8px';
-                    console.info('[Chat Suggestions] Ajuste de layout: movendo sugestões acima do composer (flex row detectado)');
+                    console.info(
+                        '[Chat Suggestions] Ajuste de layout: movendo sugestões acima do composer (flex row detectado)',
+                    );
                     return;
                 }
 
@@ -1420,7 +1557,9 @@
                 container.style.flexBasis = '100%';
                 container.style.order = '0';
                 form.style.order = '1';
-                console.info('[Chat Suggestions] Ajuste de layout: forçando wrap no composer (fallback)');
+                console.info(
+                    '[Chat Suggestions] Ajuste de layout: forçando wrap no composer (fallback)',
+                );
             } catch (e) {
                 // Ignora
             }
@@ -1433,8 +1572,13 @@
                     if (!input || !this.container) return;
                     try {
                         if (this.manualPosition) return;
-                        const rect = this.getFixedAnchorRect(input) || input.getBoundingClientRect();
-                        const bottomOffset = Math.max(8, Math.round(window.innerHeight - rect.top + 8));
+                        const rect =
+                            this.getFixedAnchorRect(input) ||
+                            input.getBoundingClientRect();
+                        const bottomOffset = Math.max(
+                            8,
+                            Math.round(window.innerHeight - rect.top + 8),
+                        );
                         this.container.style.bottom = `${bottomOffset}px`;
                         this.container.style.left = `${Math.max(0, Math.round(rect.left))}px`;
                         this.container.style.width = `${Math.max(240, Math.round(rect.width))}px`;
@@ -1450,7 +1594,10 @@
             container.style.right = 'auto';
             container.style.zIndex = '2147483647';
 
-            const bottomOffset = Math.max(8, Math.round(window.innerHeight - inputRect.top + 8));
+            const bottomOffset = Math.max(
+                8,
+                Math.round(window.innerHeight - inputRect.top + 8),
+            );
             container.style.bottom = `${bottomOffset}px`;
             container.style.left = `${Math.max(0, Math.round(inputRect.left))}px`;
             container.style.width = `${Math.max(240, Math.round(inputRect.width))}px`;
@@ -1476,8 +1623,16 @@
         disableFixedPlacement() {
             this.fixedPlacementEnabled = false;
             if (this.boundRecalcPlacement) {
-                window.removeEventListener('resize', this.boundRecalcPlacement, true);
-                window.removeEventListener('scroll', this.boundRecalcPlacement, true);
+                window.removeEventListener(
+                    'resize',
+                    this.boundRecalcPlacement,
+                    true,
+                );
+                window.removeEventListener(
+                    'scroll',
+                    this.boundRecalcPlacement,
+                    true,
+                );
             }
             if (this.container) {
                 this.container.style.position = 'relative';
@@ -1494,9 +1649,13 @@
             if (!container) return;
 
             if (isAI) {
-                this.aiSuggestions = Array.isArray(suggestions) ? suggestions : [];
+                this.aiSuggestions = Array.isArray(suggestions)
+                    ? suggestions
+                    : [];
             } else {
-                this.normalSuggestions = Array.isArray(suggestions) ? suggestions : [];
+                this.normalSuggestions = Array.isArray(suggestions)
+                    ? suggestions
+                    : [];
             }
             this.renderSections();
         }
@@ -1520,14 +1679,17 @@
         createAISuggestionButton(text) {
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-suggestion-button chat-suggestion-button--ai-suggestion';
+            button.className =
+                'chat-suggestion-button chat-suggestion-button--ai-suggestion';
             button.textContent = text;
 
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 this.insertSuggestion(text);
-                console.info('[Chat Suggestions] Sugestão IA aplicada', { text });
+                console.info('[Chat Suggestions] Sugestão IA aplicada', {
+                    text,
+                });
             });
 
             return button;
@@ -1536,15 +1698,21 @@
         createAiButton() {
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-suggestion-button chat-suggestion-button--ai';
+            button.className =
+                'chat-suggestion-button chat-suggestion-button--ai';
             button.textContent = this.aiLoading ? 'IA (gerando...)' : '✨ IA';
             button.disabled = this.aiLoading;
 
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                if (typeof this.onAiGenerate === 'function' && !this.aiLoading) {
-                    this.onAiGenerate({ personality: this.selectedPersonality });
+                if (
+                    typeof this.onAiGenerate === 'function' &&
+                    !this.aiLoading
+                ) {
+                    this.onAiGenerate({
+                        personality: this.selectedPersonality,
+                    });
                 }
             });
 
@@ -1557,7 +1725,7 @@
             const select = document.createElement('select');
             select.className = 'chat-suggestions-personality-select';
 
-            this.getPersonalityOptions().forEach(opt => {
+            this.getPersonalityOptions().forEach((opt) => {
                 const option = document.createElement('option');
                 option.value = opt.value;
                 option.textContent = opt.label;
@@ -1567,10 +1735,14 @@
 
             select.addEventListener('change', () => {
                 this.selectedPersonality = select.value || 'default';
-                if (this.aiPromptOverlay && this.aiPromptOverlay.style.display === 'flex') {
+                if (
+                    this.aiPromptOverlay &&
+                    this.aiPromptOverlay.style.display === 'flex'
+                ) {
                     this.applyPersonalityToPrompts(this.selectedPersonality);
                     if (this.aiPromptPersonalitySelect) {
-                        this.aiPromptPersonalitySelect.value = this.selectedPersonality;
+                        this.aiPromptPersonalitySelect.value =
+                            this.selectedPersonality;
                     }
                 }
             });
@@ -1582,18 +1754,20 @@
             return [
                 { value: 'short', label: 'Curta' },
                 { value: 'medium', label: 'Média' },
-                { value: 'long', label: 'Longa' }
+                { value: 'long', label: 'Longa' },
             ];
         }
 
         createResponseLengthSelect() {
-            const hasAI = typeof this.onAiGenerate === 'function' || typeof this.onAiCopyPrompt === 'function';
+            const hasAI =
+                typeof this.onAiGenerate === 'function' ||
+                typeof this.onAiCopyPrompt === 'function';
             if (!hasAI) return null;
 
             const select = document.createElement('select');
             select.className = 'chat-suggestions-response-length-select';
 
-            this.getResponseLengthOptions().forEach(opt => {
+            this.getResponseLengthOptions().forEach((opt) => {
                 const option = document.createElement('option');
                 option.value = opt.value;
                 option.textContent = opt.label;
@@ -1618,7 +1792,8 @@
 
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-suggestion-button chat-suggestion-button--copy-prompt';
+            button.className =
+                'chat-suggestion-button chat-suggestion-button--copy-prompt';
             button.textContent = 'Copiar prompt';
 
             button.addEventListener('click', async (e) => {
@@ -1628,19 +1803,27 @@
 
                 try {
                     button.disabled = true;
-                    const { systemPrompt, userPrompt } = await this.onAiCopyPrompt({ personality: this.selectedPersonality });
-                    const systemWithPersonality = `${String(systemPrompt || '')}${this.buildPersonalityAddon(this.selectedPersonality)}`.trim();
+                    const { systemPrompt, userPrompt } =
+                        await this.onAiCopyPrompt({
+                            personality: this.selectedPersonality,
+                        });
+                    const systemWithPersonality =
+                        `${String(systemPrompt || '')}${this.buildPersonalityAddon(this.selectedPersonality)}`.trim();
                     const joined = [
                         '--- SYSTEM ---',
                         systemWithPersonality,
                         '',
                         '--- USER ---',
-                        String(userPrompt || '').trim()
+                        String(userPrompt || '').trim(),
                     ].join('\n');
                     const ok = await this.copyToClipboard(joined);
                     if (!ok) {
-                        this.showToast('Não foi possível copiar o prompt', { type: 'error' });
-                        alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
+                        this.showToast('Não foi possível copiar o prompt', {
+                            type: 'error',
+                        });
+                        alert(
+                            'Não foi possível copiar automaticamente. Selecione e copie manualmente.',
+                        );
                     } else {
                         this.showToast('Prompt copiado!');
                         if (this.placement === 'floating') {
@@ -1649,9 +1832,16 @@
                         }
                     }
                 } catch (err) {
-                    console.error('[Chat Suggestions] Erro ao copiar prompt', err);
-                    this.showToast('Erro ao copiar o prompt', { type: 'error' });
-                    alert(`Não foi possível preparar/copiar o prompt.\n${err?.message || ''}`);
+                    console.error(
+                        '[Chat Suggestions] Erro ao copiar prompt',
+                        err,
+                    );
+                    this.showToast('Erro ao copiar o prompt', {
+                        type: 'error',
+                    });
+                    alert(
+                        `Não foi possível preparar/copiar o prompt.\n${err?.message || ''}`,
+                    );
                 } finally {
                     button.disabled = false;
                 }
@@ -1665,7 +1855,8 @@
 
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-suggestion-button chat-suggestion-button--drag';
+            button.className =
+                'chat-suggestion-button chat-suggestion-button--drag';
             button.textContent = 'Mover';
             button.title = 'Ativar/desativar modo de mover a barra';
 
@@ -1675,7 +1866,10 @@
                 this.dragEnabled = !this.dragEnabled;
 
                 const container = this.getContainer();
-                container.classList.toggle('bcs-drag-enabled', this.dragEnabled);
+                container.classList.toggle(
+                    'bcs-drag-enabled',
+                    this.dragEnabled,
+                );
 
                 if (this.dragEnabled) {
                     this.attachDragHandlers(container);
@@ -1684,7 +1878,10 @@
                     this.detachDragHandlers(container);
                 }
 
-                button.classList.toggle('chat-suggestion-button--active', this.dragEnabled);
+                button.classList.toggle(
+                    'chat-suggestion-button--active',
+                    this.dragEnabled,
+                );
             });
 
             return button;
@@ -1696,7 +1893,8 @@
 
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-suggestion-button chat-suggestion-button--drag-handle';
+            button.className =
+                'chat-suggestion-button chat-suggestion-button--drag-handle';
             button.setAttribute('data-bcs-drag-handle', 'true');
             button.title = 'Arrastar barra';
             button.textContent = '⋮⋮';
@@ -1730,7 +1928,8 @@
         }
 
         attachDragHandlers(container) {
-            if (!container || container.dataset.bcsDragAttached === 'true') return;
+            if (!container || container.dataset.bcsDragAttached === 'true')
+                return;
             container.dataset.bcsDragAttached = 'true';
 
             const onPointerDown = (ev) => {
@@ -1738,9 +1937,17 @@
                 if (ev.button !== 0) return;
 
                 const target = ev.target;
-                const isHandle = Boolean(target && target.closest?.('[data-bcs-drag-handle="true"]'));
+                const isHandle = Boolean(
+                    target && target.closest?.('[data-bcs-drag-handle="true"]'),
+                );
                 if (!isHandle) {
-                    if (target && (target.closest?.('button') || target.closest?.('select') || target.closest?.('input') || target.closest?.('textarea'))) {
+                    if (
+                        target &&
+                        (target.closest?.('button') ||
+                            target.closest?.('select') ||
+                            target.closest?.('input') ||
+                            target.closest?.('textarea'))
+                    ) {
                         return;
                     }
                 }
@@ -1757,7 +1964,7 @@
                     this.manualPosition = {
                         left: Math.round(rect.left),
                         top: Math.round(rect.top),
-                        width: Math.round(rect.width)
+                        width: Math.round(rect.width),
                     };
                     this.applyManualPositionIfAny();
                     this.saveManualPosition();
@@ -1769,13 +1976,25 @@
 
             const onPointerMove = (ev) => {
                 if (!this.dragging) return;
-                if (this.dragPointerId != null && ev.pointerId !== this.dragPointerId) return;
+                if (
+                    this.dragPointerId != null &&
+                    ev.pointerId !== this.dragPointerId
+                )
+                    return;
 
                 const currentRect = container.getBoundingClientRect();
-                const width = Math.round(currentRect.width || (this.manualPosition?.width || 320));
+                const width = Math.round(
+                    currentRect.width || this.manualPosition?.width || 320,
+                );
                 const maxLeft = Math.max(0, window.innerWidth - width - 8);
-                const left = Math.min(maxLeft, Math.max(8, Math.round(ev.clientX - this.dragOffsetX)));
-                const top = Math.min(Math.max(8, Math.round(ev.clientY - this.dragOffsetY)), Math.max(8, window.innerHeight - 56));
+                const left = Math.min(
+                    maxLeft,
+                    Math.max(8, Math.round(ev.clientX - this.dragOffsetX)),
+                );
+                const top = Math.min(
+                    Math.max(8, Math.round(ev.clientY - this.dragOffsetY)),
+                    Math.max(8, window.innerHeight - 56),
+                );
 
                 this.manualPosition = { left, top, width };
                 this.applyManualPositionIfAny();
@@ -1784,7 +2003,11 @@
 
             const onPointerUp = (ev) => {
                 if (!this.dragging) return;
-                if (this.dragPointerId != null && ev.pointerId !== this.dragPointerId) return;
+                if (
+                    this.dragPointerId != null &&
+                    ev.pointerId !== this.dragPointerId
+                )
+                    return;
                 this.dragging = false;
                 this.dragPointerId = null;
                 container.classList.remove('bcs-dragging');
@@ -1801,20 +2024,41 @@
             container._bcsPointerMove = onPointerMove;
             container._bcsPointerUp = onPointerUp;
 
-            container.addEventListener('pointerdown', onPointerDown, { passive: false });
-            container.addEventListener('pointermove', onPointerMove, { passive: false });
-            container.addEventListener('pointerup', onPointerUp, { passive: false });
-            container.addEventListener('pointercancel', onPointerUp, { passive: false });
+            container.addEventListener('pointerdown', onPointerDown, {
+                passive: false,
+            });
+            container.addEventListener('pointermove', onPointerMove, {
+                passive: false,
+            });
+            container.addEventListener('pointerup', onPointerUp, {
+                passive: false,
+            });
+            container.addEventListener('pointercancel', onPointerUp, {
+                passive: false,
+            });
         }
 
         detachDragHandlers(container) {
-            if (!container || container.dataset.bcsDragAttached !== 'true') return;
+            if (!container || container.dataset.bcsDragAttached !== 'true')
+                return;
             container.dataset.bcsDragAttached = 'false';
             try {
-                container.removeEventListener('pointerdown', container._bcsPointerDown);
-                container.removeEventListener('pointermove', container._bcsPointerMove);
-                container.removeEventListener('pointerup', container._bcsPointerUp);
-                container.removeEventListener('pointercancel', container._bcsPointerUp);
+                container.removeEventListener(
+                    'pointerdown',
+                    container._bcsPointerDown,
+                );
+                container.removeEventListener(
+                    'pointermove',
+                    container._bcsPointerMove,
+                );
+                container.removeEventListener(
+                    'pointerup',
+                    container._bcsPointerUp,
+                );
+                container.removeEventListener(
+                    'pointercancel',
+                    container._bcsPointerUp,
+                );
             } catch (e) {
                 // Ignora
             }
@@ -1828,7 +2072,9 @@
         setAiLoading(isLoading) {
             this.aiLoading = Boolean(isLoading);
             if (this.aiButton) {
-                this.aiButton.textContent = this.aiLoading ? 'IA (gerando...)' : '✨ IA';
+                this.aiButton.textContent = this.aiLoading
+                    ? 'IA (gerando...)'
+                    : '✨ IA';
                 this.aiButton.disabled = this.aiLoading;
                 this.aiButton.style.opacity = this.aiLoading ? '0.7' : '1';
             }
@@ -1838,7 +2084,9 @@
             const next = Boolean(hasContext);
             this.contactContextHasValue = next;
             if (this.contactContextButton) {
-                this.contactContextButton.textContent = next ? 'Contexto ✓' : 'Contexto';
+                this.contactContextButton.textContent = next
+                    ? 'Contexto ✓'
+                    : 'Contexto';
             }
         }
 
@@ -1909,7 +2157,10 @@
             container.appendChild(toggleButton);
 
             if (this.suggestionsCollapsed) {
-                if (container.style.display === 'none' && !(this.placement === 'floating' && !this.floatingOpen)) {
+                if (
+                    container.style.display === 'none' &&
+                    !(this.placement === 'floating' && !this.floatingOpen)
+                ) {
                     container.style.display = 'flex';
                 }
                 if (this.aiLoading) {
@@ -1921,16 +2172,23 @@
             if (this.aiSuggestions.length > 0) {
                 const aiLabel = this.createLabel('Sugestões IA');
                 container.appendChild(aiLabel);
-                this.aiSuggestions.forEach(s => container.appendChild(this.createAISuggestionButton(s)));
+                this.aiSuggestions.forEach((s) =>
+                    container.appendChild(this.createAISuggestionButton(s)),
+                );
             }
 
             if (this.normalSuggestions.length > 0) {
                 const normalLabel = this.createLabel('Sugestões');
                 container.appendChild(normalLabel);
-                this.normalSuggestions.forEach(s => container.appendChild(this.createSuggestionButton(s)));
+                this.normalSuggestions.forEach((s) =>
+                    container.appendChild(this.createSuggestionButton(s)),
+                );
             }
 
-            if (container.style.display === 'none' && !(this.placement === 'floating' && !this.floatingOpen)) {
+            if (
+                container.style.display === 'none' &&
+                !(this.placement === 'floating' && !this.floatingOpen)
+            ) {
                 container.style.display = 'flex';
             }
 
@@ -1944,8 +2202,11 @@
 
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-suggestion-button chat-suggestion-button--context';
-            button.textContent = this.contactContextHasValue ? 'Contexto ✓' : 'Contexto';
+            button.className =
+                'chat-suggestion-button chat-suggestion-button--context';
+            button.textContent = this.contactContextHasValue
+                ? 'Contexto ✓'
+                : 'Contexto';
 
             button.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -1957,11 +2218,13 @@
         }
 
         createCopyOtherPersonProfileButton() {
-            if (typeof this.onCopyOtherPersonProfile !== 'function') return null;
+            if (typeof this.onCopyOtherPersonProfile !== 'function')
+                return null;
 
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-suggestion-button chat-suggestion-button--copy-profile';
+            button.className =
+                'chat-suggestion-button chat-suggestion-button--copy-profile';
             button.textContent = 'Copiar perfil';
 
             button.addEventListener('click', async (e) => {
@@ -1976,14 +2239,20 @@
                 try {
                     const res = await this.onCopyOtherPersonProfile();
                     const ok = res === true || res?.ok === true;
-                    const message = typeof res?.message === 'string' ? res.message : '';
+                    const message =
+                        typeof res?.message === 'string' ? res.message : '';
                     if (!ok) {
-                        this.showToast(message || 'Não foi possível copiar o perfil', { type: 'error' });
+                        this.showToast(
+                            message || 'Não foi possível copiar o perfil',
+                            { type: 'error' },
+                        );
                     } else {
                         this.showToast(message || 'Perfil copiado!');
                     }
                 } catch (err) {
-                    this.showToast('Não foi possível copiar o perfil', { type: 'error' });
+                    this.showToast('Não foi possível copiar o perfil', {
+                        type: 'error',
+                    });
                 } finally {
                     button.disabled = false;
                     button.textContent = prevText;
@@ -2016,8 +2285,11 @@
         createSuggestionsToggleButton() {
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-suggestion-button chat-suggestion-button--toggle';
-            button.textContent = this.suggestionsCollapsed ? 'Mostrar sugestões' : 'Ocultar sugestões';
+            button.className =
+                'chat-suggestion-button chat-suggestion-button--toggle';
+            button.textContent = this.suggestionsCollapsed
+                ? 'Mostrar sugestões'
+                : 'Ocultar sugestões';
 
             button.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -2033,7 +2305,8 @@
         createLibraryButton() {
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'chat-suggestion-button chat-suggestion-button--library';
+            button.className =
+                'chat-suggestion-button chat-suggestion-button--library';
             button.textContent = 'Biblioteca';
 
             button.addEventListener('click', (e) => {
@@ -2085,8 +2358,9 @@
             providerSelect.className = 'bcs-modal__select';
             [
                 { value: 'gemini', label: 'Gemini (Google)' },
-                { value: 'openrouter', label: 'OpenRouter' }
-            ].forEach(opt => {
+                { value: 'openrouter', label: 'OpenRouter' },
+                { value: 'nvidia', label: 'NVIDIA NIM' },
+            ].forEach((opt) => {
                 const option = document.createElement('option');
                 option.value = opt.value;
                 option.textContent = opt.label;
@@ -2112,18 +2386,6 @@
             });
             geminiSection.appendChild(geminiModelSelect);
 
-            const geminiKeyLabel = document.createElement('label');
-            geminiKeyLabel.className = 'bcs-modal__label';
-            geminiKeyLabel.textContent = 'Gemini API Key';
-            geminiSection.appendChild(geminiKeyLabel);
-
-            const geminiKeyInput = document.createElement('input');
-            geminiKeyInput.className = 'bcs-modal__input';
-            geminiKeyInput.type = 'password';
-            geminiKeyInput.placeholder = 'GEMINI_API_KEY';
-            geminiKeyInput.autocomplete = 'off';
-            geminiSection.appendChild(geminiKeyInput);
-
             const openRouterSection = document.createElement('div');
             openRouterSection.className = 'bcs-config-section';
 
@@ -2142,20 +2404,33 @@
             });
             openRouterSection.appendChild(openRouterModelSelect);
 
-            const openRouterKeyLabel = document.createElement('label');
-            openRouterKeyLabel.className = 'bcs-modal__label';
-            openRouterKeyLabel.textContent = 'OpenRouter API Key';
-            openRouterSection.appendChild(openRouterKeyLabel);
+            const nvidiaSection = document.createElement('div');
+            nvidiaSection.className = 'bcs-config-section';
 
-            const openRouterKeyInput = document.createElement('input');
-            openRouterKeyInput.className = 'bcs-modal__input';
-            openRouterKeyInput.type = 'password';
-            openRouterKeyInput.placeholder = 'sk-...';
-            openRouterKeyInput.autocomplete = 'off';
-            openRouterSection.appendChild(openRouterKeyInput);
+            const nvidiaModelLabel = document.createElement('label');
+            nvidiaModelLabel.className = 'bcs-modal__label';
+            nvidiaModelLabel.textContent = 'Modelo NVIDIA';
+            nvidiaSection.appendChild(nvidiaModelLabel);
+
+            const nvidiaModelSelect = document.createElement('select');
+            nvidiaModelSelect.className = 'bcs-modal__select';
+            NVIDIA_MODELS.forEach((model, index) => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = `${index + 1}. ${model}`;
+                nvidiaModelSelect.appendChild(option);
+            });
+            nvidiaSection.appendChild(nvidiaModelSelect);
 
             body.appendChild(geminiSection);
             body.appendChild(openRouterSection);
+            body.appendChild(nvidiaSection);
+
+            const envHint = document.createElement('div');
+            envHint.className = 'bcs-modal__hint';
+            envHint.textContent =
+                'As chaves dos providers são lidas do arquivo .env da extensão. Recarregue a página para aplicar mudanças.';
+            body.appendChild(envHint);
 
             const placementLabel = document.createElement('label');
             placementLabel.className = 'bcs-modal__label';
@@ -2168,8 +2443,8 @@
                 { value: 'auto', label: 'Automático (padrão do site)' },
                 { value: 'inline', label: 'Acima do campo (inline)' },
                 { value: 'overlay', label: 'Sobreposto ao chat (overlay)' },
-                { value: 'floating', label: 'Ícone flutuante à direita' }
-            ].forEach(opt => {
+                { value: 'floating', label: 'Ícone flutuante à direita' },
+            ].forEach((opt) => {
                 const option = document.createElement('option');
                 option.value = opt.value;
                 option.textContent = opt.label;
@@ -2184,7 +2459,7 @@
 
             const responseSelect = document.createElement('select');
             responseSelect.className = 'bcs-modal__select';
-            this.getResponseLengthOptions().forEach(opt => {
+            this.getResponseLengthOptions().forEach((opt) => {
                 const option = document.createElement('option');
                 option.value = opt.value;
                 option.textContent = opt.label;
@@ -2194,12 +2469,14 @@
 
             const profileLabel = document.createElement('label');
             profileLabel.className = 'bcs-modal__label';
-            profileLabel.textContent = 'Contexto sobre você (perfil, estilo, limites)';
+            profileLabel.textContent =
+                'Contexto sobre você (perfil, estilo, limites)';
             body.appendChild(profileLabel);
 
             const profileTextarea = document.createElement('textarea');
             profileTextarea.className = 'bcs-modal__textarea';
-            profileTextarea.placeholder = 'Ex.: Tenho 32 anos, moro em SP, gosto de treinar e café. Prefiro respostas curtas e respeitosas.';
+            profileTextarea.placeholder =
+                'Ex.: Tenho 32 anos, moro em SP, gosto de treinar e café. Prefiro respostas curtas e respeitosas.';
             body.appendChild(profileTextarea);
 
             const modeTitle = document.createElement('div');
@@ -2216,7 +2493,7 @@
             conversationModeSelect.className = 'bcs-modal__select';
             [
                 { value: 'casual', label: 'Casual (padrão)' },
-                { value: 'business', label: 'Negócios e vendas' }
+                { value: 'business', label: 'Negócios e vendas' },
             ].forEach((item) => {
                 const option = document.createElement('option');
                 option.value = item.value;
@@ -2235,7 +2512,8 @@
 
             const businessContextTextarea = document.createElement('textarea');
             businessContextTextarea.className = 'bcs-modal__textarea';
-            businessContextTextarea.placeholder = 'Ex.: Consultoria de tráfego pago para pequenas empresas.';
+            businessContextTextarea.placeholder =
+                'Ex.: Consultoria de tráfego pago para pequenas empresas.';
             businessContextTextarea.style.minHeight = '90px';
             businessFieldsWrap.appendChild(businessContextTextarea);
 
@@ -2251,7 +2529,7 @@
                 { value: 'direto', label: 'Direto' },
                 { value: 'persuasivo', label: 'Persuasivo' },
                 { value: 'amigavel', label: 'Amigável' },
-                { value: 'premium', label: 'Premium' }
+                { value: 'premium', label: 'Premium' },
             ].forEach((item) => {
                 const option = document.createElement('option');
                 option.value = item.value;
@@ -2263,7 +2541,8 @@
 
             const note = document.createElement('div');
             note.className = 'bcs-modal__note';
-            note.textContent = 'As chaves ficam salvas localmente (chrome.storage).';
+            note.textContent =
+                'As chaves ficam salvas localmente (chrome.storage).';
             body.appendChild(note);
 
             const row = document.createElement('div');
@@ -2301,18 +2580,23 @@
 
             conversationModeSelect.addEventListener('change', () => {
                 if (this.configProfileTextarea) {
-                    this.configProfileByMode[this.configCurrentMode] = String(this.configProfileTextarea.value || '').trim();
+                    this.configProfileByMode[this.configCurrentMode] = String(
+                        this.configProfileTextarea.value || '',
+                    ).trim();
                 }
-                this.configCurrentMode = conversationModeSelect.value || 'casual';
+                this.configCurrentMode =
+                    conversationModeSelect.value || 'casual';
                 if (this.configProfileTextarea) {
-                    this.configProfileTextarea.value = this.configProfileByMode[this.configCurrentMode] || '';
+                    this.configProfileTextarea.value =
+                        this.configProfileByMode[this.configCurrentMode] || '';
                 }
                 this.toggleBusinessModeFields(this.configCurrentMode);
                 this.applyConversationModeTheme(this.configCurrentMode);
             });
 
             profileTextarea.addEventListener('input', (e) => {
-                this.configProfileByMode[this.configCurrentMode] = e.target.value;
+                this.configProfileByMode[this.configCurrentMode] =
+                    e.target.value;
             });
 
             this.boundConfigKeydown = (e) => {
@@ -2328,10 +2612,10 @@
             this.configProviderSelect = providerSelect;
             this.configGeminiSection = geminiSection;
             this.configOpenRouterSection = openRouterSection;
+            this.configNvidiaSection = nvidiaSection;
             this.configGeminiModelSelect = geminiModelSelect;
-            this.configGeminiKeyInput = geminiKeyInput;
             this.configOpenRouterModelSelect = openRouterModelSelect;
-            this.configOpenRouterKeyInput = openRouterKeyInput;
+            this.configNvidiaModelSelect = nvidiaModelSelect;
             this.configProfileTextarea = profileTextarea;
             this.configPlacementSelect = placementSelect;
             this.configResponseLengthSelect = responseSelect;
@@ -2342,12 +2626,23 @@
         }
 
         toggleConfigSections(provider) {
-            const useGemini = provider === 'gemini';
             if (this.configGeminiSection) {
-                this.configGeminiSection.classList.toggle('bcs-hidden', !useGemini);
+                this.configGeminiSection.classList.toggle(
+                    'bcs-hidden',
+                    provider !== 'gemini',
+                );
             }
             if (this.configOpenRouterSection) {
-                this.configOpenRouterSection.classList.toggle('bcs-hidden', useGemini);
+                this.configOpenRouterSection.classList.toggle(
+                    'bcs-hidden',
+                    provider !== 'openrouter',
+                );
+            }
+            if (this.configNvidiaSection) {
+                this.configNvidiaSection.classList.toggle(
+                    'bcs-hidden',
+                    provider !== 'nvidia',
+                );
             }
         }
 
@@ -2370,72 +2665,99 @@
             const fallback = {
                 llmProvider: DEFAULT_PROVIDER,
                 openRouterModel: DEFAULT_OPENROUTER_MODEL,
-                openRouterApiKey: '',
                 openRouterProfile: '',
                 openRouterProfileCasual: '',
                 openRouterProfileBusiness: '',
-                geminiApiKey: '',
                 geminiModel: DEFAULT_GEMINI_MODEL,
+                nvidiaModel: DEFAULT_NVIDIA_MODEL,
                 uiPlacementOverride: 'floating',
                 aiResponseLength: this.selectedResponseLength || 'short',
                 businessModeEnabled: false,
                 businessContext: '',
-                businessTone: 'consultivo'
+                businessTone: 'consultivo',
             };
 
             if (!chrome?.storage?.local) {
                 return fallback;
             }
 
-            return new Promise(resolve => {
-                chrome.storage.local.get([
-                    'llmProvider',
-                    'openRouterModel',
-                    'openRouterApiKey',
-                    'openRouterProfile',
-                    'openRouterProfileCasual',
-                    'openRouterProfileBusiness',
-                    'geminiApiKey',
-                    'geminiModel',
-                    'uiPlacementOverride',
-                    'aiResponseLength',
-                    'businessModeEnabled',
-                    'businessModeByHost',
-                    'businessContext',
-                    'businessTone'
-                ], (result) => {
-                    const host = this.getCurrentHost();
-                    const hostMode = host ? (result.businessModeByHost || {})[host] : undefined;
-                    const businessModeEnabled = typeof hostMode === 'boolean'
-                        ? hostMode
-                        : Boolean(result.businessModeEnabled);
-                    resolve({
-                        llmProvider: result.llmProvider || fallback.llmProvider,
-                        openRouterModel: result.openRouterModel || fallback.openRouterModel,
-                        openRouterApiKey: result.openRouterApiKey || fallback.openRouterApiKey,
-                        openRouterProfile: result.openRouterProfile || fallback.openRouterProfile,
-                        openRouterProfileCasual: result.openRouterProfileCasual || result.openRouterProfile || fallback.openRouterProfileCasual,
-                        openRouterProfileBusiness: result.openRouterProfileBusiness || fallback.openRouterProfileBusiness,
-                        geminiApiKey: result.geminiApiKey || fallback.geminiApiKey,
-                        geminiModel: result.geminiModel || fallback.geminiModel,
-                        uiPlacementOverride: result.uiPlacementOverride || fallback.uiPlacementOverride,
-                        aiResponseLength: result.aiResponseLength || fallback.aiResponseLength,
-                        businessModeEnabled,
-                        businessContext: result.businessContext || fallback.businessContext,
-                        businessTone: result.businessTone || fallback.businessTone
-                    });
-                });
+            return new Promise((resolve) => {
+                chrome.storage.local.get(
+                    [
+                        'llmProvider',
+                        'openRouterModel',
+                        'openRouterProfile',
+                        'openRouterProfileCasual',
+                        'openRouterProfileBusiness',
+                        'geminiModel',
+                        'nvidiaModel',
+                        'uiPlacementOverride',
+                        'aiResponseLength',
+                        'businessModeEnabled',
+                        'businessModeByHost',
+                        'businessContext',
+                        'businessTone',
+                    ],
+                    (result) => {
+                        const host = this.getCurrentHost();
+                        const hostMode = host
+                            ? (result.businessModeByHost || {})[host]
+                            : undefined;
+                        const businessModeEnabled =
+                            typeof hostMode === 'boolean'
+                                ? hostMode
+                                : Boolean(result.businessModeEnabled);
+                        resolve({
+                            llmProvider:
+                                result.llmProvider || fallback.llmProvider,
+                            openRouterModel:
+                                result.openRouterModel ||
+                                fallback.openRouterModel,
+                            openRouterProfile:
+                                result.openRouterProfile ||
+                                fallback.openRouterProfile,
+                            openRouterProfileCasual:
+                                result.openRouterProfileCasual ||
+                                result.openRouterProfile ||
+                                fallback.openRouterProfileCasual,
+                            openRouterProfileBusiness:
+                                result.openRouterProfileBusiness ||
+                                fallback.openRouterProfileBusiness,
+                            geminiModel:
+                                result.geminiModel || fallback.geminiModel,
+                            nvidiaModel:
+                                result.nvidiaModel || fallback.nvidiaModel,
+                            uiPlacementOverride:
+                                result.uiPlacementOverride ||
+                                fallback.uiPlacementOverride,
+                            aiResponseLength:
+                                result.aiResponseLength ||
+                                fallback.aiResponseLength,
+                            businessModeEnabled,
+                            businessContext:
+                                result.businessContext ||
+                                fallback.businessContext,
+                            businessTone:
+                                result.businessTone || fallback.businessTone,
+                        });
+                    },
+                );
             });
         }
 
         applyConfigToModal(config) {
             const provider = config.llmProvider || DEFAULT_PROVIDER;
-            const openRouterModel = OPENROUTER_MODELS.includes(config.openRouterModel)
+            const openRouterModel = OPENROUTER_MODELS.includes(
+                config.openRouterModel,
+            )
                 ? config.openRouterModel
                 : DEFAULT_OPENROUTER_MODEL;
             const geminiModel = GEMINI_MODELS.includes(config.geminiModel)
                 ? config.geminiModel
                 : DEFAULT_GEMINI_MODEL;
+            const nvidiaModel = NVIDIA_MODELS.includes(config.nvidiaModel)
+                ? config.nvidiaModel
+                : DEFAULT_NVIDIA_MODEL;
 
             if (this.configProviderSelect) {
                 this.configProviderSelect.value = provider;
@@ -2446,36 +2768,46 @@
             if (this.configGeminiModelSelect) {
                 this.configGeminiModelSelect.value = geminiModel;
             }
-            if (this.configOpenRouterKeyInput) {
-                this.configOpenRouterKeyInput.value = config.openRouterApiKey || '';
-            }
-            if (this.configGeminiKeyInput) {
-                this.configGeminiKeyInput.value = config.geminiApiKey || '';
+            if (this.configNvidiaModelSelect) {
+                this.configNvidiaModelSelect.value = nvidiaModel;
             }
             if (this.configProfileTextarea) {
                 const casualProfile = config.openRouterProfileCasual || '';
                 const businessProfile = config.openRouterProfileBusiness || '';
-                this.configProfileByMode = { casual: casualProfile, business: businessProfile };
-                this.configCurrentMode = config.businessModeEnabled ? 'business' : 'casual';
-                this.configProfileTextarea.value = this.configProfileByMode[this.configCurrentMode] || '';
+                this.configProfileByMode = {
+                    casual: casualProfile,
+                    business: businessProfile,
+                };
+                this.configCurrentMode = config.businessModeEnabled
+                    ? 'business'
+                    : 'casual';
+                this.configProfileTextarea.value =
+                    this.configProfileByMode[this.configCurrentMode] || '';
             }
             if (this.configPlacementSelect) {
-                this.configPlacementSelect.value = config.uiPlacementOverride || 'floating';
+                this.configPlacementSelect.value =
+                    config.uiPlacementOverride || 'floating';
             }
             if (this.configResponseLengthSelect) {
-                this.configResponseLengthSelect.value = config.aiResponseLength || 'short';
+                this.configResponseLengthSelect.value =
+                    config.aiResponseLength || 'short';
             }
             if (this.configConversationModeSelect) {
-                this.configConversationModeSelect.value = this.configCurrentMode;
+                this.configConversationModeSelect.value =
+                    this.configCurrentMode;
             }
             if (this.configBusinessContextTextarea) {
-                this.configBusinessContextTextarea.value = config.businessContext || '';
+                this.configBusinessContextTextarea.value =
+                    config.businessContext || '';
             }
             if (this.configBusinessToneSelect) {
-                this.configBusinessToneSelect.value = config.businessTone || 'consultivo';
+                this.configBusinessToneSelect.value =
+                    config.businessTone || 'consultivo';
             }
             this.toggleConfigSections(provider);
-            this.toggleBusinessModeFields(config.businessModeEnabled ? 'business' : 'casual');
+            this.toggleBusinessModeFields(
+                config.businessModeEnabled ? 'business' : 'casual',
+            );
             this.applyConversationModeTheme(this.configCurrentMode);
         }
 
@@ -2500,43 +2832,46 @@
             if (this.configOverlay) {
                 this.configOverlay.style.display = 'none';
             }
-            document.removeEventListener('keydown', this.boundConfigKeydown, true);
+            document.removeEventListener(
+                'keydown',
+                this.boundConfigKeydown,
+                true,
+            );
         }
 
         saveConfigModal() {
             if (!this.configProviderSelect) return;
 
-            const provider = this.configProviderSelect.value || DEFAULT_PROVIDER;
+            const provider =
+                this.configProviderSelect.value || DEFAULT_PROVIDER;
             const openRouterModel = this.configOpenRouterModelSelect
-                ? (this.configOpenRouterModelSelect.value || DEFAULT_OPENROUTER_MODEL)
+                ? this.configOpenRouterModelSelect.value ||
+                  DEFAULT_OPENROUTER_MODEL
                 : DEFAULT_OPENROUTER_MODEL;
-            const openRouterApiKey = this.configOpenRouterKeyInput
-                ? String(this.configOpenRouterKeyInput.value || '').trim()
-                : '';
-            const geminiApiKey = this.configGeminiKeyInput
-                ? String(this.configGeminiKeyInput.value || '').trim()
-                : '';
             const geminiModel = this.configGeminiModelSelect
-                ? (this.configGeminiModelSelect.value || DEFAULT_GEMINI_MODEL)
+                ? this.configGeminiModelSelect.value || DEFAULT_GEMINI_MODEL
                 : DEFAULT_GEMINI_MODEL;
+            const nvidiaModel = this.configNvidiaModelSelect
+                ? this.configNvidiaModelSelect.value || DEFAULT_NVIDIA_MODEL
+                : DEFAULT_NVIDIA_MODEL;
             const profile = this.configProfileTextarea
                 ? String(this.configProfileTextarea.value || '').trim()
                 : '';
             const uiPlacementOverride = this.configPlacementSelect
-                ? (this.configPlacementSelect.value || 'floating')
+                ? this.configPlacementSelect.value || 'floating'
                 : 'floating';
             const aiResponseLength = this.configResponseLengthSelect
-                ? (this.configResponseLengthSelect.value || 'short')
+                ? this.configResponseLengthSelect.value || 'short'
                 : 'short';
             const conversationMode = this.configConversationModeSelect
-                ? (this.configConversationModeSelect.value || 'casual')
+                ? this.configConversationModeSelect.value || 'casual'
                 : 'casual';
             const businessModeEnabled = conversationMode === 'business';
             const businessContext = this.configBusinessContextTextarea
                 ? String(this.configBusinessContextTextarea.value || '').trim()
                 : '';
             const businessTone = this.configBusinessToneSelect
-                ? (this.configBusinessToneSelect.value || 'consultivo')
+                ? this.configBusinessToneSelect.value || 'consultivo'
                 : 'consultivo';
             this.configProfileByMode[this.configCurrentMode] = profile;
             const profileCasual = this.configProfileByMode.casual || '';
@@ -2545,22 +2880,22 @@
             const payload = {
                 llmProvider: provider,
                 openRouterModel,
-                openRouterApiKey,
                 openRouterProfile: profileCasual,
                 openRouterProfileCasual: profileCasual,
                 openRouterProfileBusiness: profileBusiness,
-                geminiApiKey,
                 geminiModel,
+                nvidiaModel,
                 uiPlacementOverride,
                 aiResponseLength,
                 businessModeEnabled,
                 businessContext,
-                businessTone
+                businessTone,
             };
             this.applyConversationModeTheme(conversationMode);
 
             try {
-                window.badooChatSuggestionsConfig = window.badooChatSuggestionsConfig || {};
+                window.badooChatSuggestionsConfig =
+                    window.badooChatSuggestionsConfig || {};
                 Object.assign(window.badooChatSuggestionsConfig, payload);
             } catch (e) {
                 // Ignora
@@ -2568,13 +2903,17 @@
 
             if (typeof this.onResponseLengthChange === 'function') {
                 this.selectedResponseLength = aiResponseLength;
-                this.onResponseLengthChange({ responseLength: aiResponseLength });
+                this.onResponseLengthChange({
+                    responseLength: aiResponseLength,
+                });
             } else {
                 this.selectedResponseLength = aiResponseLength;
             }
 
             if (this.container) {
-                const inlineSelect = this.container.querySelector('.chat-suggestions-response-length-select');
+                const inlineSelect = this.container.querySelector(
+                    '.chat-suggestions-response-length-select',
+                );
                 if (inlineSelect) {
                     inlineSelect.value = aiResponseLength;
                 }
@@ -2583,17 +2922,29 @@
             if (chrome?.storage?.local) {
                 const host = this.getCurrentHost();
                 if (host) {
-                    chrome.storage.local.get(['businessModeByHost'], (result) => {
-                        const byHost = { ...(result.businessModeByHost || {}) };
-                        byHost[host] = businessModeEnabled;
-                        chrome.storage.local.set({ ...payload, businessModeByHost: byHost }, () => {
-                            this.showToast('Configurações salvas. Recarregue a página para aplicar modelo/posição.');
-                            this.closeConfigModal();
-                        });
-                    });
+                    chrome.storage.local.get(
+                        ['businessModeByHost'],
+                        (result) => {
+                            const byHost = {
+                                ...(result.businessModeByHost || {}),
+                            };
+                            byHost[host] = businessModeEnabled;
+                            chrome.storage.local.set(
+                                { ...payload, businessModeByHost: byHost },
+                                () => {
+                                    this.showToast(
+                                        'Configurações salvas. Recarregue a página para aplicar modelo/posição.',
+                                    );
+                                    this.closeConfigModal();
+                                },
+                            );
+                        },
+                    );
                 } else {
                     chrome.storage.local.set(payload, () => {
-                        this.showToast('Configurações salvas. Recarregue a página para aplicar modelo/posição.');
+                        this.showToast(
+                            'Configurações salvas. Recarregue a página para aplicar modelo/posição.',
+                        );
                         this.closeConfigModal();
                     });
                 }
@@ -2603,7 +2954,9 @@
                 } catch (e) {
                     // Ignora
                 }
-                this.showToast('Configurações salvas. Recarregue a página para aplicar modelo/posição.');
+                this.showToast(
+                    'Configurações salvas. Recarregue a página para aplicar modelo/posição.',
+                );
                 this.closeConfigModal();
             }
         }
@@ -2631,7 +2984,9 @@
             closeBtn.type = 'button';
             closeBtn.className = 'bcs-modal__close';
             closeBtn.textContent = 'Fechar';
-            closeBtn.addEventListener('click', () => this.closeContactContextModal());
+            closeBtn.addEventListener('click', () =>
+                this.closeContactContextModal(),
+            );
 
             header.appendChild(title);
             header.appendChild(closeBtn);
@@ -2652,7 +3007,9 @@
             contactName.textContent = '-';
             body.appendChild(contactName);
 
-            const contextLabel = this.createLabel('Notas (usadas no prompt da IA)');
+            const contextLabel = this.createLabel(
+                'Notas (usadas no prompt da IA)',
+            );
             contextLabel.style.color = 'rgba(255, 255, 255, 0.72)';
             contextLabel.style.marginRight = '0';
             contextLabel.style.marginTop = '14px';
@@ -2660,8 +3017,9 @@
 
             const textarea = document.createElement('textarea');
             textarea.className = 'bcs-modal__textarea';
-            textarea.placeholder = 'Ex.: interesses, tom de conversa, limites, detalhes importantes...';
-            textarea.maxLength = 2000;
+            textarea.placeholder =
+                'Ex.: interesses, tom de conversa, limites, detalhes importantes...';
+            textarea.maxLength = 4000;
             body.appendChild(textarea);
 
             const row = document.createElement('div');
@@ -2672,7 +3030,9 @@
             clearBtn.className = 'bcs-modal__btn';
             clearBtn.textContent = 'Limpar';
             clearBtn.addEventListener('click', () => {
-                const ok = confirm('Remover o contexto salvo para este contato?');
+                const ok = confirm(
+                    'Remover o contexto salvo para este contato?',
+                );
                 if (!ok) return;
                 try {
                     if (typeof this.onContactContextClear === 'function') {
@@ -2693,20 +3053,30 @@
             saveBtn.className = 'bcs-modal__btn bcs-modal__btn--primary';
             saveBtn.textContent = 'Salvar';
             saveBtn.addEventListener('click', () => {
-                const text = this.contactContextTextarea ? String(this.contactContextTextarea.value || '') : '';
+                const text = this.contactContextTextarea
+                    ? String(this.contactContextTextarea.value || '')
+                    : '';
                 try {
                     if (typeof this.onContactContextSave === 'function') {
-                        const ok = this.onContactContextSave({ contextText: text });
+                        const ok = this.onContactContextSave({
+                            contextText: text,
+                        });
                         if (ok === false) {
-                            this.showToast('Não foi possível salvar', { type: 'error' });
+                            this.showToast('Não foi possível salvar', {
+                                type: 'error',
+                            });
                             return;
                         }
                     }
                 } catch (e) {
-                    this.showToast('Não foi possível salvar', { type: 'error' });
+                    this.showToast('Não foi possível salvar', {
+                        type: 'error',
+                    });
                     return;
                 }
-                this.setContactContextState({ hasContext: Boolean(text.trim()) });
+                this.setContactContextState({
+                    hasContext: Boolean(text.trim()),
+                });
                 this.showToast('Contexto salvo');
                 this.closeContactContextModal();
             });
@@ -2745,13 +3115,20 @@
 
             let meta = null;
             try {
-                meta = typeof this.getContactContextMeta === 'function' ? this.getContactContextMeta() : null;
+                meta =
+                    typeof this.getContactContextMeta === 'function'
+                        ? this.getContactContextMeta()
+                        : null;
             } catch (e) {
                 meta = null;
             }
 
-            const name = String(meta?.contactName || meta?.name || '').trim() || 'Contato';
-            const contextText = String(meta?.contextText || meta?.context || '').trim();
+            const name =
+                String(meta?.contactName || meta?.name || '').trim() ||
+                'Contato';
+            const contextText = String(
+                meta?.contextText || meta?.context || '',
+            ).trim();
 
             if (this.contactContextNameEl) {
                 this.contactContextNameEl.textContent = name;
@@ -2762,13 +3139,19 @@
             this.setContactContextState({ hasContext: Boolean(contextText) });
 
             this.contactContextOverlay.style.display = 'flex';
-            document.addEventListener('keydown', this.boundContactContextKeydown, true);
+            document.addEventListener(
+                'keydown',
+                this.boundContactContextKeydown,
+                true,
+            );
 
             setTimeout(() => {
                 if (this.contactContextTextarea) {
                     this.contactContextTextarea.focus();
-                    this.contactContextTextarea.selectionStart = this.contactContextTextarea.value.length;
-                    this.contactContextTextarea.selectionEnd = this.contactContextTextarea.value.length;
+                    this.contactContextTextarea.selectionStart =
+                        this.contactContextTextarea.value.length;
+                    this.contactContextTextarea.selectionEnd =
+                        this.contactContextTextarea.value.length;
                 }
             }, 0);
         }
@@ -2777,7 +3160,11 @@
             if (this.contactContextOverlay) {
                 this.contactContextOverlay.style.display = 'none';
             }
-            document.removeEventListener('keydown', this.boundContactContextKeydown, true);
+            document.removeEventListener(
+                'keydown',
+                this.boundContactContextKeydown,
+                true,
+            );
         }
 
         getLibraryData() {
@@ -2822,7 +3209,9 @@
             search.className = 'bcs-modal__search';
             search.placeholder = 'Buscar sugestões...';
             search.autocomplete = 'off';
-            search.addEventListener('input', () => this.renderLibraryModalList());
+            search.addEventListener('input', () =>
+                this.renderLibraryModalList(),
+            );
 
             body.appendChild(search);
 
@@ -2854,7 +3243,11 @@
             if (!this.libraryOverlay) return;
 
             this.libraryOverlay.style.display = 'flex';
-            document.addEventListener('keydown', this.boundLibraryKeydown, true);
+            document.addEventListener(
+                'keydown',
+                this.boundLibraryKeydown,
+                true,
+            );
             this.renderLibraryModalList();
 
             setTimeout(() => {
@@ -2868,7 +3261,11 @@
         closeLibraryModal() {
             if (!this.libraryOverlay) return;
             this.libraryOverlay.style.display = 'none';
-            document.removeEventListener('keydown', this.boundLibraryKeydown, true);
+            document.removeEventListener(
+                'keydown',
+                this.boundLibraryKeydown,
+                true,
+            );
         }
 
         ensureAiPromptModal() {
@@ -2909,7 +3306,7 @@
 
             const personalitySelect = document.createElement('select');
             personalitySelect.className = 'bcs-modal__select';
-            this.getPersonalityOptions().forEach(opt => {
+            this.getPersonalityOptions().forEach((opt) => {
                 const option = document.createElement('option');
                 option.value = opt.value;
                 option.textContent = opt.label;
@@ -2919,9 +3316,12 @@
             personalitySelect.addEventListener('change', () => {
                 const value = personalitySelect.value;
                 if (this.aiPromptDirty) {
-                    const ok = confirm('Você editou o prompt. Trocar a personalidade vai redefinir o texto. Continuar?');
+                    const ok = confirm(
+                        'Você editou o prompt. Trocar a personalidade vai redefinir o texto. Continuar?',
+                    );
                     if (!ok) {
-                        personalitySelect.value = this.selectedPersonality || 'default';
+                        personalitySelect.value =
+                            this.selectedPersonality || 'default';
                         return;
                     }
                 }
@@ -2965,7 +3365,9 @@
             cancelBtn.type = 'button';
             cancelBtn.className = 'bcs-modal__btn';
             cancelBtn.textContent = 'Cancelar';
-            cancelBtn.addEventListener('click', () => this.closeAiPromptModal());
+            cancelBtn.addEventListener('click', () =>
+                this.closeAiPromptModal(),
+            );
 
             const copyBtn = document.createElement('button');
             copyBtn.type = 'button';
@@ -2979,7 +3381,7 @@
                     systemPrompt,
                     '',
                     '--- USER ---',
-                    userPrompt
+                    userPrompt,
                 ].join('\n');
 
                 const ok = await this.copyToClipboard(joined);
@@ -2987,8 +3389,12 @@
                     this.showToast('Prompt copiado!');
                     this.closeAiPromptModal();
                 } else {
-                    this.showToast('Não foi possível copiar o prompt', { type: 'error' });
-                    alert('Não foi possível copiar automaticamente. Selecione e copie manualmente.');
+                    this.showToast('Não foi possível copiar o prompt', {
+                        type: 'error',
+                    });
+                    alert(
+                        'Não foi possível copiar automaticamente. Selecione e copie manualmente.',
+                    );
                 }
             });
 
@@ -3044,7 +3450,7 @@
                 { value: 'romantico', label: 'Romântico' },
                 { value: 'engracado', label: 'Engraçado' },
                 { value: 'fofo', label: 'Fofo' },
-                { value: 'direto', label: 'Direto' }
+                { value: 'direto', label: 'Direto' },
             ];
         }
 
@@ -3054,34 +3460,34 @@
                     'Personalidade: ousado(a).',
                     'Flert leve e confiante, com brincadeiras sutis.',
                     'Evite conteúdo sexual explícito, vulgaridade ou pressão.',
-                    'Seja respeitoso(a) e mantenha consentimento implícito.'
+                    'Seja respeitoso(a) e mantenha consentimento implícito.',
                 ],
                 sedutor: [
                     'Personalidade: sedutor(a).',
                     'Flert elegante, provocação sutil e clima de química.',
                     'Evite conteúdo sexual explícito, vulgaridade ou pressão.',
-                    'Use elogios específicos e convites leves (sem insistir).'
+                    'Use elogios específicos e convites leves (sem insistir).',
                 ],
                 romantico: [
                     'Personalidade: romântico(a).',
                     'Tom carinhoso, gentil e atencioso.',
-                    'Use elogios leves e linguagem mais afetiva, sem exagerar.'
+                    'Use elogios leves e linguagem mais afetiva, sem exagerar.',
                 ],
                 engracado: [
                     'Personalidade: engraçado(a).',
                     'Use humor leve, trocadilhos simples e espontaneidade.',
-                    'Evite piadas ofensivas ou que dependam de temas sensíveis.'
+                    'Evite piadas ofensivas ou que dependam de temas sensíveis.',
                 ],
                 fofo: [
                     'Personalidade: fofo(a).',
                     'Tom doce, simpático e acolhedor.',
-                    'Use expressões leves e positivas, sem infantilizar demais.'
+                    'Use expressões leves e positivas, sem infantilizar demais.',
                 ],
                 direto: [
                     'Personalidade: direto(a).',
                     'Respostas objetivas, claras e sem enrolação.',
-                    'Mantenha o tom educado e natural.'
-                ]
+                    'Mantenha o tom educado e natural.',
+                ],
             };
 
             const lines = map[personality] || [];
@@ -3116,15 +3522,21 @@
 
                 root.appendChild(toast);
 
-                const hideTimeout = setTimeout(() => {
-                    toast.classList.add('bcs-toast--hide');
-                }, Math.max(800, Number(durationMs) || 2200));
+                const hideTimeout = setTimeout(
+                    () => {
+                        toast.classList.add('bcs-toast--hide');
+                    },
+                    Math.max(800, Number(durationMs) || 2200),
+                );
 
-                const removeTimeout = setTimeout(() => {
-                    if (toast && toast.parentElement) {
-                        toast.parentElement.removeChild(toast);
-                    }
-                }, Math.max(800, Number(durationMs) || 2200) + 260);
+                const removeTimeout = setTimeout(
+                    () => {
+                        if (toast && toast.parentElement) {
+                            toast.parentElement.removeChild(toast);
+                        }
+                    },
+                    Math.max(800, Number(durationMs) || 2200) + 260,
+                );
 
                 this.toastTimeouts.push(hideTimeout, removeTimeout);
             } catch (e) {
@@ -3133,7 +3545,8 @@
         }
 
         applyPersonalityToPrompts(personality) {
-            if (!this.aiPromptSystemTextarea || !this.aiPromptUserTextarea) return;
+            if (!this.aiPromptSystemTextarea || !this.aiPromptUserTextarea)
+                return;
 
             const baseSystem = this.aiPromptBaseSystemPrompt || '';
             const baseUser = this.aiPromptBaseUserPrompt || '';
@@ -3146,7 +3559,10 @@
 
         async copyToClipboard(text) {
             try {
-                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                if (
+                    navigator.clipboard &&
+                    typeof navigator.clipboard.writeText === 'function'
+                ) {
                     await navigator.clipboard.writeText(text);
                     return true;
                 }
@@ -3181,20 +3597,29 @@
             this.aiPromptDirty = false;
 
             if (this.aiPromptPersonalitySelect) {
-                this.aiPromptPersonalitySelect.value = this.selectedPersonality || 'default';
+                this.aiPromptPersonalitySelect.value =
+                    this.selectedPersonality || 'default';
             }
-            this.applyPersonalityToPrompts(this.selectedPersonality || 'default');
+            this.applyPersonalityToPrompts(
+                this.selectedPersonality || 'default',
+            );
 
             if (this.aiPromptOverlay) {
                 this.aiPromptOverlay.style.display = 'flex';
             }
-            document.addEventListener('keydown', this.boundAiPromptKeydown, true);
+            document.addEventListener(
+                'keydown',
+                this.boundAiPromptKeydown,
+                true,
+            );
 
             setTimeout(() => {
                 if (this.aiPromptUserTextarea) {
                     this.aiPromptUserTextarea.focus();
-                    this.aiPromptUserTextarea.selectionStart = this.aiPromptUserTextarea.value.length;
-                    this.aiPromptUserTextarea.selectionEnd = this.aiPromptUserTextarea.value.length;
+                    this.aiPromptUserTextarea.selectionStart =
+                        this.aiPromptUserTextarea.value.length;
+                    this.aiPromptUserTextarea.selectionEnd =
+                        this.aiPromptUserTextarea.value.length;
                 }
             }, 0);
         }
@@ -3203,7 +3628,11 @@
             if (this.aiPromptOverlay) {
                 this.aiPromptOverlay.style.display = 'none';
             }
-            document.removeEventListener('keydown', this.boundAiPromptKeydown, true);
+            document.removeEventListener(
+                'keydown',
+                this.boundAiPromptKeydown,
+                true,
+            );
             this.aiPromptOnSend = null;
         }
 
@@ -3211,7 +3640,9 @@
             const sending = Boolean(isSending);
             if (this.aiPromptSendButton) {
                 this.aiPromptSendButton.disabled = sending;
-                this.aiPromptSendButton.textContent = sending ? 'Enviando...' : 'Enviar para IA';
+                this.aiPromptSendButton.textContent = sending
+                    ? 'Enviando...'
+                    : 'Enviar para IA';
             }
             if (this.aiPromptCancelButton) {
                 this.aiPromptCancelButton.disabled = sending;
@@ -3223,22 +3654,33 @@
             const body = this.libraryDialog.querySelector('.bcs-modal__body');
             if (!body) return;
 
-            const existing = body.querySelectorAll('.bcs-modal__section-title, .bcs-modal__grid');
-            existing.forEach(el => el.remove());
+            const existing = body.querySelectorAll(
+                '.bcs-modal__section-title, .bcs-modal__grid',
+            );
+            existing.forEach((el) => el.remove());
 
-            const query = (this.librarySearchInput?.value || '').toLowerCase().trim();
+            const query = (this.librarySearchInput?.value || '')
+                .toLowerCase()
+                .trim();
             const library = this.getLibraryData();
 
-            const normalizedQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            const normalizedQuery = query
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
             const matchesQuery = (text) => {
                 if (!normalizedQuery) return true;
-                const normalizedText = String(text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                const normalizedText = String(text || '')
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '');
                 return normalizedText.includes(normalizedQuery);
             };
 
             let any = false;
-            library.forEach(section => {
-                const items = Array.isArray(section.items) ? section.items.filter(matchesQuery) : [];
+            library.forEach((section) => {
+                const items = Array.isArray(section.items)
+                    ? section.items.filter(matchesQuery)
+                    : [];
                 if (!items.length) return;
 
                 any = true;
@@ -3248,7 +3690,7 @@
 
                 const grid = document.createElement('div');
                 grid.className = 'bcs-modal__grid';
-                items.forEach(text => {
+                items.forEach((text) => {
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'bcs-modal__item';
@@ -3287,7 +3729,10 @@
         }
 
         insertSuggestion(text) {
-            const selectors = [this.inputSelector, ...window.ChatSuggestions.constants.INPUT_SELECTORS];
+            const selectors = [
+                this.inputSelector,
+                ...window.ChatSuggestions.constants.INPUT_SELECTORS,
+            ];
             let input = null;
             for (const selector of selectors) {
                 input = document.querySelector(selector);
@@ -3295,7 +3740,10 @@
             }
 
             if (!input) {
-                console.warn('[Chat Suggestions] Caixa de mensagem não encontrada. Texto sugerido:', text);
+                console.warn(
+                    '[Chat Suggestions] Caixa de mensagem não encontrada. Texto sugerido:',
+                    text,
+                );
                 if (navigator.clipboard) {
                     navigator.clipboard.writeText(text).then(() => {
                         alert(`Sugestão copiada: "${text}"`);
@@ -3318,19 +3766,34 @@
                             bubbles: true,
                             cancelable: true,
                             inputType: 'insertText',
-                            data: text
+                            data: text,
                         });
                         input.dispatchEvent(inputEvent);
                     } catch (e) {
-                        input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                        input.dispatchEvent(
+                            new Event('input', {
+                                bubbles: true,
+                                cancelable: true,
+                            }),
+                        );
                     }
 
-                    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+                    input.dispatchEvent(
+                        new Event('change', {
+                            bubbles: true,
+                            cancelable: true,
+                        }),
+                    );
 
                     setTimeout(() => {
                         if (input.value !== text) {
                             input.value = text;
-                            input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                            input.dispatchEvent(
+                                new Event('input', {
+                                    bubbles: true,
+                                    cancelable: true,
+                                }),
+                            );
                         }
                     }, 10);
 
@@ -3345,8 +3808,10 @@
                     } catch (e) {
                         // Ignora
                     }
-
-                } else if (input.contentEditable === 'true' || input.isContentEditable) {
+                } else if (
+                    input.contentEditable === 'true' ||
+                    input.isContentEditable
+                ) {
                     input.textContent = '';
                     input.innerText = '';
                     input.textContent = text;
@@ -3357,14 +3822,24 @@
                             bubbles: true,
                             cancelable: true,
                             inputType: 'insertText',
-                            data: text
+                            data: text,
                         });
                         input.dispatchEvent(inputEvent);
                     } catch (e) {
-                        input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
+                        input.dispatchEvent(
+                            new Event('input', {
+                                bubbles: true,
+                                cancelable: true,
+                            }),
+                        );
                     }
 
-                    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+                    input.dispatchEvent(
+                        new Event('change', {
+                            bubbles: true,
+                            cancelable: true,
+                        }),
+                    );
 
                     try {
                         const range = document.createRange();
@@ -3387,12 +3862,21 @@
 
                 input.focus();
             } catch (error) {
-                console.error('[Chat Suggestions] Erro ao inserir texto:', error);
+                console.error(
+                    '[Chat Suggestions] Erro ao inserir texto:',
+                    error,
+                );
                 try {
-                    if (input.tagName === 'INPUT' || input.tagName === 'TEXTAREA') {
+                    if (
+                        input.tagName === 'INPUT' ||
+                        input.tagName === 'TEXTAREA'
+                    ) {
                         input.value = text;
                         input.focus();
-                    } else if (input.contentEditable === 'true' || input.isContentEditable) {
+                    } else if (
+                        input.contentEditable === 'true' ||
+                        input.isContentEditable
+                    ) {
                         input.textContent = text;
                         input.focus();
                     }
@@ -3409,38 +3893,75 @@
             }
 
             if (this.boundRecalcPlacement) {
-                window.removeEventListener('resize', this.boundRecalcPlacement, true);
-                window.removeEventListener('scroll', this.boundRecalcPlacement, true);
+                window.removeEventListener(
+                    'resize',
+                    this.boundRecalcPlacement,
+                    true,
+                );
+                window.removeEventListener(
+                    'scroll',
+                    this.boundRecalcPlacement,
+                    true,
+                );
             }
 
             if (this.boundLibraryKeydown) {
-                document.removeEventListener('keydown', this.boundLibraryKeydown, true);
+                document.removeEventListener(
+                    'keydown',
+                    this.boundLibraryKeydown,
+                    true,
+                );
             }
 
             if (this.boundAiPromptKeydown) {
-                document.removeEventListener('keydown', this.boundAiPromptKeydown, true);
+                document.removeEventListener(
+                    'keydown',
+                    this.boundAiPromptKeydown,
+                    true,
+                );
             }
 
             if (this.boundContactContextKeydown) {
-                document.removeEventListener('keydown', this.boundContactContextKeydown, true);
+                document.removeEventListener(
+                    'keydown',
+                    this.boundContactContextKeydown,
+                    true,
+                );
             }
 
             if (this.boundConfigKeydown) {
-                document.removeEventListener('keydown', this.boundConfigKeydown, true);
+                document.removeEventListener(
+                    'keydown',
+                    this.boundConfigKeydown,
+                    true,
+                );
             }
 
             if (this.boundFloatingKeydown) {
-                document.removeEventListener('keydown', this.boundFloatingKeydown, true);
+                document.removeEventListener(
+                    'keydown',
+                    this.boundFloatingKeydown,
+                    true,
+                );
                 this.boundFloatingKeydown = null;
             }
 
             if (this.boundFloatingDocPointerDown) {
-                document.removeEventListener('pointerdown', this.boundFloatingDocPointerDown, true);
+                document.removeEventListener(
+                    'pointerdown',
+                    this.boundFloatingDocPointerDown,
+                    true,
+                );
                 this.boundFloatingDocPointerDown = null;
             }
 
-            if (this.floatingLauncherWrap && this.floatingLauncherWrap.parentElement) {
-                this.floatingLauncherWrap.parentElement.removeChild(this.floatingLauncherWrap);
+            if (
+                this.floatingLauncherWrap &&
+                this.floatingLauncherWrap.parentElement
+            ) {
+                this.floatingLauncherWrap.parentElement.removeChild(
+                    this.floatingLauncherWrap,
+                );
             }
             this.floatingLauncher = null;
             this.floatingLauncherWrap = null;
@@ -3449,30 +3970,42 @@
             this.floatingDragPointerId = null;
 
             if (this.toastTimeouts && this.toastTimeouts.length) {
-                this.toastTimeouts.forEach(id => clearTimeout(id));
+                this.toastTimeouts.forEach((id) => clearTimeout(id));
                 this.toastTimeouts = [];
             }
 
-            const toastRoot = this.toastRoot || document.getElementById('bcs-toast-root');
+            const toastRoot =
+                this.toastRoot || document.getElementById('bcs-toast-root');
             if (toastRoot && toastRoot.parentElement) {
                 toastRoot.parentElement.removeChild(toastRoot);
             }
             this.toastRoot = null;
 
             if (this.libraryOverlay && this.libraryOverlay.parentElement) {
-                this.libraryOverlay.parentElement.removeChild(this.libraryOverlay);
+                this.libraryOverlay.parentElement.removeChild(
+                    this.libraryOverlay,
+                );
             }
 
             if (this.aiPromptOverlay && this.aiPromptOverlay.parentElement) {
-                this.aiPromptOverlay.parentElement.removeChild(this.aiPromptOverlay);
+                this.aiPromptOverlay.parentElement.removeChild(
+                    this.aiPromptOverlay,
+                );
             }
 
-            if (this.contactContextOverlay && this.contactContextOverlay.parentElement) {
-                this.contactContextOverlay.parentElement.removeChild(this.contactContextOverlay);
+            if (
+                this.contactContextOverlay &&
+                this.contactContextOverlay.parentElement
+            ) {
+                this.contactContextOverlay.parentElement.removeChild(
+                    this.contactContextOverlay,
+                );
             }
 
             if (this.configOverlay && this.configOverlay.parentElement) {
-                this.configOverlay.parentElement.removeChild(this.configOverlay);
+                this.configOverlay.parentElement.removeChild(
+                    this.configOverlay,
+                );
             }
 
             if (this.container && this.container.parentElement) {
