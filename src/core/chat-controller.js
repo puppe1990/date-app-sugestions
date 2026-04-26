@@ -571,6 +571,7 @@
         }
 
         buildConversationCopyText({ maxMessages = 40, maxChars = 2400 } = {}) {
+            const copyHelpers = window.ChatSuggestions.ChatCopyHelpers || {};
             if (!this.contextExtractor || !this.chatContainer) return '';
             const context = this.contextExtractor.extract(this.chatContainer, {
                 fullHistory: true,
@@ -578,45 +579,12 @@
             const messages = context?.allMessages?.length
                 ? context.allMessages
                 : context?.lastMessages || [];
-            if (!messages.length) return '';
-
-            const otherPersonName = this.extractOtherPersonName();
-            const entries = messages
-                .slice(-maxMessages)
-                .map((msg) => {
-                    const text = String(msg?.text || '').trim();
-                    if (!text) return null;
-                    const senderName =
-                        msg.sender &&
-                        !['Outro', 'OUTRA PESSOA'].includes(msg.sender)
-                            ? msg.sender
-                            : otherPersonName || 'OUTRA PESSOA';
-                    const dir = msg.direction === 'out' ? 'EU' : senderName;
-                    return { dir, text };
-                })
-                .filter(Boolean);
-
-            if (!entries.length) return '';
-
-            const render = (items) =>
-                items
-                    .map(
-                        (entry, index) =>
-                            `${index + 1}. ${entry.dir}: ${entry.text}`,
-                    )
-                    .join('\n');
-
-            let startIndex = 0;
-            let joined = render(entries);
-            while (
-                joined.length > maxChars &&
-                startIndex < entries.length - 1
-            ) {
-                startIndex += 1;
-                joined = render(entries.slice(startIndex));
-            }
-
-            return joined.trim();
+            return copyHelpers.buildConversationCopyText({
+                messages,
+                otherPersonName: this.extractOtherPersonName(),
+                maxMessages,
+                maxChars,
+            });
         }
 
         async copyOtherPersonProfileToClipboard() {
@@ -629,23 +597,22 @@
                             timeoutMs: 2500,
                         });
                     }
+                    const copyHelpers =
+                        window.ChatSuggestions.ChatCopyHelpers || {};
                     return {
                         ok: false,
-                        message:
-                            this.platform === 'badoo'
-                                ? 'Abra o perfil da pessoa e tente novamente'
-                                : 'Perfil não encontrado na página',
+                        message: copyHelpers.getCopyProfileErrorMessage(
+                            this.platform,
+                        ),
                     };
                 }
 
-                const parts = [];
-                if (profileText) {
-                    parts.push(`Perfil da outra pessoa:\n${profileText}`);
-                }
-                if (conversationText) {
-                    parts.push(`Conversa:\n${conversationText}`);
-                }
-                const payload = parts.join('\n\n').trim();
+                const copyHelpers =
+                    window.ChatSuggestions.ChatCopyHelpers || {};
+                const payload = copyHelpers.buildClipboardPayload({
+                    profileText,
+                    conversationText,
+                });
 
                 const ok =
                     this.ui && typeof this.ui.copyToClipboard === 'function'
@@ -1152,28 +1119,19 @@
         }
 
         getCurrentHost() {
-            try {
-                return (location.hostname || '').toLowerCase();
-            } catch (e) {
-                return '';
-            }
+            const configHelpers =
+                window.ChatSuggestions.ChatConfigHelpers || {};
+            return configHelpers.getCurrentHost(location.href);
         }
 
         attachConfigListener() {
             if (!chrome?.storage?.onChanged || this.boundStorageChange) return;
             this.boundStorageChange = (changes, areaName) => {
                 if (areaName !== 'local') return;
-                const watched = new Set([
-                    'businessModeEnabled',
-                    'businessModeByHost',
-                    'businessContext',
-                    'businessTone',
-                    'openRouterProfileCasual',
-                    'openRouterProfileBusiness',
-                ]);
-                const shouldRefresh = Object.keys(changes || {}).some((key) =>
-                    watched.has(key),
-                );
+                const configHelpers =
+                    window.ChatSuggestions.ChatConfigHelpers || {};
+                const shouldRefresh =
+                    configHelpers.shouldRefreshBusinessMode(changes);
                 if (!shouldRefresh) return;
                 this.refreshBusinessModeFromStorage();
             };
@@ -1192,26 +1150,14 @@
                     'openRouterProfileBusiness',
                 ],
                 (result) => {
-                    const host = this.getCurrentHost();
-                    const hostMode = host
-                        ? (result.businessModeByHost || {})[host]
-                        : undefined;
-                    const businessModeEnabled =
-                        typeof hostMode === 'boolean'
-                            ? hostMode
-                            : Boolean(result.businessModeEnabled);
-                    const businessContext = result.businessContext || '';
-                    const businessTone = result.businessTone || 'consultivo';
-                    const profileCasual = result.openRouterProfileCasual || '';
-                    const profileBusiness =
-                        result.openRouterProfileBusiness || '';
-                    this.updateBusinessModeConfig({
-                        businessModeEnabled,
-                        businessContext,
-                        businessTone,
-                        profileCasual,
-                        profileBusiness,
-                    });
+                    const configHelpers =
+                        window.ChatSuggestions.ChatConfigHelpers || {};
+                    this.updateBusinessModeConfig(
+                        configHelpers.buildBusinessModeConfig({
+                            result,
+                            host: this.getCurrentHost(),
+                        }),
+                    );
                 },
             );
         }

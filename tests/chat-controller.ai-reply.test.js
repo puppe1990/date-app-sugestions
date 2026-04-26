@@ -24,6 +24,14 @@ const chatObserverHelpersSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'chat-observer-helpers.js'),
     'utf8',
 );
+const chatCopyHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-copy-helpers.js'),
+    'utf8',
+);
+const chatConfigHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-config-helpers.js'),
+    'utf8',
+);
 const aiClientSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'ai-client.js'),
     'utf8',
@@ -64,6 +72,12 @@ function loadChatController() {
     });
     vm.runInNewContext(chatObserverHelpersSource, sandbox, {
         filename: 'chat-observer-helpers.js',
+    });
+    vm.runInNewContext(chatCopyHelpersSource, sandbox, {
+        filename: 'chat-copy-helpers.js',
+    });
+    vm.runInNewContext(chatConfigHelpersSource, sandbox, {
+        filename: 'chat-config-helpers.js',
     });
     vm.runInNewContext(controllerSource, sandbox, {
         filename: 'chat-controller.js',

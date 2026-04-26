@@ -28,6 +28,14 @@ const profileParserSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'profile-parser.js'),
     'utf8',
 );
+const chatCopyHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-copy-helpers.js'),
+    'utf8',
+);
+const chatConfigHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-config-helpers.js'),
+    'utf8',
+);
 
 function loadWhatsAppDefaults() {
     const sandbox = {
@@ -94,6 +102,12 @@ function loadChatController({ document }) {
     });
     vm.runInNewContext(profileParserSource, sandbox, {
         filename: 'profile-parser.js',
+    });
+    vm.runInNewContext(chatCopyHelpersSource, sandbox, {
+        filename: 'chat-copy-helpers.js',
+    });
+    vm.runInNewContext(chatConfigHelpersSource, sandbox, {
+        filename: 'chat-config-helpers.js',
     });
     vm.runInNewContext(controllerSource, sandbox, {
         filename: 'chat-controller.js',
