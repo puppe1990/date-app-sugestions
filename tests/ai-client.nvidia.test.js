@@ -8,6 +8,22 @@ const aiClientSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'ai-client.js'),
     'utf8',
 );
+const aiClientConfigHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-config-helpers.js'),
+    'utf8',
+);
+const aiClientPromptHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-prompt-helpers.js'),
+    'utf8',
+);
+const aiClientRequestHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-request-helpers.js'),
+    'utf8',
+);
+const aiClientResponseHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-response-helpers.js'),
+    'utf8',
+);
 
 const loadAIClient = ({ fetchImpl, chromeImpl } = {}) => {
     const context = {
@@ -25,6 +41,10 @@ const loadAIClient = ({ fetchImpl, chromeImpl } = {}) => {
     };
     context.globalThis = context;
     vm.createContext(context);
+    vm.runInContext(aiClientConfigHelpersSource, context);
+    vm.runInContext(aiClientPromptHelpersSource, context);
+    vm.runInContext(aiClientRequestHelpersSource, context);
+    vm.runInContext(aiClientResponseHelpersSource, context);
     vm.runInContext(aiClientSource, context);
     return context.window.ChatSuggestions.AIClient;
 };

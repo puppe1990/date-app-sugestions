@@ -58,6 +58,30 @@ const chatCleanupHelpersSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'chat-cleanup-helpers.js'),
     'utf8',
 );
+const chatControllerContextHelpersSource = fs.readFileSync(
+    path.join(
+        __dirname,
+        '..',
+        'src',
+        'core',
+        'chat-controller-context-helpers.js',
+    ),
+    'utf8',
+);
+const chatControllerProfileHelpersSource = fs.readFileSync(
+    path.join(
+        __dirname,
+        '..',
+        'src',
+        'core',
+        'chat-controller-profile-helpers.js',
+    ),
+    'utf8',
+);
+const chatControllerAIActionsSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-controller-ai-actions.js'),
+    'utf8',
+);
 
 function loadWhatsAppDefaults() {
     const sandbox = {
@@ -142,6 +166,15 @@ function loadChatController({ document }) {
     });
     vm.runInNewContext(chatCleanupHelpersSource, sandbox, {
         filename: 'chat-cleanup-helpers.js',
+    });
+    vm.runInNewContext(chatControllerContextHelpersSource, sandbox, {
+        filename: 'chat-controller-context-helpers.js',
+    });
+    vm.runInNewContext(chatControllerProfileHelpersSource, sandbox, {
+        filename: 'chat-controller-profile-helpers.js',
+    });
+    vm.runInNewContext(chatControllerAIActionsSource, sandbox, {
+        filename: 'chat-controller-ai-actions.js',
     });
     vm.runInNewContext(controllerSource, sandbox, {
         filename: 'chat-controller.js',
