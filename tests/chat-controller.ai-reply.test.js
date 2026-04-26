@@ -20,6 +20,10 @@ const profileParserSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'profile-parser.js'),
     'utf8',
 );
+const chatObserverHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-observer-helpers.js'),
+    'utf8',
+);
 const aiClientSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'ai-client.js'),
     'utf8',
@@ -57,6 +61,9 @@ function loadChatController() {
     });
     vm.runInNewContext(profileParserSource, sandbox, {
         filename: 'profile-parser.js',
+    });
+    vm.runInNewContext(chatObserverHelpersSource, sandbox, {
+        filename: 'chat-observer-helpers.js',
     });
     vm.runInNewContext(controllerSource, sandbox, {
         filename: 'chat-controller.js',

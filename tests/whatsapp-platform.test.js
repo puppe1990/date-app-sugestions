@@ -20,6 +20,14 @@ const controllerSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'chat-controller.js'),
     'utf8',
 );
+const chatObserverHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-observer-helpers.js'),
+    'utf8',
+);
+const profileParserSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'profile-parser.js'),
+    'utf8',
+);
 
 function loadWhatsAppDefaults() {
     const sandbox = {
@@ -81,6 +89,12 @@ function loadChatController({ document }) {
         clearTimeout() {},
     };
 
+    vm.runInNewContext(chatObserverHelpersSource, sandbox, {
+        filename: 'chat-observer-helpers.js',
+    });
+    vm.runInNewContext(profileParserSource, sandbox, {
+        filename: 'profile-parser.js',
+    });
     vm.runInNewContext(controllerSource, sandbox, {
         filename: 'chat-controller.js',
     });

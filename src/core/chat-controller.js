@@ -279,12 +279,12 @@
 
         setupPlatformObservers() {
             if (this.platformObserver) return;
+            const helpers = window.ChatSuggestions.ChatObserverHelpers || {};
 
-            const effectivePlatform =
-                this.platform ||
-                ((location.hostname || '').includes('whatsapp.com')
-                    ? 'whatsapp'
-                    : null);
+            const effectivePlatform = helpers.getEffectivePlatform({
+                platform: this.platform,
+                hostname: location.hostname || '',
+            });
 
             if (effectivePlatform !== 'whatsapp') return;
 
@@ -299,28 +299,10 @@
             };
 
             this.platformObserver = new MutationObserver((mutations) => {
-                let changed = false;
-                mutations.forEach((m) => {
-                    if (
-                        m.type === 'attributes' &&
-                        m.attributeName === 'aria-selected'
-                    ) {
-                        const target = m.target;
-                        if (
-                            target &&
-                            target.getAttribute &&
-                            target.getAttribute('aria-selected') === 'true'
-                        ) {
-                            changed = true;
-                        }
-                    }
-                    if (
-                        m.type === 'childList' &&
-                        (m.addedNodes.length || m.removedNodes.length)
-                    ) {
-                        changed = true;
-                    }
-                });
+                const changed =
+                    typeof helpers.hasPlatformConversationChange === 'function'
+                        ? helpers.hasPlatformConversationChange(mutations)
+                        : false;
                 if (changed) onConversationChanged();
             });
 
@@ -355,6 +337,7 @@
         }
 
         setupObservers() {
+            const helpers = window.ChatSuggestions.ChatObserverHelpers || {};
             const checkForNewMessages = () => {
                 if (!this.chatContainer) return;
 
@@ -375,27 +358,13 @@
             };
 
             this.chatObserver = new MutationObserver((mutations) => {
-                let hasNewMessage = false;
-
-                mutations.forEach((mutation) => {
-                    if (mutation.type === 'childList') {
-                        mutation.addedNodes.forEach((node) => {
-                            if (node.nodeType === 1) {
-                                if (
-                                    node.matches &&
-                                    node.matches(this.messageSelector)
-                                ) {
-                                    hasNewMessage = true;
-                                } else if (
-                                    node.querySelector &&
-                                    node.querySelector(this.messageSelector)
-                                ) {
-                                    hasNewMessage = true;
-                                }
-                            }
-                        });
-                    }
-                });
+                const hasNewMessage =
+                    typeof helpers.hasNewMessageMutation === 'function'
+                        ? helpers.hasNewMessageMutation({
+                              mutations,
+                              messageSelector: this.messageSelector,
+                          })
+                        : false;
 
                 if (hasNewMessage) {
                     clearTimeout(this.updateTimeout);
