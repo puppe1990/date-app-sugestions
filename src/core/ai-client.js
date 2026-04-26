@@ -428,6 +428,22 @@
             const myLastLine = lastMyMessage
                 ? `\nMinha última mensagem: "${lastMyMessage.text}".`
                 : '';
+            const pendingText = String(pendingMessage?.text || '').trim();
+            const pendingPriorityLines = pendingMessage
+                ? [
+                      'PRIORIDADE MÁXIMA: responda diretamente à mensagem pendente antes de puxar assuntos amplos do perfil ou temas genéricos.',
+                      'Se a mensagem pendente fizer uma pergunta objetiva, suas sugestões devem responder essa pergunta de forma direta e concreta.',
+                  ]
+                : [];
+            const pendingQuestionSpecificLines =
+                pendingMessage &&
+                /o q gostaria de saber|oq gostaria de saber|o que gostaria de saber/i.test(
+                    pendingText,
+                )
+                    ? [
+                          'Se a outra pessoa perguntou o que eu quero saber, responda com exemplos concretos do que eu gostaria de saber sobre ela, sem desviar para uma lista genérica de interesses.',
+                      ]
+                    : [];
 
             return [
                 'Use o histórico abaixo (ordem cronológica).',
@@ -437,6 +453,8 @@
                 'Se a mensagem pendente for curta e confirmatória (ex.: "sim", "siiim", "super", "perto", "kkk"), continue o assunto em andamento em vez de reiniciar a conversa.',
                 'Quando a conversa já está em um tema concreto, responda em cima desse tema concreto e, se fizer sentido, avance um passo a partir dele.',
                 'Cada sugestão deve se apoiar em pelo menos um detalhe concreto do histórico recente (tema, lugar, pergunta, reação ou fato citado).',
+                ...pendingPriorityLines,
+                ...pendingQuestionSpecificLines,
                 'Exemplo ruim para conversa em andamento: "Boa tarde! Tudo bem?", "Como você está?", "Boa tarde! Como está seu dia?".',
                 'Exemplo bom: pegar o último assunto e avançar em cima dele, sem reiniciar o papo.',
                 'Responda APENAS com JSON válido: {"suggestions":["resposta1","resposta2",...]} sem texto extra, sem markdown, sem texto antes/depois. Não inclua saudações a menos que a última mensagem peça. Assim que fechar o JSON, pare.',

@@ -188,6 +188,45 @@ test('AIClient does not duplicate the other person profile in both system and us
     assert.doesNotMatch(userPrompt, /Perfil da outra pessoa:/);
 });
 
+test('AIClient prompt prioritizes the pending question over generic profile topics', () => {
+    const AIClient = loadAIClient();
+    const client = new AIClient({
+        apiKey: 'nvapi-test',
+        provider: 'nvidia',
+        model: 'meta/llama-3.1-8b-instruct',
+    });
+
+    const prompt = client.buildUserPrompt(
+        [
+            {
+                direction: 'out',
+                sender: 'Eu',
+                text: 'Uma conversa mais longa sobre nossos interesses em comum.',
+            },
+            { direction: 'in', sender: 'Mell', text: 'Gostei' },
+            {
+                direction: 'in',
+                sender: 'Mell',
+                text: 'O q gostaria de saber !!??',
+            },
+        ],
+        'Tenho 36 anos, moro em SP e curto leitura, academia e tecnologia.',
+        'Mell',
+        'long',
+        'Perfil: Mell, São Paulo. Interesses: leitura; YouTube; viagens.',
+        '',
+    );
+
+    assert.match(
+        prompt,
+        /PRIORIDADE MÁXIMA: responda diretamente à mensagem pendente antes de puxar assuntos amplos do perfil ou temas genéricos\./,
+    );
+    assert.match(
+        prompt,
+        /Se a outra pessoa perguntou o que eu quero saber, responda com exemplos concretos do que eu gostaria de saber sobre ela, sem desviar para uma lista genérica de interesses\./,
+    );
+});
+
 test('AIClient filters generic restart suggestions when the chat is already in progress', async () => {
     const AIClient = loadAIClient({
         fetchImpl: async () => ({

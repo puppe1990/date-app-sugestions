@@ -8,6 +8,18 @@ const controllerSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'chat-controller.js'),
     'utf8',
 );
+const promptBuilderSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-prompt-builder.js'),
+    'utf8',
+);
+const contactContextManagerSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'contact-context-manager.js'),
+    'utf8',
+);
+const profileParserSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'profile-parser.js'),
+    'utf8',
+);
 const aiClientSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'ai-client.js'),
     'utf8',
@@ -37,6 +49,15 @@ function loadChatController() {
         clearTimeout() {},
     };
 
+    vm.runInNewContext(promptBuilderSource, sandbox, {
+        filename: 'ai-prompt-builder.js',
+    });
+    vm.runInNewContext(contactContextManagerSource, sandbox, {
+        filename: 'contact-context-manager.js',
+    });
+    vm.runInNewContext(profileParserSource, sandbox, {
+        filename: 'profile-parser.js',
+    });
     vm.runInNewContext(controllerSource, sandbox, {
         filename: 'chat-controller.js',
     });

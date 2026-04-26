@@ -268,206 +268,13 @@
         }
 
         extractBadooProfileTextFromPortal() {
-            const portal = document.querySelector(
-                '[data-qa="profile-portal-content-container_wrapper"], .profile-portal-container',
-            );
-            if (this.debug) {
-                console.info('[Chat Suggestions][Badoo] Portal do perfil', {
-                    found: Boolean(portal),
-                });
+            const parser = window.ChatSuggestions.ProfileParser || {};
+            if (
+                typeof parser.extractBadooProfileTextFromPortal !== 'function'
+            ) {
+                return '';
             }
-            if (!portal) return '';
-
-            const extractBlockByTitle = (titleText) => {
-                try {
-                    const normalized = String(titleText || '').toLowerCase();
-                    const headers = Array.from(
-                        portal.querySelectorAll(
-                            '.csms-view-profile-block__header-title, .csms-view-profile-block__header-title *',
-                        ),
-                    );
-                    const header = headers.find((el) => {
-                        const txt =
-                            el && (el.textContent || el.innerText)
-                                ? (el.textContent || el.innerText)
-                                      .trim()
-                                      .toLowerCase()
-                                : '';
-                        return txt && txt.includes(normalized);
-                    });
-                    if (!header) return null;
-                    return header.closest('.csms-view-profile-block');
-                } catch (e) {
-                    return null;
-                }
-            };
-
-            const pickText = (selector) => {
-                try {
-                    const el = portal.querySelector(selector);
-                    const txt =
-                        el && (el.textContent || el.innerText)
-                            ? (el.textContent || el.innerText).trim()
-                            : '';
-                    return txt.replace(/\s+/g, ' ').trim();
-                } catch (e) {
-                    return '';
-                }
-            };
-
-            const name = pickText('[data-qa="profile-info__name"]');
-            const age = pickText('[data-qa="profile-info__age"]');
-            const aboutMe = (() => {
-                try {
-                    const section =
-                        portal.querySelector(
-                            '.user-section[data-qa="about-me"]',
-                        ) || extractBlockByTitle('Sobre mim');
-                    if (!section) return '';
-                    const content = section.querySelector(
-                        '.csms-view-profile-block__content',
-                    );
-                    const txt =
-                        content && (content.textContent || content.innerText)
-                            ? (content.textContent || content.innerText).trim()
-                            : '';
-                    return txt
-                        .replace(/\s+\n/g, '\n')
-                        .replace(/\n{3,}/g, '\n\n')
-                        .trim();
-                } catch (e) {
-                    return '';
-                }
-            })();
-
-            const location = (() => {
-                try {
-                    const section =
-                        portal.querySelector(
-                            '.user-section[data-qa="location"]',
-                        ) || extractBlockByTitle('Localização');
-                    if (!section) return '';
-                    const el = section.querySelector(
-                        '.csms-view-profile-block__header-text',
-                    );
-                    const txt =
-                        el && (el.textContent || el.innerText)
-                            ? (el.textContent || el.innerText).trim()
-                            : '';
-                    return txt.replace(/\s+/g, ' ').trim();
-                } catch (e) {
-                    return '';
-                }
-            })();
-
-            const infoBadges = (() => {
-                try {
-                    const section =
-                        portal.querySelector(
-                            '.user-section[data-qa="about-me-badges"]',
-                        ) || extractBlockByTitle('Informações');
-                    if (!section) return [];
-                    const badges = Array.from(
-                        section.querySelectorAll(
-                            '.profile-badges__item .csms-badge__text',
-                        ),
-                    );
-                    return badges
-                        .map((b) => (b.textContent || b.innerText || '').trim())
-                        .filter(Boolean);
-                } catch (e) {
-                    return [];
-                }
-            })();
-
-            const interests = (() => {
-                try {
-                    const section =
-                        portal.querySelector(
-                            '.user-section[data-qa="interests"]',
-                        ) || extractBlockByTitle('Interesses');
-                    if (!section) return [];
-                    const badges = Array.from(
-                        section.querySelectorAll(
-                            '.profile-badges__item [data-qa=\"badge\"] .csms-badge__text',
-                        ),
-                    );
-                    return badges
-                        .map((b) => (b.textContent || b.innerText || '').trim())
-                        .filter(Boolean);
-                } catch (e) {
-                    return [];
-                }
-            })();
-
-            const questions = (() => {
-                try {
-                    const sections = Array.from(
-                        portal.querySelectorAll(
-                            '.user-section[data-qa^="profile-question-"]',
-                        ),
-                    );
-                    return sections
-                        .map((section) => {
-                            const q = (() => {
-                                const qBtn = section.querySelector(
-                                    '[data-qa="overlay-action"]',
-                                );
-                                const raw =
-                                    qBtn && (qBtn.textContent || qBtn.innerText)
-                                        ? (
-                                              qBtn.textContent || qBtn.innerText
-                                          ).trim()
-                                        : '';
-                                return raw.replace(/\s+/g, ' ').trim();
-                            })();
-                            const a = (() => {
-                                const aEl = section.querySelector(
-                                    '.csms-view-profile-block__header-text',
-                                );
-                                const raw =
-                                    aEl && (aEl.textContent || aEl.innerText)
-                                        ? (
-                                              aEl.textContent || aEl.innerText
-                                          ).trim()
-                                        : '';
-                                return raw.replace(/\s+/g, ' ').trim();
-                            })();
-                            if (!q && !a) return null;
-                            return { q, a };
-                        })
-                        .filter(Boolean);
-                } catch (e) {
-                    return [];
-                }
-            })();
-
-            const lines = [];
-            const title = [name, age ? `${age} anos` : '']
-                .filter(Boolean)
-                .join(', ');
-            if (title) lines.push(`Perfil: ${title}`);
-            if (aboutMe) lines.push(`Sobre mim: ${aboutMe}`);
-            if (location) lines.push(`Localização: ${location}`);
-            if (infoBadges.length)
-                lines.push(
-                    `Informações: ${infoBadges.slice(0, 20).join('; ')}`,
-                );
-            if (interests.length)
-                lines.push(`Interesses: ${interests.slice(0, 20).join('; ')}`);
-            if (questions.length) {
-                const qa = questions
-                    .slice(0, 10)
-                    .map((item) => (item.a ? `${item.q}: ${item.a}` : item.q))
-                    .filter(Boolean)
-                    .join(' | ');
-                if (qa) lines.push(`Perguntas: ${qa}`);
-            }
-
-            const text = lines.join('\n').trim();
-            if (!text) return '';
-            const MAX = 900;
-            return text.length > MAX ? `${text.slice(0, MAX)}…` : text;
+            return parser.extractBadooProfileTextFromPortal({ document });
         }
 
         setupPlatformObservers() {
@@ -666,84 +473,21 @@
         }
 
         normalizeContactKey(value) {
-            const raw = String(value || '').trim();
-            if (!raw) return '';
-            const safe = raw.replace(/[^a-zA-Z0-9:_-]/g, '_');
-            return safe.length > 160 ? safe.slice(0, 160) : safe;
+            const manager = window.ChatSuggestions.ContactContextManager || {};
+            return manager.normalizeContactKey(value);
         }
 
         extractContactKeyFromUrl() {
-            try {
-                const url = new URL(location.href);
-                const path = String(url.pathname || '');
-                const platform = String(this.platform || '').trim() || 'chat';
-
-                const patterns = [
-                    /\/messages\/([^/?#]+)/i,
-                    /\/app\/messages\/([^/?#]+)/i,
-                ];
-
-                for (const pattern of patterns) {
-                    const match = path.match(pattern);
-                    if (match && match[1]) {
-                        return this.normalizeContactKey(
-                            `${platform}:${match[1]}`,
-                        );
-                    }
-                }
-
-                const hash = String(url.hash || '')
-                    .replace(/^#/, '')
-                    .trim();
-                if (hash) {
-                    return this.normalizeContactKey(`${platform}:hash:${hash}`);
-                }
-
-                return this.normalizeContactKey(`${platform}:${path}`);
-            } catch (e) {
-                return '';
-            }
+            const manager = window.ChatSuggestions.ContactContextManager || {};
+            return manager.buildContactKeyFromUrl({
+                href: location.href,
+                platform: this.platform,
+            });
         }
 
         extractWhatsAppContactKey() {
-            try {
-                const selected = document.querySelector(
-                    '#pane-side [role="row"][aria-selected="true"], #pane-side [aria-selected="true"][role="listitem"], #pane-side [aria-selected="true"]',
-                );
-                if (!selected) return '';
-
-                const dataId = String(
-                    selected.getAttribute('data-id') ||
-                        (selected.dataset ? selected.dataset.id : '') ||
-                        '',
-                ).trim();
-                if (dataId)
-                    return this.normalizeContactKey(`whatsapp:chat:${dataId}`);
-
-                const nestedWithId =
-                    selected.querySelector &&
-                    selected.querySelector('[data-id]');
-                const nestedId = nestedWithId
-                    ? String(nestedWithId.getAttribute('data-id') || '').trim()
-                    : '';
-                if (nestedId)
-                    return this.normalizeContactKey(
-                        `whatsapp:chat:${nestedId}`,
-                    );
-
-                const nameEl = selected.querySelector('span[title]');
-                const name =
-                    nameEl && nameEl.getAttribute
-                        ? String(nameEl.getAttribute('title') || '').trim()
-                        : '';
-                if (name) {
-                    return this.normalizeContactKey(`whatsapp:name:${name}`);
-                }
-
-                return '';
-            } catch (e) {
-                return '';
-            }
+            const manager = window.ChatSuggestions.ContactContextManager || {};
+            return manager.buildWhatsAppContactKey({ document });
         }
 
         extractContactKey() {
@@ -806,9 +550,8 @@
         }
 
         trimContactContext(text) {
-            const raw = String(text || '').trim();
-            const MAX = 4000;
-            return raw.length > MAX ? raw.slice(0, MAX) : raw;
+            const manager = window.ChatSuggestions.ContactContextManager || {};
+            return manager.trimContactContext(text);
         }
 
         saveContactContext(contextText) {
@@ -852,11 +595,10 @@
 
         getCurrentContactContextForPrompt() {
             this.refreshContactContext();
-            const text = this.trimContactContext(
-                this.currentContactContextText || '',
-            );
-            const MAX = 4000;
-            return text.length > MAX ? text.slice(0, MAX) : text;
+            const manager = window.ChatSuggestions.ContactContextManager || {};
+            return manager.getCurrentContactContextForPrompt({
+                currentContactContextText: this.currentContactContextText || '',
+            });
         }
 
         buildConversationCopyText({ maxMessages = 40, maxChars = 2400 } = {}) {
@@ -1107,85 +849,14 @@
         }
 
         sanitizeProfileText(raw) {
-            const text = String(raw || '').trim();
-            if (!text) return '';
-
-            const normalized = text
-                .split('\n')
-                .map((l) => l.trim())
-                .filter(Boolean)
-                .map((line) => line.replace(/\s+/g, ' ').trim())
-                .filter(
-                    (line) =>
-                        line &&
-                        !/^abrir perfil$/i.test(line) &&
-                        !/^educa[cç][aã]o$/i.test(line) &&
-                        !/^conectados hoje$/i.test(line),
-                );
-
-            const unique = [];
-            const seen = new Set();
-            for (const line of normalized) {
-                const key = line.toLowerCase();
-                if (seen.has(key)) continue;
-                seen.add(key);
-                unique.push(line);
+            const parser = window.ChatSuggestions.ProfileParser || {};
+            if (typeof parser.sanitizeProfileText !== 'function') {
+                return String(raw || '').trim();
             }
-
-            const name = this.extractOtherPersonName();
-            const ageMatch = text.match(/\b(\d{2})\b/);
-            const merged = [];
-            let insertedSummary = false;
-            let hasLocation = false;
-
-            for (const line of unique) {
-                if (
-                    name &&
-                    ageMatch &&
-                    !insertedSummary &&
-                    (line === name || line === `, ${ageMatch[1]}`)
-                ) {
-                    merged.push(`${name}, ${ageMatch[1]} anos`);
-                    insertedSummary = true;
-                    continue;
-                }
-                if (
-                    /^profiss[aã]o:\s*s[aã]o paulo$/i.test(line) ||
-                    /^educa[cç][aã]o:\s*$/i.test(line)
-                ) {
-                    continue;
-                }
-                if (/^s[aã]o paulo$/i.test(line)) {
-                    hasLocation = true;
-                }
-                if (
-                    name &&
-                    /online agora|rolou uma conex[aã]o|curtiu voc[eê]/i.test(
-                        line,
-                    )
-                ) {
-                    if (!insertedSummary && ageMatch) {
-                        merged.push(`${name}, ${ageMatch[1]} anos`);
-                        insertedSummary = true;
-                    }
-                    continue;
-                }
-                merged.push(line);
-            }
-
-            if (!hasLocation && /s[aã]o paulo/i.test(text)) {
-                merged.push('São Paulo');
-            }
-
-            const cleaned = merged
-                .filter(Boolean)
-                .join('\n')
-                .replace(/\s+\n/g, '\n')
-                .replace(/\n{3,}/g, '\n\n')
-                .trim();
-
-            const MAX = 900;
-            return cleaned.length > MAX ? `${cleaned.slice(0, MAX)}…` : cleaned;
+            return parser.sanitizeProfileText({
+                raw,
+                otherPersonName: this.extractOtherPersonName(),
+            });
         }
 
         extractOtherPersonName() {
@@ -1197,27 +868,36 @@
                 '.csms-profile-info__name-inner',
                 '[data-qa="profile-info__name"]',
                 '[data-qa="mini-profile-user-info__heading"] [data-qa="profile-info__name"]',
-            ].filter(Boolean);
-
-            for (const selector of selectors) {
-                try {
-                    const el = document.querySelector(selector);
-                    let name =
-                        el && (el.textContent || el.innerText)
-                            ? (el.textContent || el.innerText).trim()
-                            : '';
-                    if (!name) continue;
-                    name = name.replace(/\s+/g, ' ').trim();
-                    // Ex.: "Mayara, Abrir perfil"
-                    if (name.includes(',')) {
-                        name = name.split(',')[0].trim();
+            ]
+                .filter(Boolean)
+                .flatMap((selector) =>
+                    String(selector || '')
+                        .split(',')
+                        .map((item) => item.trim())
+                        .filter(Boolean),
+                );
+            const parser = window.ChatSuggestions.ProfileParser || {};
+            if (typeof parser.extractOtherPersonName !== 'function') {
+                for (const selector of selectors) {
+                    try {
+                        const el = document.querySelector(selector);
+                        let name =
+                            el && (el.textContent || el.innerText)
+                                ? (el.textContent || el.innerText).trim()
+                                : '';
+                        if (!name) continue;
+                        name = name.replace(/\s+/g, ' ').trim();
+                        if (name.includes(',')) {
+                            name = name.split(',')[0].trim();
+                        }
+                        if (name) return name;
+                    } catch (e) {
+                        // Ignora
                     }
-                    if (name) return name;
-                } catch (e) {
-                    // Ignora
                 }
+                return '';
             }
-            return '';
+            return parser.extractOtherPersonName({ document, selectors });
         }
 
         async generateAISuggestions() {
@@ -1334,13 +1014,12 @@
         }
 
         applyPersonalityToSystemPrompt(systemPrompt, personality) {
-            const base = String(systemPrompt || '').trim();
-            if (!base) return '';
-            const addon =
-                typeof this.ui?.buildPersonalityAddon === 'function'
-                    ? this.ui.buildPersonalityAddon(personality)
-                    : '';
-            return `${base}${addon}`.trim();
+            const promptBuilder = window.ChatSuggestions.AIPromptBuilder || {};
+            return promptBuilder.applyPersonalityToSystemPrompt({
+                systemPrompt,
+                personality,
+                buildPersonalityAddon: this.ui?.buildPersonalityAddon,
+            });
         }
 
         buildAIPrompts({ personality } = {}) {
@@ -1355,20 +1034,8 @@
                 return { systemPrompt: '', userPrompt: '' };
             }
 
-            const context = this.contextExtractor.extract(this.chatContainer, {
-                fullHistory: true,
-            });
-            const messages =
-                context?.allMessages || context?.lastMessages || [];
-            const configuredProfile =
-                (this.aiClientConfig && this.aiClientConfig.profile) ||
-                (window.badooChatSuggestionsConfig &&
-                    window.badooChatSuggestionsConfig.openRouterProfile);
-            const profile = [configuredProfile].filter(Boolean).join('\n\n');
+            const promptBuilder = window.ChatSuggestions.AIPromptBuilder || {};
             const otherPersonProfile = this.extractProfileText();
-            const otherPersonName = this.extractOtherPersonName();
-            const otherPersonContextNote =
-                this.getCurrentContactContextForPrompt();
 
             if (this.debug) {
                 console.info(
@@ -1382,12 +1049,18 @@
                 );
             }
 
-            const { systemPrompt, userPrompt } = this.aiClient.buildPrompts({
-                messages,
-                profile,
-                otherPersonName,
-                otherPersonProfile,
-                otherPersonContextNote,
+            const { systemPrompt, userPrompt } = promptBuilder.buildAIPrompts({
+                aiLoading: this.aiLoading,
+                aiClient: this.aiClient,
+                aiClientConfig: this.aiClientConfig,
+                globalProfile:
+                    window.badooChatSuggestionsConfig?.openRouterProfile || '',
+                contextExtractor: this.contextExtractor,
+                chatContainer: this.chatContainer,
+                extractProfileText: () => otherPersonProfile,
+                extractOtherPersonName: () => this.extractOtherPersonName(),
+                getCurrentContactContextForPrompt: () =>
+                    this.getCurrentContactContextForPrompt(),
             });
             return { systemPrompt, userPrompt, personality };
         }
