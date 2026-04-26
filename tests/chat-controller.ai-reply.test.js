@@ -8,6 +8,102 @@ const controllerSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'chat-controller.js'),
     'utf8',
 );
+const promptBuilderSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-prompt-builder.js'),
+    'utf8',
+);
+const contactContextManagerSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'contact-context-manager.js'),
+    'utf8',
+);
+const profileParserSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'profile-parser.js'),
+    'utf8',
+);
+const chatObserverHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-observer-helpers.js'),
+    'utf8',
+);
+const chatCopyHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-copy-helpers.js'),
+    'utf8',
+);
+const chatConfigHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-config-helpers.js'),
+    'utf8',
+);
+const chatAIHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-ai-helpers.js'),
+    'utf8',
+);
+const chatProfileLifecycleHelpersSource = fs.readFileSync(
+    path.join(
+        __dirname,
+        '..',
+        'src',
+        'core',
+        'chat-profile-lifecycle-helpers.js',
+    ),
+    'utf8',
+);
+const chatControllerAIConfigHelpersSource = fs.readFileSync(
+    path.join(
+        __dirname,
+        '..',
+        'src',
+        'core',
+        'chat-controller-ai-config-helpers.js',
+    ),
+    'utf8',
+);
+const chatAIExecutionHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-ai-execution-helpers.js'),
+    'utf8',
+);
+const chatCleanupHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-cleanup-helpers.js'),
+    'utf8',
+);
+const chatControllerContextHelpersSource = fs.readFileSync(
+    path.join(
+        __dirname,
+        '..',
+        'src',
+        'core',
+        'chat-controller-context-helpers.js',
+    ),
+    'utf8',
+);
+const chatControllerProfileHelpersSource = fs.readFileSync(
+    path.join(
+        __dirname,
+        '..',
+        'src',
+        'core',
+        'chat-controller-profile-helpers.js',
+    ),
+    'utf8',
+);
+const chatControllerAIActionsSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-controller-ai-actions.js'),
+    'utf8',
+);
+const aiClientConfigHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-config-helpers.js'),
+    'utf8',
+);
+const aiClientPromptHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-prompt-helpers.js'),
+    'utf8',
+);
+const aiClientRequestHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-request-helpers.js'),
+    'utf8',
+);
+const aiClientResponseHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-response-helpers.js'),
+    'utf8',
+);
 const aiClientSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'ai-client.js'),
     'utf8',
@@ -37,6 +133,48 @@ function loadChatController() {
         clearTimeout() {},
     };
 
+    vm.runInNewContext(promptBuilderSource, sandbox, {
+        filename: 'ai-prompt-builder.js',
+    });
+    vm.runInNewContext(contactContextManagerSource, sandbox, {
+        filename: 'contact-context-manager.js',
+    });
+    vm.runInNewContext(profileParserSource, sandbox, {
+        filename: 'profile-parser.js',
+    });
+    vm.runInNewContext(chatObserverHelpersSource, sandbox, {
+        filename: 'chat-observer-helpers.js',
+    });
+    vm.runInNewContext(chatCopyHelpersSource, sandbox, {
+        filename: 'chat-copy-helpers.js',
+    });
+    vm.runInNewContext(chatConfigHelpersSource, sandbox, {
+        filename: 'chat-config-helpers.js',
+    });
+    vm.runInNewContext(chatAIHelpersSource, sandbox, {
+        filename: 'chat-ai-helpers.js',
+    });
+    vm.runInNewContext(chatProfileLifecycleHelpersSource, sandbox, {
+        filename: 'chat-profile-lifecycle-helpers.js',
+    });
+    vm.runInNewContext(chatControllerAIConfigHelpersSource, sandbox, {
+        filename: 'chat-controller-ai-config-helpers.js',
+    });
+    vm.runInNewContext(chatAIExecutionHelpersSource, sandbox, {
+        filename: 'chat-ai-execution-helpers.js',
+    });
+    vm.runInNewContext(chatCleanupHelpersSource, sandbox, {
+        filename: 'chat-cleanup-helpers.js',
+    });
+    vm.runInNewContext(chatControllerContextHelpersSource, sandbox, {
+        filename: 'chat-controller-context-helpers.js',
+    });
+    vm.runInNewContext(chatControllerProfileHelpersSource, sandbox, {
+        filename: 'chat-controller-profile-helpers.js',
+    });
+    vm.runInNewContext(chatControllerAIActionsSource, sandbox, {
+        filename: 'chat-controller-ai-actions.js',
+    });
     vm.runInNewContext(controllerSource, sandbox, {
         filename: 'chat-controller.js',
     });
@@ -55,6 +193,18 @@ function loadAIClient() {
         console,
     };
     sandbox.globalThis = sandbox;
+    vm.runInNewContext(aiClientConfigHelpersSource, sandbox, {
+        filename: 'ai-client-config-helpers.js',
+    });
+    vm.runInNewContext(aiClientPromptHelpersSource, sandbox, {
+        filename: 'ai-client-prompt-helpers.js',
+    });
+    vm.runInNewContext(aiClientRequestHelpersSource, sandbox, {
+        filename: 'ai-client-request-helpers.js',
+    });
+    vm.runInNewContext(aiClientResponseHelpersSource, sandbox, {
+        filename: 'ai-client-response-helpers.js',
+    });
     vm.runInNewContext(aiClientSource, sandbox, {
         filename: 'ai-client.js',
     });

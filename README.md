@@ -16,7 +16,7 @@ The extension currently supports:
 - Generates suggestions with `Gemini`, `OpenRouter`, or `NVIDIA`.
 - Lets you adjust model, response length, and conversation mode through the extension popup.
 - Supports casual mode and business mode, with per-host configuration.
-- Keeps a modular architecture in `src/` and a standalone version in `chat-suggestions.js`.
+- Keeps a modular architecture in `src/` for the Chrome extension code.
 
 ## Structure
 
@@ -26,7 +26,6 @@ The extension currently supports:
 ├── content.js
 ├── popup.html
 ├── popup.js
-├── chat-suggestions.js
 ├── src/
 │   ├── constants/
 │   ├── context/
@@ -155,10 +154,6 @@ The code also watches the `data-bcs-debug` flag on `documentElement` to enable l
   Suggestion engine and generation rules.
 - `src/constants/`
   Keywords and helper lists.
-
-## Standalone
-
-Besides the extension, the repository still keeps `chat-suggestions.js` for direct use in pages or manual tests. The main codebase, however, is organized in the modules inside `src/`.
 
 ## Notes
 

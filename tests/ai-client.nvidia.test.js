@@ -8,6 +8,22 @@ const aiClientSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'ai-client.js'),
     'utf8',
 );
+const aiClientConfigHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-config-helpers.js'),
+    'utf8',
+);
+const aiClientPromptHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-prompt-helpers.js'),
+    'utf8',
+);
+const aiClientRequestHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-request-helpers.js'),
+    'utf8',
+);
+const aiClientResponseHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'ai-client-response-helpers.js'),
+    'utf8',
+);
 
 const loadAIClient = ({ fetchImpl, chromeImpl } = {}) => {
     const context = {
@@ -25,6 +41,10 @@ const loadAIClient = ({ fetchImpl, chromeImpl } = {}) => {
     };
     context.globalThis = context;
     vm.createContext(context);
+    vm.runInContext(aiClientConfigHelpersSource, context);
+    vm.runInContext(aiClientPromptHelpersSource, context);
+    vm.runInContext(aiClientRequestHelpersSource, context);
+    vm.runInContext(aiClientResponseHelpersSource, context);
     vm.runInContext(aiClientSource, context);
     return context.window.ChatSuggestions.AIClient;
 };
@@ -186,6 +206,45 @@ test('AIClient does not duplicate the other person profile in both system and us
 
     assert.match(systemPrompt, /Contexto sobre a outra pessoa \(perfil\):/);
     assert.doesNotMatch(userPrompt, /Perfil da outra pessoa:/);
+});
+
+test('AIClient prompt prioritizes the pending question over generic profile topics', () => {
+    const AIClient = loadAIClient();
+    const client = new AIClient({
+        apiKey: 'nvapi-test',
+        provider: 'nvidia',
+        model: 'meta/llama-3.1-8b-instruct',
+    });
+
+    const prompt = client.buildUserPrompt(
+        [
+            {
+                direction: 'out',
+                sender: 'Eu',
+                text: 'Uma conversa mais longa sobre nossos interesses em comum.',
+            },
+            { direction: 'in', sender: 'Mell', text: 'Gostei' },
+            {
+                direction: 'in',
+                sender: 'Mell',
+                text: 'O q gostaria de saber !!??',
+            },
+        ],
+        'Tenho 36 anos, moro em SP e curto leitura, academia e tecnologia.',
+        'Mell',
+        'long',
+        'Perfil: Mell, São Paulo. Interesses: leitura; YouTube; viagens.',
+        '',
+    );
+
+    assert.match(
+        prompt,
+        /PRIORIDADE MÁXIMA: responda diretamente à mensagem pendente antes de puxar assuntos amplos do perfil ou temas genéricos\./,
+    );
+    assert.match(
+        prompt,
+        /Se a outra pessoa perguntou o que eu quero saber, responda com exemplos concretos do que eu gostaria de saber sobre ela, sem desviar para uma lista genérica de interesses\./,
+    );
 });
 
 test('AIClient filters generic restart suggestions when the chat is already in progress', async () => {
