@@ -876,18 +876,23 @@
                     );
                 }
 
-                const aiSuggestions = await this.aiClient.generateSuggestions({
-                    messages,
-                    profile,
-                    otherPersonName,
-                    otherPersonProfile,
-                    otherPersonContextNote,
-                });
                 const aiHelpers = window.ChatSuggestions.ChatAIHelpers || {};
-                const { safe } = aiHelpers.normalizeAISuggestions(
-                    aiSuggestions,
-                    this.suggestionEngine.getDefaultSuggestions(),
-                );
+                const executionHelpers =
+                    window.ChatSuggestions.ChatAIExecutionHelpers || {};
+                const { safe } = await executionHelpers.runAIGeneration({
+                    aiClient: this.aiClient,
+                    fallbackSuggestions:
+                        this.suggestionEngine.getDefaultSuggestions(),
+                    request: (aiClient) =>
+                        aiClient.generateSuggestions({
+                            messages,
+                            profile,
+                            otherPersonName,
+                            otherPersonProfile,
+                            otherPersonContextNote,
+                        }),
+                    normalizeAISuggestions: aiHelpers.normalizeAISuggestions,
+                });
                 this.ui.render(safe, { isAI: true });
                 this.info('Sugestões de IA geradas', { total: safe.length });
             } catch (error) {
@@ -919,19 +924,26 @@
                 }
                 this.aiLoading = true;
                 this.ui.setAiLoading(true);
-                const aiSuggestions =
-                    await this.aiClient.generateSuggestionsWithPrompts({
-                        systemPrompt: this.applyPersonalityToSystemPrompt(
-                            prompts.systemPrompt,
-                            personality,
-                        ),
-                        userPrompt: prompts.userPrompt,
-                    });
                 const aiHelpers = window.ChatSuggestions.ChatAIHelpers || {};
-                const { safe, trimmed } = aiHelpers.normalizeAISuggestions(
-                    aiSuggestions,
-                    this.suggestionEngine.getDefaultSuggestions(),
-                );
+                const executionHelpers =
+                    window.ChatSuggestions.ChatAIExecutionHelpers || {};
+                const { safe, trimmed } =
+                    await executionHelpers.runAIGeneration({
+                        aiClient: this.aiClient,
+                        fallbackSuggestions:
+                            this.suggestionEngine.getDefaultSuggestions(),
+                        request: (aiClient) =>
+                            aiClient.generateSuggestionsWithPrompts({
+                                systemPrompt:
+                                    this.applyPersonalityToSystemPrompt(
+                                        prompts.systemPrompt,
+                                        personality,
+                                    ),
+                                userPrompt: prompts.userPrompt,
+                            }),
+                        normalizeAISuggestions:
+                            aiHelpers.normalizeAISuggestions,
+                    });
                 this.ui.render(safe, { isAI: true });
                 return trimmed;
             } catch (error) {
@@ -1023,16 +1035,23 @@
                         this.aiLoading = true;
                         this.ui.setAiLoading(true);
                         this.ui.setAiPromptSending(true);
-                        const aiSuggestions =
-                            await this.aiClient.generateSuggestionsWithPrompts({
-                                systemPrompt: editedSystem,
-                                userPrompt: editedUser,
-                            });
                         const aiHelpers =
                             window.ChatSuggestions.ChatAIHelpers || {};
-                        const { safe } = aiHelpers.normalizeAISuggestions(
-                            aiSuggestions,
-                            this.suggestionEngine.getDefaultSuggestions(),
+                        const executionHelpers =
+                            window.ChatSuggestions.ChatAIExecutionHelpers || {};
+                        const { safe } = await executionHelpers.runAIGeneration(
+                            {
+                                aiClient: this.aiClient,
+                                fallbackSuggestions:
+                                    this.suggestionEngine.getDefaultSuggestions(),
+                                request: (aiClient) =>
+                                    aiClient.generateSuggestionsWithPrompts({
+                                        systemPrompt: editedSystem,
+                                        userPrompt: editedUser,
+                                    }),
+                                normalizeAISuggestions:
+                                    aiHelpers.normalizeAISuggestions,
+                            },
                         );
                         this.ui.render(safe, { isAI: true });
                         this.info('Sugestões de IA geradas', {
