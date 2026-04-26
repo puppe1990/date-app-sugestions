@@ -47,6 +47,7 @@
                 "src/core/ai-prompt-builder.js",
                 "src/core/ai-client.js",
                 "src/suggestions/suggestion-helpers.js",
+                "src/suggestions/suggestion-response-helpers.js",
                 "src/suggestions/suggestion-engine.js",
                 "src/ui/suggestions-ui.js",
                 "src/core/chat-controller.js",

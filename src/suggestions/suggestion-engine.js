@@ -50,6 +50,8 @@
         }
 
         getContinuationSuggestions(context) {
+            const responseHelpers =
+                window.ChatSuggestions.SuggestionResponseHelpers || {};
             const suggestions = [];
 
             const myLastMessage = context.lastMessages
@@ -58,50 +60,23 @@
             const myLastText = myLastMessage
                 ? myLastMessage.text.toLowerCase()
                 : '';
-            const normalizedLastText = myLastText
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '');
-
-            const isTalkingAboutWork =
-                context.topics.includes('trabalho') ||
-                myLastText.includes('trabalho') ||
-                myLastText.includes('trabalha') ||
-                myLastText.includes('pedágio') ||
-                myLastText.includes('loja') ||
-                myLastText.includes('porcelanato') ||
-                myLastText.includes('engenheiro') ||
-                myLastText.includes('desenvolvedor') ||
-                myLastText.includes('software') ||
-                context.lastMessages.some(
-                    (m) =>
-                        m.text.toLowerCase().includes('trabalho') ||
-                        m.text.toLowerCase().includes('trabalha') ||
-                        m.text.toLowerCase().includes('pedágio') ||
-                        m.text.toLowerCase().includes('faz o que') ||
-                        m.text.toLowerCase().includes('profissão'),
-                );
+            const normalizedLastText =
+                responseHelpers.normalizeForMatch(myLastText);
+            const isTalkingAboutWork = responseHelpers.isWorkTopic({
+                context,
+                text: myLastText,
+            });
 
             if (myLastText.includes('?')) {
                 const isWellbeingQuestion =
-                    normalizedLastText.includes('tudo bem') ||
-                    normalizedLastText.includes('tudo certo') ||
-                    normalizedLastText.includes('como voce esta') ||
-                    normalizedLastText.includes('como vc esta') ||
-                    normalizedLastText.includes('como voce ta') ||
-                    normalizedLastText.includes('como vc ta') ||
-                    normalizedLastText.includes('como vai') ||
-                    normalizedLastText.includes('como esta');
+                    responseHelpers.isWellbeingQuestion(normalizedLastText);
 
                 if (isWellbeingQuestion) {
-                    suggestions.push('Tudo ótimo por aqui! E você, como está?');
                     suggestions.push(
-                        'Estou bem, obrigado por perguntar! Como foi seu dia?',
+                        ...responseHelpers.buildWellbeingReplies({
+                            mode: 'continuation',
+                        }),
                     );
-                    suggestions.push(
-                        'Tudo certo! O que você tem feito de bom hoje?',
-                    );
-                    suggestions.push('Tudo bem, e você? Como está seu dia?');
-                    suggestions.push('Estou ótimo! O que tem feito hoje?');
                     return suggestions;
                 } else if (
                     isTalkingAboutWork ||
@@ -215,50 +190,23 @@
         }
 
         getResponseSuggestions(context, lastMessage) {
+            const responseHelpers =
+                window.ChatSuggestions.SuggestionResponseHelpers || {};
             const suggestions = [];
             const text = lastMessage.text.toLowerCase();
-            const normalizedText = text
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '');
-
-            const isTalkingAboutWork =
-                context.topics.includes('trabalho') ||
-                text.includes('trabalho') ||
-                text.includes('trabalha') ||
-                text.includes('pedágio') ||
-                text.includes('pedagio') ||
-                text.includes('loja') ||
-                text.includes('porcelanato') ||
-                text.includes('meses') ||
-                text.includes('anos') ||
-                context.lastMessages.some(
-                    (m) =>
-                        m.text.toLowerCase().includes('trabalho') ||
-                        m.text.toLowerCase().includes('trabalha') ||
-                        m.text.toLowerCase().includes('faz o que') ||
-                        m.text.toLowerCase().includes('profissão'),
-                );
-
+            const normalizedText = responseHelpers.normalizeForMatch(text);
+            const isTalkingAboutWork = responseHelpers.isWorkTopic({
+                context,
+                text,
+            });
             const isWellbeingQuestion =
-                normalizedText.includes('tudo bem') ||
-                normalizedText.includes('tudo certo') ||
-                normalizedText.includes('como voce esta') ||
-                normalizedText.includes('como vc esta') ||
-                normalizedText.includes('como voce ta') ||
-                normalizedText.includes('como vc ta') ||
-                normalizedText.includes('como vai') ||
-                normalizedText.includes('como esta');
+                responseHelpers.isWellbeingQuestion(normalizedText);
 
             if (isWellbeingQuestion) {
                 suggestions.push(
-                    'Estou bem, obrigado por perguntar! Como você está?',
-                );
-                suggestions.push('Tudo ótimo por aqui. Como está seu dia?');
-                suggestions.push(
-                    'Tudo certo! O que você tem feito de bom hoje?',
-                );
-                suggestions.push(
-                    'Estou bem, e você? Como foi seu dia até agora?',
+                    ...responseHelpers.buildWellbeingReplies({
+                        mode: 'response',
+                    }),
                 );
                 return suggestions;
             }
@@ -367,14 +315,14 @@
 
             if (isTalkingAboutWork) {
                 if (mentionsTime) {
-                    suggestions.push('Que legal!');
-                    suggestions.push('Gosta do que faz?');
-                    suggestions.push('Como é trabalhar nisso?');
-                    if (!this.hasTopicBeenDiscussed(context, 'localização')) {
-                        suggestions.push('E você, mora onde?');
-                    }
                     suggestions.push(
-                        'O que você gosta de fazer no tempo livre?',
+                        ...responseHelpers.buildWorkReplies({
+                            includeLocationFollowUp:
+                                !this.hasTopicBeenDiscussed(
+                                    context,
+                                    'localização',
+                                ),
+                        }),
                     );
                     return suggestions;
                 } else if (mentionsWork && !isQuestion) {
