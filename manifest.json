@@ -44,6 +44,7 @@
                 "src/core/chat-observer-helpers.js",
                 "src/core/chat-copy-helpers.js",
                 "src/core/chat-config-helpers.js",
+                "src/core/chat-ai-helpers.js",
                 "src/core/contact-context-manager.js",
                 "src/core/profile-parser.js",
                 "src/core/ai-prompt-builder.js",

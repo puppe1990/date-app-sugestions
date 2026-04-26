@@ -32,6 +32,10 @@ const chatConfigHelpersSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'chat-config-helpers.js'),
     'utf8',
 );
+const chatAIHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-ai-helpers.js'),
+    'utf8',
+);
 const aiClientSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'ai-client.js'),
     'utf8',
@@ -78,6 +82,9 @@ function loadChatController() {
     });
     vm.runInNewContext(chatConfigHelpersSource, sandbox, {
         filename: 'chat-config-helpers.js',
+    });
+    vm.runInNewContext(chatAIHelpersSource, sandbox, {
+        filename: 'chat-ai-helpers.js',
     });
     vm.runInNewContext(controllerSource, sandbox, {
         filename: 'chat-controller.js',
