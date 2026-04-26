@@ -302,6 +302,123 @@ test('WhatsApp reader ignores nested duplicate nodes from the same message', () 
     ]);
 });
 
+test('WhatsApp reader ignores msg-container nodes nested inside message wrappers', () => {
+    const defaults = loadWhatsAppDefaults();
+    const MessageReader = loadMessageReader();
+    const reader = new MessageReader(defaults.messageReaderConfig);
+
+    const textNode = {
+        matches(selector) {
+            return selector.includes('span[data-testid="selectable-text"]');
+        },
+        textContent: 'Mas to bem',
+    };
+    const nestedPlainTextNode = {
+        getAttribute(name) {
+            if (name === 'data-pre-plain-text') {
+                return '[11:06, 26/04/2026] +55 11 98877-6262: ';
+            }
+            return '';
+        },
+    };
+
+    const wrapperNode = {
+        querySelector(selector) {
+            if (selector.includes('span[data-testid="selectable-text"]')) {
+                return textNode;
+            }
+            if (selector.includes('[data-pre-plain-text]')) {
+                return nestedPlainTextNode;
+            }
+            return null;
+        },
+        querySelectorAll() {
+            return [];
+        },
+        getAttribute() {
+            return '';
+        },
+        textContent: 'Mas to bem 11:06',
+        classList: {
+            contains(value) {
+                return value === 'message-in';
+            },
+        },
+        closest(selector) {
+            if (selector === 'div.message-in') return this;
+            if (selector === 'div.message-out') return null;
+            if (selector.includes('div.message-in')) return this;
+            return null;
+        },
+    };
+
+    const nestedMsgContainerNode = {
+        matches(selector) {
+            return selector === 'div[data-testid="msg-container"]';
+        },
+        querySelector(selector) {
+            if (selector.includes('span[data-testid="selectable-text"]')) {
+                return textNode;
+            }
+            return null;
+        },
+        querySelectorAll() {
+            return [];
+        },
+        getAttribute(name) {
+            if (name === 'data-pre-plain-text') {
+                return '[11:06, 26/04/2026] +55 11 98877-6262: ';
+            }
+            return '';
+        },
+        textContent: 'Mas to bem 11:06',
+        classList: {
+            contains() {
+                return false;
+            },
+        },
+        closest(selector) {
+            if (selector === 'div.message-in') return wrapperNode;
+            if (selector === 'div.message-out') return null;
+            if (selector.includes('div[data-testid="msg-container"]')) {
+                return this;
+            }
+            if (selector.includes('div.message-in')) return wrapperNode;
+            return null;
+        },
+    };
+    nestedMsgContainerNode.parentElement = {
+        closest(selector) {
+            if (selector.includes('div.message-in')) return wrapperNode;
+            return null;
+        },
+    };
+
+    const container = {
+        querySelectorAll() {
+            return [wrapperNode, nestedMsgContainerNode];
+        },
+    };
+
+    const messages = reader.read(container);
+
+    const normalized = Array.from(messages).map((message) => ({
+        sender: message.sender,
+        text: message.text,
+        direction: message.direction,
+        type: message.type,
+    }));
+
+    assert.deepEqual(normalized, [
+        {
+            sender: '+55 11 98877-6262',
+            text: 'Mas to bem',
+            direction: 'in',
+            type: 'text',
+        },
+    ]);
+});
+
 test('WhatsApp reader does not treat bare timestamps as message text', () => {
     const defaults = loadWhatsAppDefaults();
     const MessageReader = loadMessageReader();
@@ -335,6 +452,140 @@ test('WhatsApp reader does not treat bare timestamps as message text', () => {
     const container = {
         querySelectorAll() {
             return [noisyNode];
+        },
+    };
+
+    const messages = reader.read(container);
+
+    assert.deepEqual(Array.from(messages), []);
+});
+
+test('WhatsApp reader falls back to copyable-text nodes only when wrappers are absent', () => {
+    const defaults = loadWhatsAppDefaults();
+    const MessageReader = loadMessageReader();
+    const reader = new MessageReader(defaults.messageReaderConfig);
+
+    const wrapperNode = {
+        querySelector(selector) {
+            if (selector.includes('span[data-testid="selectable-text"]')) {
+                return { textContent: 'Mas to bem' };
+            }
+            return null;
+        },
+        querySelectorAll() {
+            return [];
+        },
+        getAttribute() {
+            return '';
+        },
+        textContent: 'Mas to bem 11:06',
+        classList: {
+            contains(value) {
+                return value === 'message-in';
+            },
+        },
+        closest(selector) {
+            if (selector === 'div.message-in') return this;
+            return null;
+        },
+    };
+
+    const duplicateFallbackNode = {
+        querySelector() {
+            return null;
+        },
+        querySelectorAll() {
+            return [];
+        },
+        getAttribute(name) {
+            if (name === 'data-pre-plain-text') {
+                return '[11:06, 26/04/2026] +55 11 98877-6262: ';
+            }
+            return '';
+        },
+        textContent: 'Mas to bem',
+        classList: {
+            contains() {
+                return false;
+            },
+        },
+        closest(selector) {
+            if (selector.includes('div.message-in')) return wrapperNode;
+            if (selector.includes('div[data-testid="msg-container"]')) {
+                return null;
+            }
+            return null;
+        },
+    };
+
+    const container = {
+        querySelectorAll(selector) {
+            if (selector === defaults.messageReaderConfig.messageSelector) {
+                return [wrapperNode];
+            }
+            if (
+                selector ===
+                defaults.messageReaderConfig.fallbackMessageSelector
+            ) {
+                return [duplicateFallbackNode];
+            }
+            return [];
+        },
+    };
+
+    const messages = reader.read(container);
+
+    const normalized = Array.from(messages).map((message) => ({
+        sender: message.sender,
+        text: message.text,
+        direction: message.direction,
+        type: message.type,
+    }));
+
+    assert.deepEqual(normalized, [
+        {
+            sender: 'Outro',
+            text: 'Mas to bem',
+            direction: 'in',
+            type: 'text',
+        },
+    ]);
+});
+
+test('WhatsApp reader ignores one-time-view privacy placeholders', () => {
+    const defaults = loadWhatsAppDefaults();
+    const MessageReader = loadMessageReader();
+    const reader = new MessageReader(defaults.messageReaderConfig);
+
+    const placeholderNode = {
+        querySelector() {
+            return null;
+        },
+        querySelectorAll() {
+            return [];
+        },
+        getAttribute(name) {
+            if (name === 'data-pre-plain-text') {
+                return '[11:07, 26/04/2026] +55 11 98877-6262: ';
+            }
+            return '';
+        },
+        textContent:
+            'Você recebeu uma mensagem de visualização única. Por motivos de privacidade, você só pode abrir essa mensagem no seu celular. Saiba mais 11:07',
+        classList: {
+            contains(value) {
+                return value === 'message-in';
+            },
+        },
+        closest(selector) {
+            if (selector === 'div.message-in') return this;
+            return null;
+        },
+    };
+
+    const container = {
+        querySelectorAll() {
+            return [placeholderNode];
         },
     };
 

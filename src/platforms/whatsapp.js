@@ -5,7 +5,31 @@
     const whatsappTextSelector =
         'span[data-testid="selectable-text"], span.selectable-text.copyable-text span';
     const whatsappRootSelector =
-        'div[data-testid="msg-container"], div.message-in, div.message-out, div.copyable-text[data-pre-plain-text], div[data-pre-plain-text]';
+        'div[data-testid="msg-container"], div.message-in, div.message-out';
+    const whatsappFallbackRootSelector =
+        'div.copyable-text[data-pre-plain-text], div[data-pre-plain-text]';
+    const whatsappAnyRootSelector = `${whatsappRootSelector}, ${whatsappFallbackRootSelector}`;
+
+    function shouldIgnoreFallbackText(text) {
+        const normalized = String(text || '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        if (!normalized) return true;
+        if (/^\d{1,2}:\d{2}$/.test(normalized)) return true;
+        return normalized.startsWith(
+            'Você recebeu uma mensagem de visualização única.',
+        );
+    }
+
+    function findAncestorRoot(node) {
+        const closestRoot = node?.closest?.(whatsappAnyRootSelector) || null;
+        if (closestRoot && closestRoot !== node) {
+            return closestRoot;
+        }
+        const parent = node?.parentElement || node?.parentNode || null;
+        if (!parent || typeof parent.closest !== 'function') return null;
+        return parent.closest(whatsappAnyRootSelector);
+    }
 
     registry.register('whatsapp', {
         chatContainerSelector: 'body',
@@ -17,15 +41,15 @@
         profileContainerSelector: '#main header',
         messageReaderConfig: {
             messageSelector: whatsappRootSelector,
+            fallbackMessageSelector: whatsappFallbackRootSelector,
             textSelector: whatsappTextSelector,
             senderSelector: null,
             allowTextContentFallback: false,
             nodeFilter: (node) => {
                 try {
                     if (!node) return false;
-                    const parentMessage =
-                        node.closest?.(whatsappRootSelector) || null;
-                    if (parentMessage && parentMessage !== node) {
+                    const parentMessage = findAncestorRoot(node);
+                    if (parentMessage) {
                         return false;
                     }
                     const hasText =
@@ -63,7 +87,7 @@
                         const fallback = String(node.textContent || '')
                             .replace(/\s+/g, ' ')
                             .trim();
-                        if (/^\d{1,2}:\d{2}$/.test(fallback)) {
+                        if (shouldIgnoreFallbackText(fallback)) {
                             return '';
                         }
                         return fallback;
