@@ -35,51 +35,6 @@
         });
     }
 
-    function setAIResponseLength(responseLength) {
-        const value = String(responseLength || '').toLowerCase();
-        const allowed = new Set(['short', 'medium', 'long']);
-        const next = allowed.has(value) ? value : 'short';
-
-        this.aiClientConfig = this.aiClientConfig || {};
-        this.aiClientConfig.responseLength = next;
-
-        if (this.aiClient) {
-            this.aiClient.responseLength = next;
-        }
-
-        try {
-            window.badooChatSuggestionsConfig =
-                window.badooChatSuggestionsConfig || {};
-            window.badooChatSuggestionsConfig.aiResponseLength = next;
-        } catch (e) {
-            // Ignora
-        }
-
-        try {
-            if (chrome?.storage?.local) {
-                chrome.storage.local.set({ aiResponseLength: next });
-            } else {
-                localStorage.setItem('bcs:aiResponseLength', next);
-            }
-        } catch (e) {
-            // Ignora
-        }
-
-        try {
-            if (this.ui && typeof this.ui.showToast === 'function') {
-                const label =
-                    next === 'short'
-                        ? 'Curta'
-                        : next === 'medium'
-                          ? 'Média'
-                          : 'Longa';
-                this.ui.showToast(`Respostas: ${label}`);
-            }
-        } catch (e) {
-            // Ignora
-        }
-    }
-
     async function generateAISuggestions() {
         if (this.aiLoading) return;
         if (!this.aiClient) {
@@ -92,8 +47,12 @@
         }
 
         try {
-            this.aiLoading = true;
-            this.ui.setAiLoading(true);
+            const executionHelpers =
+                window.ChatSuggestions.ChatAIExecutionHelpers || {};
+            executionHelpers.setAIRequestState({
+                controller: this,
+                loading: true,
+            });
             const context = this.contextExtractor.extract(this.chatContainer, {
                 fullHistory: true,
             });
@@ -116,13 +75,8 @@
                 );
             }
 
-            const aiHelpers = window.ChatSuggestions.ChatAIHelpers || {};
-            const executionHelpers =
-                window.ChatSuggestions.ChatAIExecutionHelpers || {};
-            const { safe } = await executionHelpers.runAIGeneration({
-                aiClient: this.aiClient,
-                fallbackSuggestions:
-                    this.suggestionEngine.getDefaultSuggestions(),
+            const { safe } = await executionHelpers.runControllerAIGeneration({
+                controller: this,
                 request: (aiClient) =>
                     aiClient.generateSuggestions({
                         messages,
@@ -131,18 +85,20 @@
                         otherPersonProfile,
                         otherPersonContextNote,
                     }),
-                normalizeAISuggestions: aiHelpers.normalizeAISuggestions,
             });
-            this.ui.render(safe, { isAI: true });
-            this.info('Sugestões de IA geradas', { total: safe.length });
+            return safe;
         } catch (error) {
             console.error('[Chat Suggestions] Erro ao gerar via IA', error);
             alert(
                 `Não foi possível gerar sugestões via IA.\n${error.message || ''}`,
             );
         } finally {
-            this.aiLoading = false;
-            this.ui.setAiLoading(false);
+            const executionHelpers =
+                window.ChatSuggestions.ChatAIExecutionHelpers || {};
+            executionHelpers.setAIRequestState({
+                controller: this,
+                loading: false,
+            });
         }
     }
 
@@ -162,26 +118,24 @@
             if (!prompts || !prompts.systemPrompt || !prompts.userPrompt) {
                 return '';
             }
-            this.aiLoading = true;
-            this.ui.setAiLoading(true);
-            const aiHelpers = window.ChatSuggestions.ChatAIHelpers || {};
             const executionHelpers =
                 window.ChatSuggestions.ChatAIExecutionHelpers || {};
-            const { safe, trimmed } = await executionHelpers.runAIGeneration({
-                aiClient: this.aiClient,
-                fallbackSuggestions:
-                    this.suggestionEngine.getDefaultSuggestions(),
-                request: (aiClient) =>
-                    aiClient.generateSuggestionsWithPrompts({
-                        systemPrompt: this.applyPersonalityToSystemPrompt(
-                            prompts.systemPrompt,
-                            personality,
-                        ),
-                        userPrompt: prompts.userPrompt,
-                    }),
-                normalizeAISuggestions: aiHelpers.normalizeAISuggestions,
+            executionHelpers.setAIRequestState({
+                controller: this,
+                loading: true,
             });
-            this.ui.render(safe, { isAI: true });
+            const { trimmed } =
+                await executionHelpers.runControllerAIGeneration({
+                    controller: this,
+                    request: (aiClient) =>
+                        aiClient.generateSuggestionsWithPrompts({
+                            systemPrompt: this.applyPersonalityToSystemPrompt(
+                                prompts.systemPrompt,
+                                personality,
+                            ),
+                            userPrompt: prompts.userPrompt,
+                        }),
+                });
             return trimmed;
         } catch (error) {
             console.error('[Chat Suggestions] Erro ao responder com IA', error);
@@ -190,8 +144,12 @@
             );
             return '';
         } finally {
-            this.aiLoading = false;
-            this.ui.setAiLoading(false);
+            const executionHelpers =
+                window.ChatSuggestions.ChatAIExecutionHelpers || {};
+            executionHelpers.setAIRequestState({
+                controller: this,
+                loading: false,
+            });
         }
     }
 
@@ -262,30 +220,22 @@
             }) => {
                 if (this.aiLoading) return;
                 try {
-                    this.aiLoading = true;
-                    this.ui.setAiLoading(true);
-                    this.ui.setAiPromptSending(true);
-                    const aiHelpers =
-                        window.ChatSuggestions.ChatAIHelpers || {};
                     const executionHelpers =
                         window.ChatSuggestions.ChatAIExecutionHelpers || {};
-                    const { safe } = await executionHelpers.runAIGeneration({
-                        aiClient: this.aiClient,
-                        fallbackSuggestions:
-                            this.suggestionEngine.getDefaultSuggestions(),
+                    executionHelpers.setAIRequestState({
+                        controller: this,
+                        loading: true,
+                        sendingPrompt: true,
+                    });
+                    await executionHelpers.runControllerAIGeneration({
+                        controller: this,
                         request: (aiClient) =>
                             aiClient.generateSuggestionsWithPrompts({
                                 systemPrompt: editedSystem,
                                 userPrompt: editedUser,
                             }),
-                        normalizeAISuggestions:
-                            aiHelpers.normalizeAISuggestions,
+                        closePromptModal: true,
                     });
-                    this.ui.render(safe, { isAI: true });
-                    this.info('Sugestões de IA geradas', {
-                        total: safe.length,
-                    });
-                    this.ui.closeAiPromptModal();
                 } catch (error) {
                     console.error(
                         '[Chat Suggestions] Erro ao gerar via IA',
@@ -295,99 +245,24 @@
                         `Não foi possível gerar sugestões via IA.\n${error.message || ''}`,
                     );
                 } finally {
-                    this.aiLoading = false;
-                    this.ui.setAiLoading(false);
-                    this.ui.setAiPromptSending(false);
+                    const executionHelpers =
+                        window.ChatSuggestions.ChatAIExecutionHelpers || {};
+                    executionHelpers.setAIRequestState({
+                        controller: this,
+                        loading: false,
+                    });
                 }
             },
         });
     }
 
-    function getCurrentHost() {
-        const configHelpers = window.ChatSuggestions.ChatConfigHelpers || {};
-        return configHelpers.getCurrentHost(location.href);
-    }
-
-    function attachConfigListener() {
-        if (!chrome?.storage?.onChanged || this.boundStorageChange) return;
-        this.boundStorageChange = (changes, areaName) => {
-            if (areaName !== 'local') return;
-            const configHelpers =
-                window.ChatSuggestions.ChatConfigHelpers || {};
-            const shouldRefresh =
-                configHelpers.shouldRefreshBusinessMode(changes);
-            if (!shouldRefresh) return;
-            this.refreshBusinessModeFromStorage();
-        };
-        chrome.storage.onChanged.addListener(this.boundStorageChange);
-    }
-
-    function refreshBusinessModeFromStorage() {
-        if (!chrome?.storage?.local) return;
-        chrome.storage.local.get(
-            [
-                'businessModeEnabled',
-                'businessModeByHost',
-                'businessContext',
-                'businessTone',
-                'openRouterProfileCasual',
-                'openRouterProfileBusiness',
-            ],
-            (result) => {
-                const configHelpers =
-                    window.ChatSuggestions.ChatConfigHelpers || {};
-                this.updateBusinessModeConfig(
-                    configHelpers.buildBusinessModeConfig({
-                        result,
-                        host: this.getCurrentHost(),
-                    }),
-                );
-            },
-        );
-    }
-
-    function updateBusinessModeConfig({
-        businessModeEnabled,
-        businessContext,
-        businessTone,
-        profileCasual,
-        profileBusiness,
-    }) {
-        const mode = businessModeEnabled ? 'business' : 'casual';
-        const profile = mode === 'business' ? profileBusiness : profileCasual;
-        this.aiClientConfig = this.aiClientConfig || {};
-        this.aiClientConfig.businessModeEnabled = Boolean(businessModeEnabled);
-        this.aiClientConfig.businessContext = businessContext || '';
-        this.aiClientConfig.businessTone = businessTone || 'consultivo';
-        this.aiClientConfig.profile = profile || '';
-
-        if (this.aiClient) {
-            this.aiClient.businessModeEnabled = Boolean(businessModeEnabled);
-            this.aiClient.businessContext = businessContext || '';
-            this.aiClient.businessTone = businessTone || 'consultivo';
-            this.aiClient.profile = profile || '';
-        }
-
-        if (
-            this.ui &&
-            typeof this.ui.applyConversationModeTheme === 'function'
-        ) {
-            this.ui.applyConversationModeTheme(mode);
-        }
-    }
-
     const api = {
         applyPersonalityToSystemPrompt,
-        attachConfigListener,
         buildAIPrompts,
         createAIClient,
         generateAIReplySuggestions,
         generateAISuggestions,
-        getCurrentHost,
         openAIPromptModal,
-        refreshBusinessModeFromStorage,
-        setAIResponseLength,
-        updateBusinessModeConfig,
     };
 
     if (typeof module !== 'undefined' && module.exports) {

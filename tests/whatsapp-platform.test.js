@@ -50,6 +50,16 @@ const chatProfileLifecycleHelpersSource = fs.readFileSync(
     ),
     'utf8',
 );
+const chatControllerAIConfigHelpersSource = fs.readFileSync(
+    path.join(
+        __dirname,
+        '..',
+        'src',
+        'core',
+        'chat-controller-ai-config-helpers.js',
+    ),
+    'utf8',
+);
 const chatAIExecutionHelpersSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'chat-ai-execution-helpers.js'),
     'utf8',
@@ -160,6 +170,9 @@ function loadChatController({ document }) {
     });
     vm.runInNewContext(chatProfileLifecycleHelpersSource, sandbox, {
         filename: 'chat-profile-lifecycle-helpers.js',
+    });
+    vm.runInNewContext(chatControllerAIConfigHelpersSource, sandbox, {
+        filename: 'chat-controller-ai-config-helpers.js',
     });
     vm.runInNewContext(chatAIExecutionHelpersSource, sandbox, {
         filename: 'chat-ai-execution-helpers.js',

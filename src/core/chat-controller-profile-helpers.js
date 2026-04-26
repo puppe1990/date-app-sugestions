@@ -12,12 +12,7 @@
             return;
         }
 
-        const triggerSelectors = [
-            '#page-container .mini-profile__user-info',
-            '.mini-profile__user-info',
-            '[data-qa="mini-profile-user-info"]',
-            '[data-qa="mini-profile"] .mini-profile__user-info',
-        ];
+        const triggerSelectors = helpers.getProfileTriggerSelectors();
 
         this.profileClickHandler = (event) => {
             try {
@@ -234,22 +229,19 @@
                 this.cachedOtherPersonProfileName &&
                 currentName !== this.cachedOtherPersonProfileName
             ) {
-                this.cachedOtherPersonProfileText = '';
-                this.cachedOtherPersonProfileUpdatedAt = 0;
-                this.cachedOtherPersonProfileName = '';
+                const helpers =
+                    window.ChatSuggestions.ChatProfileLifecycleHelpers || {};
+                helpers.resetProfileCache(this);
                 return '';
             }
             return this.cachedOtherPersonProfileText;
         }
 
-        const selectors = [];
-        if (this.profileContainerSelector) {
-            selectors.push(this.profileContainerSelector);
-        }
-        selectors.push('.mini-profile__user-info');
-        selectors.push('[data-qa="mini-profile-user-info"]');
-        selectors.push('#main-content [data-testid="profileCard"]');
-        selectors.push('#main-content [data-testid="profile"]');
+        const helpers =
+            window.ChatSuggestions.ChatProfileLifecycleHelpers || {};
+        const selectors = helpers.getProfileTextSelectors(
+            this.profileContainerSelector,
+        );
 
         let el = null;
         for (const sel of selectors) {
@@ -281,22 +273,11 @@
     }
 
     function extractOtherPersonName() {
-        const selectors = [
+        const helpers =
+            window.ChatSuggestions.ChatProfileLifecycleHelpers || {};
+        const selectors = helpers.getOtherPersonNameSelectors(
             this.otherPersonNameSelector,
-            '.navigation-profile .csms-profile-info__name-inner',
-            '.navigation-profile .csms-a11y-visually-hidden',
-            '[data-qa="profile-info__name"] .csms-profile-info__name-inner',
-            '.csms-profile-info__name-inner',
-            '[data-qa="profile-info__name"]',
-            '[data-qa="mini-profile-user-info__heading"] [data-qa="profile-info__name"]',
-        ]
-            .filter(Boolean)
-            .flatMap((selector) =>
-                String(selector || '')
-                    .split(',')
-                    .map((item) => item.trim())
-                    .filter(Boolean),
-            );
+        );
         const parser = window.ChatSuggestions.ProfileParser || {};
         if (typeof parser.extractOtherPersonName !== 'function') {
             for (const selector of selectors) {

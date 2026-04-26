@@ -16,6 +16,50 @@
             .find(Boolean);
     }
 
+    function getProfileTriggerSelectors() {
+        return [
+            '#page-container .mini-profile__user-info',
+            '.mini-profile__user-info',
+            '[data-qa="mini-profile-user-info"]',
+            '[data-qa="mini-profile"] .mini-profile__user-info',
+        ];
+    }
+
+    function getProfileTextSelectors(profileContainerSelector) {
+        return [
+            profileContainerSelector,
+            '.mini-profile__user-info',
+            '[data-qa="mini-profile-user-info"]',
+            '#main-content [data-testid="profileCard"]',
+            '#main-content [data-testid="profile"]',
+        ].filter(Boolean);
+    }
+
+    function getOtherPersonNameSelectors(otherPersonNameSelector) {
+        return [
+            otherPersonNameSelector,
+            '.navigation-profile .csms-profile-info__name-inner',
+            '.navigation-profile .csms-a11y-visually-hidden',
+            '[data-qa="profile-info__name"] .csms-profile-info__name-inner',
+            '.csms-profile-info__name-inner',
+            '[data-qa="profile-info__name"]',
+            '[data-qa="mini-profile-user-info__heading"] [data-qa="profile-info__name"]',
+        ]
+            .filter(Boolean)
+            .flatMap((selector) =>
+                String(selector)
+                    .split(',')
+                    .map((item) => item.trim()),
+            )
+            .filter(Boolean);
+    }
+
+    function resetProfileCache(controller) {
+        controller.cachedOtherPersonProfileText = '';
+        controller.cachedOtherPersonProfileUpdatedAt = 0;
+        controller.cachedOtherPersonProfileName = '';
+    }
+
     function buildProfileCacheState({ text, previousText, name, now }) {
         return {
             changed: text !== previousText,
@@ -43,6 +87,10 @@
     const api = {
         shouldSetupProfileCapture,
         findProfileTrigger,
+        getProfileTriggerSelectors,
+        getProfileTextSelectors,
+        getOtherPersonNameSelectors,
+        resetProfileCache,
         buildProfileCacheState,
         shouldStopProfileObserver,
     };

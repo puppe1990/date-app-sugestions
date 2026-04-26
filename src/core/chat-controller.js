@@ -183,6 +183,8 @@
         }
 
         handleConversationChanged() {
+            const profileHelpers =
+                window.ChatSuggestions.ChatProfileLifecycleHelpers || {};
             const current = this.chatContainer;
             const next = document.querySelector(this.chatContainerSelector);
             if (next && next !== current) {
@@ -197,9 +199,7 @@
             this.lastMessageCount = 0;
             this.refreshContactContext({ force: true });
             this.updateSuggestions();
-            this.cachedOtherPersonProfileText = '';
-            this.cachedOtherPersonProfileUpdatedAt = 0;
-            this.cachedOtherPersonProfileName = '';
+            profileHelpers.resetProfileCache(this);
             this.info('Conversa alterada; sugestões atualizadas');
         }
 
@@ -332,6 +332,7 @@
     const helpers = window.ChatSuggestions || {};
     Object.assign(
         ChatSuggestionsController.prototype,
+        helpers.ChatControllerAIConfigHelpers || {},
         helpers.ChatControllerContextHelpers || {},
         helpers.ChatControllerProfileHelpers || {},
         helpers.ChatControllerAIActions || {},
