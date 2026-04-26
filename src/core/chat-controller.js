@@ -143,8 +143,17 @@
         }
 
         setupProfileCapture() {
-            if (this.profilePortalObserver || this.profileClickHandler) return;
-            if (this.platform && this.platform !== 'badoo') return;
+            const helpers =
+                window.ChatSuggestions.ChatProfileLifecycleHelpers || {};
+            if (
+                !helpers.shouldSetupProfileCapture({
+                    platform: this.platform,
+                    hasObserver: Boolean(this.profilePortalObserver),
+                    hasClickHandler: Boolean(this.profileClickHandler),
+                })
+            ) {
+                return;
+            }
 
             const triggerSelectors = [
                 '#page-container .mini-profile__user-info',
@@ -156,10 +165,10 @@
             this.profileClickHandler = (event) => {
                 try {
                     const target = event && event.target;
-                    if (!target || !target.closest) return;
-                    const trigger = triggerSelectors
-                        .map((sel) => target.closest(sel))
-                        .find(Boolean);
+                    const trigger = helpers.findProfileTrigger({
+                        target,
+                        triggerSelectors,
+                    });
                     if (!trigger) return;
                     if (this.debug) {
                         console.info(
@@ -181,14 +190,22 @@
         }
 
         waitForBadooProfilePortalAndCache({ timeoutMs = 7000 } = {}) {
+            const helpers =
+                window.ChatSuggestions.ChatProfileLifecycleHelpers || {};
             const tryCapture = () => {
                 const text = this.extractBadooProfileTextFromPortal();
                 if (text) {
-                    const changed = text !== this.cachedOtherPersonProfileText;
-                    this.cachedOtherPersonProfileText = text;
-                    this.cachedOtherPersonProfileUpdatedAt = Date.now();
-                    const name = this.extractOtherPersonName();
-                    if (name) this.cachedOtherPersonProfileName = name;
+                    const nextState = helpers.buildProfileCacheState({
+                        text,
+                        previousText: this.cachedOtherPersonProfileText,
+                        name: this.extractOtherPersonName(),
+                        now: Date.now(),
+                    });
+                    const changed = nextState.changed;
+                    this.cachedOtherPersonProfileText = nextState.cache.text;
+                    this.cachedOtherPersonProfileUpdatedAt =
+                        nextState.cache.updatedAt;
+                    this.cachedOtherPersonProfileName = nextState.cache.name;
                     if (changed) {
                         this.info('Perfil atualizado (Badoo)', {
                             chars: text.length,
@@ -231,15 +248,14 @@
 
                 const elapsed = Date.now() - startedAt;
                 const settledFor = Date.now() - lastChangeAt;
-                const hasBio = (
-                    this.cachedOtherPersonProfileText || ''
-                ).includes('Sobre mim:');
 
                 if (
-                    elapsed > timeoutMs ||
-                    (this.cachedOtherPersonProfileText &&
-                        settledFor > 800 &&
-                        (hasBio || elapsed > 1500))
+                    helpers.shouldStopProfileObserver({
+                        elapsed,
+                        timeoutMs,
+                        settledFor,
+                        cachedText: this.cachedOtherPersonProfileText,
+                    })
                 ) {
                     if (this.debug) {
                         console.info(
@@ -247,7 +263,9 @@
                             {
                                 elapsedMs: elapsed,
                                 settledForMs: settledFor,
-                                hasBio,
+                                hasBio: (
+                                    this.cachedOtherPersonProfileText || ''
+                                ).includes('Sobre mim:'),
                                 cachedChars: this.cachedOtherPersonProfileText
                                     ? this.cachedOtherPersonProfileText.length
                                     : 0,
