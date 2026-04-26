@@ -46,6 +46,7 @@
                 "src/core/chat-config-helpers.js",
                 "src/core/chat-ai-helpers.js",
                 "src/core/chat-ai-execution-helpers.js",
+                "src/core/chat-cleanup-helpers.js",
                 "src/core/chat-profile-lifecycle-helpers.js",
                 "src/core/contact-context-manager.js",
                 "src/core/profile-parser.js",

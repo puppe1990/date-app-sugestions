@@ -1077,66 +1077,14 @@
 
         cleanup() {
             this.info('Limpando observadores e UI');
-            if (this.chatObserver) {
-                this.chatObserver.disconnect();
-                this.chatObserver = null;
-            }
-
-            if (this.platformObserver) {
-                this.platformObserver.disconnect();
-                this.platformObserver = null;
-            }
-
-            if (this.profilePortalObserver) {
-                this.profilePortalObserver.disconnect();
-                this.profilePortalObserver = null;
-            }
-
-            if (this.profileClickHandler) {
-                document.removeEventListener(
-                    'click',
-                    this.profileClickHandler,
-                    true,
-                );
-                this.profileClickHandler = null;
-            }
-
-            if (this.messageCheckInterval) {
-                clearInterval(this.messageCheckInterval);
-                this.messageCheckInterval = null;
-            }
-
-            if (this.periodicUpdateInterval) {
-                clearInterval(this.periodicUpdateInterval);
-                this.periodicUpdateInterval = null;
-            }
-
-            if (this.updateTimeout) {
-                clearTimeout(this.updateTimeout);
-                this.updateTimeout = null;
-            }
-
-            if (this.initRetryTimeout) {
-                clearTimeout(this.initRetryTimeout);
-                this.initRetryTimeout = null;
-            }
-
-            if (this.ui) {
-                this.ui.destroy();
-                this.ui = null;
-            }
-
-            if (this.boundStorageChange && chrome?.storage?.onChanged) {
-                chrome.storage.onChanged.removeListener(
-                    this.boundStorageChange,
-                );
-                this.boundStorageChange = null;
-            }
-
-            this.chatContainer = null;
-            this.contextExtractor = null;
-            this.suggestionEngine = null;
-            this.lastMessageCount = 0;
+            const cleanupHelpers =
+                window.ChatSuggestions.ChatCleanupHelpers || {};
+            cleanupHelpers.cleanupControllerState(this, {
+                document,
+                chrome,
+                clearInterval,
+                clearTimeout,
+            });
         }
 
         getCurrentHost() {

@@ -54,6 +54,10 @@ const chatAIExecutionHelpersSource = fs.readFileSync(
     path.join(__dirname, '..', 'src', 'core', 'chat-ai-execution-helpers.js'),
     'utf8',
 );
+const chatCleanupHelpersSource = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'core', 'chat-cleanup-helpers.js'),
+    'utf8',
+);
 
 function loadWhatsAppDefaults() {
     const sandbox = {
@@ -135,6 +139,9 @@ function loadChatController({ document }) {
     });
     vm.runInNewContext(chatAIExecutionHelpersSource, sandbox, {
         filename: 'chat-ai-execution-helpers.js',
+    });
+    vm.runInNewContext(chatCleanupHelpersSource, sandbox, {
+        filename: 'chat-cleanup-helpers.js',
     });
     vm.runInNewContext(controllerSource, sandbox, {
         filename: 'chat-controller.js',
